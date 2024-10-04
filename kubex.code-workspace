@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../../tomplus/kubernetes_asyncio"
+		}
+	],
+	"settings": {}
+}
