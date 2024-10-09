@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, FilePath, HttpUrl
 class RawExtension(BaseModel):
     """RawExtension is used to hold extensions in external versions"""
 
-    raw: bytes = None
+    raw: bytes | None = None
     """Raw is the underlying serialization of this object."""
     object_: dict[str, typing.Any] | None = Field(None, alias="object")
     """Object can hold a representation of this extension - useful for working with versioned
