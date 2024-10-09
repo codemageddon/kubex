@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import pathlib
 from enum import Enum
 from typing import Any, AsyncGenerator, ClassVar, Generic, Self, Type, cast
 
@@ -10,12 +11,16 @@ from yaml import safe_dump
 from kubex.models.base import ListEntity, ResourceType
 from kubex.models.watch_event import WatchEvent
 
+_CURRENT_PATH = pathlib.Path(__file__)
+_CERTS_PATH = _CURRENT_PATH.parent.parent.parent.parent / "scratches" / ".certs"
+
+
 _BASE_URL = "https://127.0.0.1:6443"
 _CERT = (
-    "/Users/codemageddon/github.com/codemageddon/kubex/scratches/.certs/client_cert.crt",
-    "/Users/codemageddon/github.com/codemageddon/kubex/scratches/.certs/client_key.pem",
+    _CERTS_PATH / "client.crt",
+    _CERTS_PATH / "client.key",
 )
-_VERIFY = "/Users/codemageddon/github.com/codemageddon/kubex/scratches/.certs/server.ca"
+_VERIFY = _CERTS_PATH / "server_ca.crt"
 
 CLIENT_PARAMS = {
     "base_url": _BASE_URL,
