@@ -1,14 +1,16 @@
 from typing import Any, ClassVar, Literal
 
 from kubex.models.base import (
+    HasStatusSubresource,
     NamespaceScopedEntity,
     NamespaceScopedMetadata,
+    PodProtocol,
     ResourceConfig,
     Scope,
 )
 
 
-class Pod(NamespaceScopedEntity):
+class Pod(NamespaceScopedEntity, PodProtocol, HasStatusSubresource):
     """Pod is a collection of containers that can run on a host."""
 
     __RESOURCE_CONFIG__: ClassVar[ResourceConfig] = ResourceConfig(

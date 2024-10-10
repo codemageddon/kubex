@@ -1,4 +1,4 @@
 try:
     import ujson as json
 except ImportError:
-    import json
+    pass  # type: ignore[no-redef]

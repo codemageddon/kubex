@@ -2,7 +2,21 @@ import datetime
 from enum import Enum
 from typing import ClassVar, Generic, TypeVar
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+from pydantic.alias_generators import to_camel
+
+
+class HasStatusSubresource: ...
+
+
+class HasReplicasSubresource: ...
+
+
+class PodProtocol: ...
+
+
+class BaseK8sModel(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel)
 
 
 class Scope(Enum):
@@ -10,7 +24,7 @@ class Scope(Enum):
     NAMESPACE = "namespace"
 
 
-class CommonMetadata(BaseModel):
+class CommonMetadata(BaseK8sModel):
     """CommonMetadata is the common metadata for all Kubernetes API objects."""
 
     labels: dict[str, str] | None = None
@@ -23,7 +37,7 @@ class CommonMetadata(BaseModel):
     uid: str | None = None
 
 
-class OwnerReference(BaseModel):
+class OwnerReference(BaseK8sModel):
     """OwnerReference contains enough information to let you identify an owning object."""
 
     api_version: str
@@ -49,7 +63,7 @@ class NamespaceScopedMetadata(CommonMetadata):
     owner_references: list[OwnerReference] | None = None
 
 
-class ListMetadata(BaseModel):
+class ListMetadata(BaseK8sModel):
     """ListMeta describes metadata that synthetic resources must have, including lists and various status objects."""
 
     continue_: str | None = Field(None, alias="continue")
@@ -58,7 +72,7 @@ class ListMetadata(BaseModel):
     self_link: str | None = None
 
 
-class ResourceConfig(BaseModel):
+class ResourceConfig(BaseK8sModel):
     """ResourceConfig is the configuration for a resource."""
 
     version: str
@@ -85,7 +99,7 @@ class ResourceConfig(BaseModel):
         return f"{api_version}/namespaces/{namespace}/{self.plural}"
 
 
-class BaseEntity(BaseModel):
+class BaseEntity(BaseK8sModel):
     """BaseEntity is the common fields for all entities."""
 
     __RESOURCE_CONFIG__: ClassVar[ResourceConfig]
@@ -112,7 +126,7 @@ ResourceType = TypeVar(
 )
 
 
-class ListEntity(BaseModel, Generic[ResourceType]):
+class ListEntity(BaseK8sModel, Generic[ResourceType]):
     """ListEntity is the common fields for all list entities."""
 
     api_version: str
