@@ -1,4 +1,5 @@
-from kubex.api.api import Api, Client
+from kubex.api.api import Api
+from kubex.client.client import Client
 from kubex.models.base import NamespaceScopedMetadata
 from kubex.models.pod import Pod
 

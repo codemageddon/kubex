@@ -32,3 +32,6 @@ class WatchEvent(Generic[ResourceType]):
             self.object = cast(
                 ResourceType, self._resource_type.model_validate(raw_event["object"])
             )
+
+    def __repr__(self) -> str:
+        return f"WatchEvent(type={self.type}, object={self.object})"

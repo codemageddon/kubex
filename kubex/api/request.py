@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Self
 
 from kubex.api.params import (
     DeleteOptions,
@@ -9,6 +9,7 @@ from kubex.api.params import (
     WatchOptions,
 )
 from kubex.api.patch import PATCH_HEADERS, PatchTypes
+from kubex.models.base import ResourceConfig
 
 
 class Request:
@@ -26,16 +27,36 @@ class Request:
         self.body = body
         self.headers = headers
 
+    def __repr__(self) -> str:
+        return f"Request(method={self.method}, url={self.url}, query_params={self.query_params}, body={self.body}, headers={self.headers})"
+
 
 class RequestBuilder:
-    def __init__(self, url: str) -> None:
-        self.url = url
+    def __init__(self, resource_config: ResourceConfig) -> None:
+        self.resource_config = resource_config
+        self._namespace: str | None = None
+
+    @property
+    def namespace(self) -> str | None:
+        return self._namespace
+
+    @namespace.setter
+    def namespace(self, namespace: str | None) -> None:
+        self._namespace = namespace
+
+    def with_namespace(self, namespace: str) -> Self:
+        self.namespace = namespace
+        return self
+
+    def without_namespace(self) -> Self:
+        self.namespace = None
+        return self
 
     def get(self, name: str, options: GetOptions) -> Request:
         query_params = options.as_query_params()
         return Request(
             method="GET",
-            url=f"{self.url}/{name}",
+            url=self.resource_config.url(self._namespace, name),
             query_params=query_params,
         )
 
@@ -43,7 +64,7 @@ class RequestBuilder:
         query_params = options.as_query_params()
         return Request(
             method="GET",
-            url=self.url,
+            url=self.resource_config.url(self._namespace),
             query_params=query_params,
         )
 
@@ -51,7 +72,7 @@ class RequestBuilder:
         query_params = options.as_query_params()
         return Request(
             method="POST",
-            url=self.url,
+            url=self.resource_config.url(self._namespace),
             query_params=query_params,
         )
 
@@ -59,7 +80,7 @@ class RequestBuilder:
         body = options.as_request_body()
         return Request(
             method="DELETE",
-            url=f"{self.url}/{name}",
+            url=self.resource_config.url(self._namespace, name),
             body=body,
         )
 
@@ -70,7 +91,7 @@ class RequestBuilder:
         body = delete_options.as_request_body()
         return Request(
             method="DELETE",
-            url=self.url,
+            url=self.resource_config.url(self._namespace),
             query_params=query_params,
             body=body,
         )
@@ -84,7 +105,7 @@ class RequestBuilder:
         query_params = options.as_query_params()
         return Request(
             method="PATCH",
-            url=f"{self.url}/{name}",
+            url=self.resource_config.url(self._namespace, name),
             query_params=query_params,
             headers={"Content-Type": PATCH_HEADERS[patch_type]},
         )
@@ -93,7 +114,7 @@ class RequestBuilder:
         query_params = options.as_query_params()
         return Request(
             method="PUT",
-            url=f"{self.url}/{name}",
+            url=self.resource_config.url(self._namespace, name),
             query_params=query_params,
         )
 
@@ -105,6 +126,6 @@ class RequestBuilder:
             query_params["resourceVersion"] = resource_version
         return Request(
             method="GET",
-            url=self.url,
+            url=self.resource_config.url(self._namespace),
             query_params=query_params,
         )
