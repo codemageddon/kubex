@@ -2,6 +2,7 @@ import pathlib
 
 import httpx
 
+# Following constants are just for development purposes and should be removed after configuration reading is implemented
 _CURRENT_PATH = pathlib.Path(__file__)
 _CERTS_PATH = _CURRENT_PATH.parent.parent.parent / "scratches" / ".certs"
 

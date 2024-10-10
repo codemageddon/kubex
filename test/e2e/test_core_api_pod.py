@@ -8,7 +8,7 @@ from kubex.models.pod import Pod
 
 @pytest.mark.anyio
 async def test_core_api_pod(client: Client, tmp_namespace_name: str) -> None:
-    pod_api: Api[Pod] = Api.namespaced(client, Pod, namespace=tmp_namespace_name)
+    pod_api: Api[Pod] = Api.namespaced(Pod, namespace=tmp_namespace_name, client=client)
     pod = await pod_api.create(
         Pod(
             metadata=NamespaceScopedMetadata(

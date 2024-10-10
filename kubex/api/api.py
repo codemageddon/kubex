@@ -59,23 +59,30 @@ class Api(Generic[ResourceType]):
         return self
 
     @classmethod
-    def all(cls: Type[Self], client: Client, resource: Type[ResourceType]) -> Self:
+    def all(
+        cls: Type[Self], resource: Type[ResourceType], client: Client | None = None
+    ) -> Self:
         api: Self = cls(resource, client=client)
         return api
 
     @classmethod
     def namespaced(
-        cls: Type[Self], client: Client, resource: Type[ResourceType], namespace: str
+        cls: Type[Self],
+        resource: Type[ResourceType],
+        namespace: str,
+        client: Client | None = None,
     ) -> Self:
         api: Self = cls(resource, client=client, namespace=namespace)
         return api
 
     @classmethod
     def default_namespaced(
-        cls: Type[Self], client: Client, resource: Type[ResourceType]
+        cls: Type[Self], resource: Type[ResourceType], client: Client | None = None
     ) -> Self:
+        if client is None:
+            client = Client()
         return cls.namespaced(
-            client, resource, namespace=client.configuration.namespace
+            resource, namespace=client.configuration.namespace, client=client
         )
 
     def _check_namespace(self) -> None:
@@ -125,6 +132,7 @@ class Api(Generic[ResourceType]):
         async with self._client.get_client() as client:
             response = await client.get(request.url, params=request.query_params)
             response.raise_for_status()
+            # FIXME: Doesn't work yet
             return cast(
                 ListEntity[ResourceType],
                 self._resource.model_validate(response.json()),
