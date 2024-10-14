@@ -6,7 +6,6 @@ from functools import cached_property
 
 from pydantic import BaseModel, ConfigDict, Field, create_model
 from pydantic.alias_generators import to_camel
-from dataclasses import dataclass
 
 
 class HasStatusSubresource: ...
@@ -79,7 +78,7 @@ class ListMetadata(BaseK8sModel):
 class BaseEntity(BaseK8sModel):
     """BaseEntity is the common fields for all entities."""
 
-    __RESOURCE_CONFIG__: ClassVar[ResourceConfig[Self]]  # type: ignore[type-var]
+    __RESOURCE_CONFIG__: ClassVar[ResourceConfig[Self]]
 
     api_version: str | None = None
     kind: str | None = None
@@ -99,7 +98,8 @@ class NamespaceScopedEntity(BaseEntity):
 
 
 ResourceType = TypeVar(
-    "ResourceType", bound=ClusterScopedEntity | NamespaceScopedEntity
+    "ResourceType",
+    bound=BaseEntity,  # ClusterScopedEntity | NamespaceScopedEntity
 )
 
 
@@ -112,21 +112,83 @@ class ListEntity(BaseK8sModel, Generic[ResourceType]):
     items: list[ResourceType]
 
 
-@dataclass
 class ResourceConfig(Generic[ResourceType]):
     """ResourceConfig is the configuration for a resource."""
 
-    version: str
-    kind: str
-    plural: str
-    scope: Scope
-    group: str | None = None
-    list_model: Type[ListEntity[ResourceType]] | None = None
+    def __init__(
+        self,
+        version: str | None = None,
+        kind: str | None = None,
+        plural: str | None = None,
+        scope: Scope | None = None,
+        group: str | None = None,
+        list_model: Type[ListEntity[ResourceType]] | None = None,
+    ) -> None:
+        self._version = version
+        self._kind = kind
+        self._plural = plural
+        self._scope = scope
+        self._group = group
+        self._list_model = list_model
 
     def __get__(self, instance: Self | None, owner: Type[ResourceType]) -> Self:
-        if self.list_model is None:
-            self.list_model = create_list_model(owner, self)
+        """Fill in the missing values from the owner."""
+        if self._list_model is None:
+            self._list_model = create_list_model(owner, self)
+        if self._version is None or self._group is None:
+            self._version, self._group = get_version_and_froup_from_api_version(
+                owner.api_version
+            )
+        if self._kind is None:
+            self._kind = owner.kind
+        if self._scope is None:
+            self._scope = get_scope_by_metadata(owner.metadata)
+        if self._plural is None:
+            if owner.kind is None:
+                raise ValueError("kind is not set")
+            if owner.kind.endswith("y"):
+                self._plural = f"{owner.kind[:-1].lower()}ies"
+            elif owner.kind.endswith("s") or owner.kind.endswith("x"):
+                self._plural = f"{owner.kind.lower()}es"
+            else:
+                self._plural = f"{owner.kind.lower()}s"
         return self
+
+    @property
+    def version(self) -> str:
+        if self._version is None:
+            raise ValueError("version is not set")
+        return self._version
+
+    @property
+    def kind(self) -> str:
+        if self._kind is None:
+            raise ValueError("kind is not set")
+        return self._kind
+
+    @property
+    def plural(self) -> str:
+        if self._plural is None:
+            raise ValueError("plural is not set")
+        return self._plural
+
+    @property
+    def scope(self) -> Scope:
+        if self._scope is None:
+            raise ValueError("scope is not set")
+        return self._scope
+
+    @property
+    def group(self) -> str:
+        if self._group is None:
+            raise ValueError("group is not set")
+        return self._group
+
+    @property
+    def list_model(self) -> Type[ListEntity[ResourceType]]:
+        if self._list_model is None:
+            raise ValueError("list_model is not set")
+        return self._list_model
 
     def url(self, namespace: str | None = None, name: str | None = None) -> str:
         """url returns the URL for the resource."""
@@ -139,7 +201,7 @@ class ResourceConfig(Generic[ResourceType]):
         if namespace is None:
             url = f"{api_version}/{self.plural}"
         elif self.scope == Scope.CLUSTER:
-            raise ValueError("resource is cluster-scoped")
+            raise ValueError("resource is cluster-scoped but namespace is set")
         else:
             url = f"{api_version}/namespaces/{namespace}/{self.plural}"
 
@@ -167,3 +229,20 @@ def create_list_model(
         __base__=ListEntity[single_model],  # type: ignore[valid-type]
     )
     return list_model
+
+
+def get_version_and_froup_from_api_version(api_version: str | None) -> tuple[str, str]:
+    """get_version_and_group_from_api_version returns the version and group from the apiVersion."""
+    if api_version is None:
+        raise ValueError("api_version is not set")
+    parts = api_version.split("/")
+    if len(parts) == 1:
+        return parts[0], "core"
+    return parts[1], parts[0]
+
+
+def get_scope_by_metadata(metadata: CommonMetadata) -> Scope:
+    """get_scope_by_metadata returns the scope of the resource by its metadata."""
+    if hasattr(metadata, "namespace"):
+        return Scope.NAMESPACE
+    return Scope.CLUSTER

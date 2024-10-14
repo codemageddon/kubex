@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import AsyncGenerator, Generic, Self, Type, cast
+from typing import AsyncGenerator, Generic, Self, Type
 
 from yaml import safe_dump
 
@@ -102,9 +102,7 @@ class Api(Generic[ResourceType]):
         async with self._client.get_client() as client:
             response = await client.get(request.url, params=request.query_params)
             response.raise_for_status()
-            return cast(
-                ResourceType, self._resource.model_validate_json(response.json())
-            )
+            return self._resource.model_validate_json(response.json())
 
     async def list(
         self,
@@ -133,10 +131,7 @@ class Api(Generic[ResourceType]):
             response = await client.get(request.url, params=request.query_params)
             response.raise_for_status()
             json_ = response.json()
-            list_model = cast(
-                Type[ListEntity[ResourceType]],
-                self._resource.__RESOURCE_CONFIG__.list_model,
-            )
+            list_model = self._resource.__RESOURCE_CONFIG__.list_model
             return list_model.model_validate(json_)
 
     async def create(self, data: ResourceType) -> ResourceType:
@@ -156,7 +151,7 @@ class Api(Generic[ResourceType]):
                 ),
             )
             response.raise_for_status()
-            return cast(ResourceType, self._resource.model_validate(response.json()))
+            return self._resource.model_validate(response.json())
 
     # TODO: Status is also possible to return
     async def delete(
@@ -171,7 +166,7 @@ class Api(Generic[ResourceType]):
                 method="DELETE", url=request.url, json=request.body
             )
             response.raise_for_status()
-            return cast(ResourceType, self._resource.model_validate(response.json()))
+            return self._resource.model_validate(response.json())
 
     # TODO: Status is also possible to return
     async def delete_collection(
@@ -179,13 +174,12 @@ class Api(Generic[ResourceType]):
     ) -> ListEntity[ResourceType]:
         request = self._request_builder.delete_collection(list_options, delete_options)
         async with self._client.get_client() as client:
+            list_model = self._resource.__RESOURCE_CONFIG__.list_model
             response = await client.request(
                 method="DELETE", url=request.url, json=request.body
             )
             response.raise_for_status()
-            return cast(
-                ListEntity[ResourceType], ListEntity.model_validate(response.json())
-            )
+            return list_model.model_validate(response.json())
 
     async def patch(
         self,
@@ -227,7 +221,7 @@ class Api(Generic[ResourceType]):
                 url=request.url, content=body, headers=request.headers
             )
             response.raise_for_status()
-            return cast(ResourceType, self._resource.model_validate(response.json()))
+            return self._resource.model_validate(response.json())
 
     async def replace(
         self, name: str, data: ResourceType, options: PostOptions
@@ -242,7 +236,7 @@ class Api(Generic[ResourceType]):
                 ),
             )
             response.raise_for_status()
-            return cast(ResourceType, self._resource.model_validate(response.json()))
+            return self._resource.model_validate(response.json())
 
     async def watch(
         self, options: WatchOptions | None = None, resource_version: str | None = None
