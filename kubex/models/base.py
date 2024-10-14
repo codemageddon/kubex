@@ -1,9 +1,12 @@
+from __future__ import annotations
 import datetime
 from enum import Enum
-from typing import ClassVar, Generic, TypeVar
+from typing import ClassVar, Generic, TypeVar, Type, Self, Literal
+from functools import cached_property
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, create_model
 from pydantic.alias_generators import to_camel
+from dataclasses import dataclass
 
 
 class HasStatusSubresource: ...
@@ -73,46 +76,13 @@ class ListMetadata(BaseK8sModel):
     self_link: str | None = None
 
 
-class ResourceConfig(BaseK8sModel):
-    """ResourceConfig is the configuration for a resource."""
-
-    version: str
-    kind: str
-    plural: str
-    scope: Scope
-    group: str | None = None
-
-    """/apis/{group}/{version}/{url_path_segment} for non-core resources
-    /api/{version}/{url_path_segment} for core resources
-    """
-
-    def url(self, namespace: str | None = None, name: str | None = None) -> str:
-        """url returns the URL for the resource."""
-        if self.group and self.group != "core":
-            api_version = f"/apis/{self.group}/{self.version}"
-        else:
-            api_version = f"/api/{self.version}"
-
-        url: str
-        if namespace is None:
-            url = f"{api_version}/{self.plural}"
-        elif self.scope == Scope.CLUSTER:
-            raise ValueError("resource is cluster-scoped")
-        else:
-            url = f"{api_version}/namespaces/{namespace}/{self.plural}"
-
-        if name is None:
-            return url
-        return f"{url}/{name}"
-
-
 class BaseEntity(BaseK8sModel):
     """BaseEntity is the common fields for all entities."""
 
-    __RESOURCE_CONFIG__: ClassVar[ResourceConfig]
+    __RESOURCE_CONFIG__: ClassVar[ResourceConfig[Self]]  # type: ignore[type-var]
 
-    api_version: str
-    kind: str
+    api_version: str | None = None
+    kind: str | None = None
     metadata: CommonMetadata
 
 
@@ -140,3 +110,60 @@ class ListEntity(BaseK8sModel, Generic[ResourceType]):
     kind: str
     metadata: ListMetadata
     items: list[ResourceType]
+
+
+@dataclass
+class ResourceConfig(Generic[ResourceType]):
+    """ResourceConfig is the configuration for a resource."""
+
+    version: str
+    kind: str
+    plural: str
+    scope: Scope
+    group: str | None = None
+    list_model: Type[ListEntity[ResourceType]] | None = None
+
+    def __get__(self, instance: Self | None, owner: Type[ResourceType]) -> Self:
+        if self.list_model is None:
+            self.list_model = create_list_model(owner, self)
+        return self
+
+    def url(self, namespace: str | None = None, name: str | None = None) -> str:
+        """url returns the URL for the resource."""
+        if self.group and self.group != "core":
+            api_version = f"/apis/{self.group}/{self.version}"
+        else:
+            api_version = f"/api/{self.version}"
+
+        url: str
+        if namespace is None:
+            url = f"{api_version}/{self.plural}"
+        elif self.scope == Scope.CLUSTER:
+            raise ValueError("resource is cluster-scoped")
+        else:
+            url = f"{api_version}/namespaces/{namespace}/{self.plural}"
+
+        if name is None:
+            return url
+        return f"{url}/{name}"
+
+    @cached_property
+    def api_version(self) -> str:
+        if self.group and self.group != "core":
+            return f"{self.group}/{self.version}"
+        return self.version
+
+
+def create_list_model(
+    single_model: Type[ResourceType], resource_config: ResourceConfig[ResourceType]
+) -> Type[ListEntity[ResourceType]]:
+    kind = f"{resource_config.kind}List"
+    list_model = create_model(
+        kind,
+        api_version=(Literal[resource_config.api_version], resource_config.api_version),
+        kind=(Literal[kind], kind),
+        metadata=(ListMetadata, ...),
+        items=(list[single_model], ...),  # type: ignore[valid-type]
+        __base__=ListEntity[single_model],  # type: ignore[valid-type]
+    )
+    return list_model

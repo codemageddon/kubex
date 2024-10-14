@@ -132,11 +132,12 @@ class Api(Generic[ResourceType]):
         async with self._client.get_client() as client:
             response = await client.get(request.url, params=request.query_params)
             response.raise_for_status()
-            # FIXME: Doesn't work yet
-            return cast(
-                ListEntity[ResourceType],
-                self._resource.model_validate(response.json()),
+            json_ = response.json()
+            list_model = cast(
+                Type[ListEntity[ResourceType]],
+                self._resource.__RESOURCE_CONFIG__.list_model,
             )
+            return list_model.model_validate(json_)
 
     async def create(self, data: ResourceType) -> ResourceType:
         options = PostOptions()

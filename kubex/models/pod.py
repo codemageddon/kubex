@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Any, ClassVar, Literal
 
 from kubex.models.base import (
@@ -13,7 +14,7 @@ from kubex.models.base import (
 class Pod(NamespaceScopedEntity, PodProtocol, HasStatusSubresource):
     """Pod is a collection of containers that can run on a host."""
 
-    __RESOURCE_CONFIG__: ClassVar[ResourceConfig] = ResourceConfig(
+    __RESOURCE_CONFIG__: ClassVar[ResourceConfig[Pod]] = ResourceConfig["Pod"](
         version="v1",
         kind="Pod",
         group="core",

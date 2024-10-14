@@ -32,7 +32,7 @@ class Request:
 
 
 class RequestBuilder:
-    def __init__(self, resource_config: ResourceConfig) -> None:
+    def __init__(self, resource_config: ResourceConfig[Any]) -> None:
         self.resource_config = resource_config
         self._namespace: str | None = None
 
