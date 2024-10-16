@@ -12,8 +12,8 @@ async def main() -> None:
     # )
     logs = await api.logs("example-pod")
     print(logs)
-    async for l in api.stream_logs("example-pod"):
-        print(l)
+    async for line in api.stream_logs("example-pod"):
+        print(line)
     # api.delete("example-pod")
 
 
