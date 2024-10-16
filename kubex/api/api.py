@@ -1,11 +1,17 @@
 from __future__ import annotations
 
 import json
-from typing import AsyncGenerator, Generic, Self, Type
+from typing import (
+    AsyncGenerator,
+    Generic,
+    Self,
+    Type,
+)
 
 from yaml import safe_dump
 
-from kubex.api.params import (
+from kubex.client.client import Client
+from kubex.core.params import (
     DeleteOptions,
     GetOptions,
     ListOptions,
@@ -14,20 +20,25 @@ from kubex.api.params import (
     VersionMatch,
     WatchOptions,
 )
-from kubex.api.patch import (
+from kubex.core.patch import (
     ApplyPatch,
     JsonPatch,
     MergePatch,
     PatchTypes,
     StrategicMergePatch,
 )
-from kubex.api.request import RequestBuilder
-from kubex.client.client import Client
-from kubex.models.base import ListEntity, ResourceType, Scope
+from kubex.core.request_builder.builder import RequestBuilder
+from kubex.models.base import (
+    ListEntity,
+    ResourceType,
+    Scope,
+)
 from kubex.models.watch_event import WatchEvent
 
+from .logs import LogsMixin
 
-class Api(Generic[ResourceType]):
+
+class Api(Generic[ResourceType], LogsMixin[ResourceType]):
     def __init__(
         self,
         resource_type: Type[ResourceType],

@@ -1,20 +1,12 @@
 from __future__ import annotations
+
 import datetime
 from enum import Enum
-from typing import ClassVar, Generic, TypeVar, Type, Self, Literal
 from functools import cached_property
+from typing import Any, ClassVar, Generic, Literal, Self, Type, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field, create_model
 from pydantic.alias_generators import to_camel
-
-
-class HasStatusSubresource: ...
-
-
-class HasReplicasSubresource: ...
-
-
-class PodProtocol: ...
 
 
 class BaseK8sModel(BaseModel):
@@ -97,10 +89,7 @@ class NamespaceScopedEntity(BaseEntity):
     metadata: NamespaceScopedMetadata
 
 
-ResourceType = TypeVar(
-    "ResourceType",
-    bound=BaseEntity,  # ClusterScopedEntity | NamespaceScopedEntity
-)
+ResourceType = TypeVar("ResourceType", bound=BaseEntity)
 
 
 class ListEntity(BaseK8sModel, Generic[ResourceType]):
@@ -131,7 +120,7 @@ class ResourceConfig(Generic[ResourceType]):
         self._group = group
         self._list_model = list_model
 
-    def __get__(self, instance: Self | None, owner: Type[ResourceType]) -> Self:
+    def __get__(self, instance: Any, owner: Type[ResourceType]) -> Self:
         """Fill in the missing values from the owner."""
         if self._list_model is None:
             self._list_model = create_list_model(owner, self)
@@ -246,3 +235,15 @@ def get_scope_by_metadata(metadata: CommonMetadata) -> Scope:
     if hasattr(metadata, "namespace"):
         return Scope.NAMESPACE
     return Scope.CLUSTER
+
+
+class HasStatusSubresource(BaseEntity): ...
+
+
+class HasReplicasSubresource(BaseEntity): ...
+
+
+class HasLogs(BaseEntity): ...
+
+
+class Evictable(BaseEntity): ...

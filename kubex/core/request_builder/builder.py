@@ -1,6 +1,6 @@
 from typing import Any, Self
 
-from kubex.api.params import (
+from kubex.core.params import (
     DeleteOptions,
     GetOptions,
     ListOptions,
@@ -8,30 +8,14 @@ from kubex.api.params import (
     PostOptions,
     WatchOptions,
 )
-from kubex.api.patch import PATCH_HEADERS, PatchTypes
+from kubex.core.patch import PATCH_HEADERS, PatchTypes
+from kubex.core.request import Request
+from kubex.core.request_builder.logs import LogsRequestBuilder
+from kubex.core.request_builder.metadata import MetadataRequestBuilder
 from kubex.models.base import ResourceConfig
 
 
-class Request:
-    def __init__(
-        self,
-        method: str,
-        url: str,
-        query_params: dict[str, str] | None = None,
-        body: dict[str, Any] | None = None,
-        headers: dict[str, str] | None = None,
-    ) -> None:
-        self.url = url
-        self.query_params = query_params
-        self.method = method
-        self.body = body
-        self.headers = headers
-
-    def __repr__(self) -> str:
-        return f"Request(method={self.method}, url={self.url}, query_params={self.query_params}, body={self.body}, headers={self.headers})"
-
-
-class RequestBuilder:
+class RequestBuilder(MetadataRequestBuilder, LogsRequestBuilder):
     def __init__(self, resource_config: ResourceConfig[Any]) -> None:
         self.resource_config = resource_config
         self._namespace: str | None = None
@@ -99,15 +83,15 @@ class RequestBuilder:
     def patch(
         self, name: str, patch_type: PatchTypes, options: PatchOptions
     ) -> Request:
-        header = PATCH_HEADERS.get(patch_type)
-        if header is None:
+        patch_header = PATCH_HEADERS.get(patch_type)
+        if patch_header is None:
             raise ValueError(f"Unsupported patch type: {patch_type}")
         query_params = options.as_query_params()
         return Request(
             method="PATCH",
             url=self.resource_config.url(self._namespace, name),
             query_params=query_params,
-            headers={"Content-Type": PATCH_HEADERS[patch_type]},
+            headers={"Content-Type": patch_header},
         )
 
     def replace(self, name: str, options: PostOptions) -> Request:
@@ -129,3 +113,23 @@ class RequestBuilder:
             url=self.resource_config.url(self._namespace),
             query_params=query_params,
         )
+
+    # def logs(self, name: str, options: LogOptions) -> Request:
+    #     query_params = options.as_query_params()
+    #     return Request(
+    #         method="GET",
+    #         url=f"{self.resource_config.url(self._namespace, name)}/log",
+    #         query_params=query_params,
+    #     )
+
+    # def stream_logs(self, name: str, options: LogOptions) -> Request:
+    #     query_params = options.as_query_params()
+    #     if query_params is None:
+    #         query_params = {"follow": "true"}
+    #     else:
+    #         query_params["follow"] = "true"
+    #     return Request(
+    #         method="GET",
+    #         url=f"{self.resource_config.url(self._namespace, name)}/log",
+    #         query_params=query_params,
+    #     )

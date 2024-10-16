@@ -2,7 +2,7 @@ import asyncio
 from contextlib import suppress
 
 from kubex.api.api import Api
-from kubex.api.params import WatchOptions
+from kubex.core.params import WatchOptions
 from kubex.models.base import NamespaceScopedMetadata
 from kubex.models.pod import Pod
 

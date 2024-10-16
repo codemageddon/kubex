@@ -214,3 +214,45 @@ class DeleteOptions:
             if self.preconditions.uid is not None:
                 body["preconditions"] = {"uid": self.preconditions.uid}
         return body or None
+
+
+class LogOptions:
+    def __init__(
+        self,
+        container: str | None = None,
+        limit_bytes: int | None = None,
+        pretty: bool | None = None,
+        previous: bool | None = None,
+        since_seconds: int | None = None,
+        tail_lines: int | None = None,
+        timestamps: bool | None = None,
+    ) -> None:
+        self.container = container
+        self.limit_bytes = limit_bytes
+        self.pretty = pretty
+        self.previous = previous
+        self.since_seconds = since_seconds
+        self.tail_lines = tail_lines
+        self.timestamps = timestamps
+
+    @classmethod
+    def default(cls) -> LogOptions:
+        return cls()
+
+    def as_query_params(self) -> dict[str, str] | None:
+        result: dict[str, str] = {}
+        if self.container is not None:
+            result["container"] = self.container
+        if self.limit_bytes is not None:
+            result["limitBytes"] = str(self.limit_bytes)
+        if self.pretty is not None:
+            result["pretty"] = "true" if self.pretty else "false"
+        if self.previous is not None:
+            result["previous"] = "true" if self.previous else "false"
+        if self.since_seconds is not None:
+            result["sinceSeconds"] = str(self.since_seconds)
+        if self.tail_lines is not None:
+            result["tailLines"] = str(self.tail_lines)
+        if self.timestamps is not None:
+            result["timestamps"] = "true" if self.timestamps else "false"
+        return result or None
