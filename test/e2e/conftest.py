@@ -6,9 +6,8 @@ import pytest
 from testcontainers.k3s import K3SContainer  # type: ignore[import-untyped]
 from yaml import safe_load
 
-from kubex.api.api import Api
-from kubex.client.client import Client, ClientConfiguration
-from kubex.models.base import ClusterScopedMetadata
+from kubex import Api, Client, ClientConfiguration
+from kubex.models.base import ObjectMetadata
 from kubex.models.namespace import Namespace
 
 
@@ -61,17 +60,19 @@ def kubernetes_config(
 
 
 @pytest.fixture
-def client(kubernetes_config: ClientConfiguration) -> Generator[Client, None, None]:
-    yield Client(configuration=kubernetes_config)
+async def client(
+    kubernetes_config: ClientConfiguration,
+) -> AsyncGenerator[Client, None]:
+    async with Client(configuration=kubernetes_config) as client:
+        yield client
+    # yield Client(configuration=kubernetes_config)
 
 
 @pytest.fixture
 async def tmp_namespace(
     client: Client,
 ) -> AsyncGenerator[Namespace, None]:
-    namespace_template = Namespace(
-        metadata=ClusterScopedMetadata(generate_name="test-")
-    )
+    namespace_template = Namespace(metadata=ObjectMetadata(generate_name="test-"))
     api: Api[Namespace] = Api(Namespace, client=client)
     namespace = await api.create(namespace_template)
     assert namespace.metadata.name is not None

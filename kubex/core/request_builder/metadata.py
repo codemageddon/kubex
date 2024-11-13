@@ -1,6 +1,13 @@
 from kubex.core.params import GetOptions, ListOptions, PatchOptions, WatchOptions
-from kubex.core.patch import PATCH_HEADERS, PatchTypes
+from kubex.core.patch import Patch
 from kubex.core.request import Request
+from kubex.core.request_builder.constants import (
+    ACCEPT_HEADER,
+    APPLICATION_JSON_MIME_TYPE,
+    CONTENT_TYPE_HEADER,
+    METADATA_LIST_MIME_TYPE,
+    METADATA_MIME_TYPE,
+)
 from kubex.core.request_builder.subresource import RequestBuilderProtocol
 
 
@@ -8,8 +15,8 @@ class MetadataRequestBuilder(RequestBuilderProtocol):
     def get_metadata(self, name: str, options: GetOptions) -> Request:
         query_params = options.as_query_params()
         headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json;as=PartialObjectMetadata;g=meta.k8s.io;v=v1",
+            ACCEPT_HEADER: METADATA_MIME_TYPE,
+            CONTENT_TYPE_HEADER: APPLICATION_JSON_MIME_TYPE,
         }
         return Request(
             method="GET",
@@ -21,8 +28,8 @@ class MetadataRequestBuilder(RequestBuilderProtocol):
     def list_metadata(self, options: ListOptions) -> Request:
         query_params = options.as_query_params()
         headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json;as=PartialObjectMetadataList;g=meta.k8s.io;v=v1",
+            ACCEPT_HEADER: METADATA_LIST_MIME_TYPE,
+            CONTENT_TYPE_HEADER: APPLICATION_JSON_MIME_TYPE,
         }
         return Request(
             method="GET",
@@ -38,8 +45,8 @@ class MetadataRequestBuilder(RequestBuilderProtocol):
         if resource_version is not None:
             query_params["resourceVersion"] = resource_version
         headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json;as=PartialObjectMetadata;g=meta.k8s.io;v=v1",
+            ACCEPT_HEADER: APPLICATION_JSON_MIME_TYPE,
+            CONTENT_TYPE_HEADER: METADATA_MIME_TYPE,
         }
         return Request(
             method="GET",
@@ -48,20 +55,14 @@ class MetadataRequestBuilder(RequestBuilderProtocol):
             headers=headers,
         )
 
-    def patch_metadata(
-        self, name: str, patch_type: PatchTypes, options: PatchOptions
-    ) -> Request:
-        patch_header = PATCH_HEADERS.get(patch_type)
-        if patch_header is None:
-            raise ValueError(f"Unsupported patch type: {patch_type}")
-        query_params = options.as_query_params()
-        headers = {
-            "Accept": patch_header,
-            "Content-Type": "application/json;as=PartialObjectMetadata;g=meta.k8s.io;v=v1",
-        }
+    def patch_metadata(self, name: str, options: PatchOptions, patch: Patch) -> Request:
         return Request(
             method="PATCH",
             url=self.resource_config.url(self.namespace, name),
-            query_params=query_params,
-            headers=headers,
+            query_params=options.as_query_params(),
+            headers={
+                ACCEPT_HEADER: METADATA_MIME_TYPE,
+                CONTENT_TYPE_HEADER: patch.content_type_header,
+            },
+            body=patch.serialize(),
         )

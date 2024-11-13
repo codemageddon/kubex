@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from enum import Enum
 from typing import Any
 
@@ -53,6 +54,10 @@ class ListOptions:
         self.continue_token = continue_token
         self.version_match = version_match
         self.resource_version = resource_version
+
+    @classmethod
+    def default(cls) -> ListOptions:
+        return cls()
 
     def as_query_params(self) -> dict[str, str] | None:
         query_params = {}
@@ -116,6 +121,10 @@ class GetOptions:
     ) -> None:
         self.resource_version = resource_version
 
+    @classmethod
+    def default(cls) -> GetOptions:
+        return cls()
+
     def as_query_params(self) -> dict[str, str] | None:
         if self.resource_version is None:
             return None
@@ -166,6 +175,10 @@ class PatchOptions:
         self.force = force
         self.field_validation = field_validation
 
+    @classmethod
+    def default(cls) -> PatchOptions:
+        return cls()
+
     def as_query_params(self) -> dict[str, str] | None:
         query_params = {}
         dry_run = convert_dry_run(self.dry_run)
@@ -197,7 +210,7 @@ class DeleteOptions:
     def default(cls) -> DeleteOptions:
         return cls()
 
-    def as_request_body(self) -> dict[str, Any] | None:
+    def as_request_body(self) -> str | None:
         body: dict[str, Any] = {}
         dry_run = convert_dry_run(self.dry_run)
         if dry_run is not None:
@@ -213,7 +226,9 @@ class DeleteOptions:
                 }
             if self.preconditions.uid is not None:
                 body["preconditions"] = {"uid": self.preconditions.uid}
-        return body or None
+        if body:
+            return json.dumps(body)
+        return None
 
 
 class LogOptions:

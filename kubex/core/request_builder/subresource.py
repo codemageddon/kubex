@@ -1,28 +1,16 @@
 from __future__ import annotations
 
 import typing
-from weakref import ref
 
+from kubex.core.params import PatchOptions, PostOptions
+from kubex.core.patch import Patch
+from kubex.core.request import Request
 from kubex.models.base import ResourceConfig
 
+from .constants import ACCEPT_HEADER, CONTENT_TYPE_HEADER
+
 if typing.TYPE_CHECKING:
-    from kubex.core.request_builder.builder import RequestBuilder
-
-
-class BaseSubresourceRequestBuilder:
-    def __init__(self, request_builder_ref: ref[RequestBuilder]) -> None:
-        self.request_builder = request_builder_ref
-        request_builder = self.request_builder()
-        if request_builder is None:
-            raise RuntimeError("RequestBuilder has been garbage collected")
-        self.resource_config = request_builder.resource_config
-
-    @property
-    def namespace(self) -> str | None:
-        request_builder = self.request_builder()
-        if request_builder is None:
-            raise RuntimeError("RequestBuilder has been garbage collected")
-        return request_builder.namespace
+    pass
 
 
 class RequestBuilderProtocol(typing.Protocol):
@@ -31,3 +19,35 @@ class RequestBuilderProtocol(typing.Protocol):
 
     @property
     def namespace(self) -> str | None: ...
+
+
+class SubresourceRequestBuilder(RequestBuilderProtocol):
+    def get_subresource(self, subresource: str, name: str) -> Request:
+        return Request(
+            method="GET",
+            url=self.resource_config.url(self.namespace, name) + f"/{subresource}",
+        )
+
+    def replace_subresource(
+        self, subresource: str, name: str, data: bytes | str, options: PostOptions
+    ) -> Request:
+        return Request(
+            method="PUT",
+            url=self.resource_config.url(self.namespace, name) + f"/{subresource}",
+            body=data,
+            query_params=options.as_query_params(),
+        )
+
+    def patch_subresource(
+        self, subresource: str, name: str, options: PatchOptions, patch: Patch
+    ) -> Request:
+        return Request(
+            method="PATCH",
+            url=self.resource_config.url(self.namespace, name) + f"/{subresource}",
+            body=patch.serialize(),
+            headers={
+                ACCEPT_HEADER: "application/json",
+                CONTENT_TYPE_HEADER: patch.content_type_header,
+            },
+            query_params=options.as_query_params(),
+        )

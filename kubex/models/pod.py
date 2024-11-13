@@ -7,7 +7,6 @@ from kubex.models.base import (
     HasLogs,
     HasStatusSubresource,
     NamespaceScopedEntity,
-    NamespaceScopedMetadata,
     ResourceConfig,
     Scope,
 )
@@ -26,6 +25,5 @@ class Pod(NamespaceScopedEntity, HasLogs, Evictable, HasStatusSubresource):
 
     api_version: Literal["v1"] = "v1"
     kind: Literal["Pod"] = "Pod"
-    metadata: NamespaceScopedMetadata
     spec: dict[str, Any] | None = None
     status: dict[str, Any] | None = None

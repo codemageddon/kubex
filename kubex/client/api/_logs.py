@@ -32,11 +32,8 @@ class LogsMixin(ApiProtocol[ResourceType]):
         request = self._request_builder.logs(
             name, options=options or LogOptions.default()
         )
-        async with self._client.get_client() as client:
-            async with self._client.get_client() as client:
-                response = await client.get(request.url, params=request.query_params)
-                response.raise_for_status()
-                return response.text
+        response = await self._client.request(request)
+        return response.content
 
     # TODO: Investigate how to force mypy to complain on stream_logs calling with non-Pod resources
     # @overload
@@ -62,10 +59,5 @@ class LogsMixin(ApiProtocol[ResourceType]):
             name, options=options or LogOptions.default()
         )
         # TODO: ReadTimeout
-        async with self._client.get_client() as client:
-            async with client.stream(
-                "GET", request.url, params=request.query_params
-            ) as response:
-                response.raise_for_status()
-                async for line in response.aiter_lines():
-                    yield line
+        async for line in self._client.stream_lines(request):
+            yield line

@@ -18,7 +18,7 @@ class Scope(Enum):
     NAMESPACE = "namespace"
 
 
-class CommonMetadata(BaseK8sModel):
+class ObjectMetadata(BaseK8sModel):
     """CommonMetadata is the common metadata for all Kubernetes API objects."""
 
     labels: dict[str, str] | None = None
@@ -27,8 +27,13 @@ class CommonMetadata(BaseK8sModel):
     creation_timestamp: datetime.datetime | None = None
     deletion_timestamp: datetime.datetime | None = None
     deletion_grace_period_seconds: int | None = None
+    generation: int | None = None
     resource_version: str | None = None
     uid: str | None = None
+    name: str | None = None
+    namespace: str | None = None
+    generate_name: str | None = None
+    owner_references: list[OwnerReference] | None = None
 
 
 class OwnerReference(BaseK8sModel):
@@ -42,20 +47,20 @@ class OwnerReference(BaseK8sModel):
     block_owner_deletion: bool | None = None
 
 
-class ClusterScopedMetadata(CommonMetadata):
-    """ClusterScopedMetadata is the common metadata for all Kubernetes API objects that are cluster-scoped."""
+# class ClusterScopedMetadata(ObjectMetadata):
+#     """ClusterScopedMetadata is the common metadata for all Kubernetes API objects that are cluster-scoped."""
 
-    name: str | None = None
-    generate_name: str | None = None
+#     name: str | None = None
+#     generate_name: str | None = None
 
 
-class NamespaceScopedMetadata(CommonMetadata):
-    """NamespaceScopedMetadata is the common metadata for all Kubernetes API objects that are namespace-scoped."""
+# class NamespaceScopedMetadata(ObjectMetadata):
+#     """NamespaceScopedMetadata is the common metadata for all Kubernetes API objects that are namespace-scoped."""
 
-    name: str | None = None
-    namespace: str | None = None
-    generate_name: str | None = None
-    owner_references: list[OwnerReference] | None = None
+#     name: str | None = None
+#     namespace: str | None = None
+#     generate_name: str | None = None
+#     owner_references: list[OwnerReference] | None = None
 
 
 class ListMetadata(BaseK8sModel):
@@ -74,22 +79,17 @@ class BaseEntity(BaseK8sModel):
 
     api_version: str | None = None
     kind: str | None = None
-    metadata: CommonMetadata
-
-
-class ClusterScopedEntity(BaseEntity):
-    """ClusterScopedEntity is the common fields for all cluster-scoped entities."""
-
-    metadata: ClusterScopedMetadata
-
-
-class NamespaceScopedEntity(BaseEntity):
-    """NamespaceScopedEntity is the common fields for all namespace-scoped entities."""
-
-    metadata: NamespaceScopedMetadata
+    metadata: ObjectMetadata
 
 
 ResourceType = TypeVar("ResourceType", bound=BaseEntity)
+
+
+class PartialObjectMetadataList(BaseK8sModel):
+    api_version: Literal["meta.k8s.io/v1"] = "meta.k8s.io/v1"
+    kind: Literal["PartialObjectMetadataList"] = "PartialObjectMetadataList"
+    metadata: ListMetadata
+    items: list[ObjectMetadata]
 
 
 class ListEntity(BaseK8sModel, Generic[ResourceType]):
@@ -112,6 +112,10 @@ class ResourceConfig(Generic[ResourceType]):
         scope: Scope | None = None,
         group: str | None = None,
         list_model: Type[ListEntity[ResourceType]] | None = None,
+        partial_metadata_model: Type[PartialObjectMetadata[ObjectMetadata]]
+        | None = None,
+        partial_metadata_list_model: Type[PartialObjectMetadataList[ObjectMetadata]]
+        | None = None,
     ) -> None:
         self._version = version
         self._kind = kind
@@ -131,7 +135,10 @@ class ResourceConfig(Generic[ResourceType]):
         if self._kind is None:
             self._kind = owner.kind
         if self._scope is None:
-            self._scope = get_scope_by_metadata(owner.metadata)
+            if issubclass(owner, ClusterScopedEntity):
+                self._scope = Scope.CLUSTER
+            else:
+                self._scope = Scope.NAMESPACE
         if self._plural is None:
             if owner.kind is None:
                 raise ValueError("kind is not set")
@@ -205,6 +212,24 @@ class ResourceConfig(Generic[ResourceType]):
         return self.version
 
 
+class PartialObjectMetadata(BaseEntity):
+    """PartialObjectMetadata is the common metadata for all Kubernetes API objects."""
+
+    __RESOURCE_CONFIG__: ClassVar[ResourceConfig[PartialObjectMetadata]] = (
+        ResourceConfig["PartialObjectMetadata"](
+            version="v1",
+            kind="PartialObjectMetadata",
+            group="meta.k8s.io",
+            plural="",
+            scope=Scope.CLUSTER,
+        )
+    )
+
+    api_version: Literal["meta.k8s.io/v1"] = "meta.k8s.io/v1"
+    kind: Literal["PartialObjectMetadata"] = "PartialObjectMetadata"
+    metadata: ObjectMetadata
+
+
 def create_list_model(
     single_model: Type[ResourceType], resource_config: ResourceConfig[ResourceType]
 ) -> Type[ListEntity[ResourceType]]:
@@ -230,17 +255,16 @@ def get_version_and_froup_from_api_version(api_version: str | None) -> tuple[str
     return parts[1], parts[0]
 
 
-def get_scope_by_metadata(metadata: CommonMetadata) -> Scope:
-    """get_scope_by_metadata returns the scope of the resource by its metadata."""
-    if hasattr(metadata, "namespace"):
-        return Scope.NAMESPACE
-    return Scope.CLUSTER
+class ClusterScopedEntity(BaseEntity): ...
+
+
+class NamespaceScopedEntity(BaseEntity): ...
 
 
 class HasStatusSubresource(BaseEntity): ...
 
 
-class HasReplicasSubresource(BaseEntity): ...
+class HasScaleSubresource(BaseEntity): ...
 
 
 class HasLogs(BaseEntity): ...

@@ -1,9 +1,10 @@
 import asyncio
 from contextlib import suppress
+from typing import cast
 
-from kubex.api.api import Api
+from kubex import Api
 from kubex.core.params import WatchOptions
-from kubex.models.base import NamespaceScopedMetadata
+from kubex.models.base import ObjectMetadata
 from kubex.models.pod import Pod
 
 
@@ -18,12 +19,13 @@ async def main() -> None:
     api: Api[Pod] = Api.namespaced(Pod, namespace="default")
     _pod = await api.create(
         Pod(
-            metadata=NamespaceScopedMetadata(name="example-pod"),
+            metadata=ObjectMetadata(generate_name="example-pod-"),
             spec={"containers": [{"name": "example", "image": "nginx"}]},
         ),
     )
+    pod_name = cast(str, _pod.metadata.name)
 
-    await api.delete("example-pod")
+    print(await api.delete(pod_name))
     _watcher.cancel()
     with suppress(asyncio.CancelledError):
         await _watcher

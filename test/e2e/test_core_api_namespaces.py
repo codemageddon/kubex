@@ -1,6 +1,6 @@
 import pytest
-from kubex.client.client import Client
-from kubex.api.api import Api
+
+from kubex import Api, Client
 from kubex.models.namespace import Namespace
 
 

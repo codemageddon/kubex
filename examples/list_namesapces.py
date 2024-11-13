@@ -1,4 +1,4 @@
-from kubex.api.api import Api
+from kubex import Api
 from kubex.models.namespace import Namespace
 
 

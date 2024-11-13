@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-
 
 class Request:
     def __init__(
@@ -9,7 +7,7 @@ class Request:
         method: str,
         url: str,
         query_params: dict[str, str] | None = None,
-        body: dict[str, Any] | None = None,
+        body: str | bytes | None = None,
         headers: dict[str, str] | None = None,
     ) -> None:
         self.url = url
@@ -19,4 +17,4 @@ class Request:
         self.headers = headers
 
     def __repr__(self) -> str:
-        return f"Request(method={self.method}, url={self.url}, query_params={self.query_params}, body={self.body}, headers={self.headers})"
+        return f"Request(method={self.method}, url={self.url}, query_params={self.query_params}, body={self.body!r}, headers={self.headers})"

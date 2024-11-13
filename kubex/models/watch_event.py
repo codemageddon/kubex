@@ -29,7 +29,7 @@ class WatchEvent(Generic[ResourceType]):
         if self.type == EventType.BOOKMARK:
             self.object = Bookmark.model_validate(raw_event["object"])
         else:
-            self._resource_type.model_validate(raw_event["object"])
+            self.object = self._resource_type.model_validate(raw_event["object"])
 
     def __repr__(self) -> str:
         return f"WatchEvent(type={self.type}, object={self.object})"
