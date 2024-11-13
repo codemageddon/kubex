@@ -2,8 +2,9 @@ from kubex.core.params import PatchOptions, PostOptions
 from kubex.core.patch import (
     Patch,
 )
-from kubex.models.base import HasScaleSubresource, ResourceType
+from kubex.models.interfaces import HasScaleSubresource
 from kubex.models.scale import Scale
+from kubex.models.typing import ResourceType
 
 from ._protocol import ApiProtocol
 

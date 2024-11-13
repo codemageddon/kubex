@@ -11,9 +11,9 @@ from kubex.core.patch import (
     MergePatch,
     StrategicMergePatch,
 )
-from kubex.models.base import (
-    ListEntity,
-    PartialObjectMetadata,
+from kubex.models.list_entity import ListEntity
+from kubex.models.partial_object_meta import PartialObjectMetadata
+from kubex.models.typing import (
     ResourceType,
 )
 from kubex.models.watch_event import WatchEvent

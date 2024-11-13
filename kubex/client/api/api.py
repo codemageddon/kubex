@@ -27,12 +27,12 @@ from kubex.core.patch import (
     StrategicMergePatch,
 )
 from kubex.core.request_builder.builder import RequestBuilder
-from kubex.models.base import (
-    ListEntity,
-    ResourceType,
-    Scope,
-)
+from kubex.models.list_entity import ListEntity
+from kubex.models.resource_config import Scope
 from kubex.models.status import Status
+from kubex.models.typing import (
+    ResourceType,
+)
 from kubex.models.watch_event import WatchEvent
 
 from ._logs import LogsMixin
@@ -170,7 +170,6 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
         except ValidationError:
             return self._resource.model_validate_json(response.content)
 
-    # TODO: Status is also possible to return
     async def delete_collection(
         self, list_options: ListOptions, delete_options: DeleteOptions
     ) -> Status | ListEntity[ResourceType]:

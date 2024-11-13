@@ -2,7 +2,7 @@ from typing import Protocol, Type
 
 from kubex.client.client import Client
 from kubex.core.request_builder.builder import RequestBuilder
-from kubex.models.base import ResourceType
+from kubex.models.typing import ResourceType
 
 
 class ApiProtocol(Protocol[ResourceType]):

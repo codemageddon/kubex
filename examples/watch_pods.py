@@ -4,7 +4,7 @@ from typing import cast
 
 from kubex import Api
 from kubex.core.params import WatchOptions
-from kubex.models.base import ObjectMetadata
+from kubex.models.metadata import ObjectMetadata
 from kubex.models.pod import Pod
 
 

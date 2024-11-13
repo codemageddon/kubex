@@ -2,7 +2,7 @@ import asyncio
 from typing import cast
 
 from kubex import Api
-from kubex.models.base import ObjectMetadata
+from kubex.models.metadata import ObjectMetadata
 from kubex.models.pod import Pod
 
 

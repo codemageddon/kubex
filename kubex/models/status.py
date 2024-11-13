@@ -1,6 +1,8 @@
 from typing import Literal
 
-from .base import BaseEntity, BaseK8sModel, ResourceConfig, Scope
+from .base import BaseK8sModel
+from .base_entity import BaseEntity
+from .resource_config import ResourceConfig, Scope
 
 
 class StatusCause(BaseK8sModel):

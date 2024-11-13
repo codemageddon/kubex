@@ -1,6 +1,8 @@
 from typing import Literal
 
-from .base import BaseEntity, BaseK8sModel, ObjectMetadata
+from .base import BaseK8sModel
+from .base_entity import BaseEntity
+from .metadata import ObjectMetadata
 
 
 class ScaleSpec(BaseK8sModel):

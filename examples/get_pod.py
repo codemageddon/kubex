@@ -1,5 +1,5 @@
 from kubex import Api
-from kubex.models.base import ObjectMetadata
+from kubex.models.metadata import ObjectMetadata
 from kubex.models.pod import Pod
 
 
@@ -13,6 +13,8 @@ async def main() -> None:
     )
     assert pod.metadata.name is not None
     print(pod)
+    print(await api.get_metadata(pod.metadata.name))
+    print(await api.list_metadata())
     await api.delete(pod.metadata.name)
 
 

@@ -1,9 +1,9 @@
 from __future__ import annotations
+
 from typing import Any, ClassVar, Literal
 
-from kubex.models.base import (
-    ClusterScopedEntity,
-    HasStatusSubresource,
+from kubex.models.interfaces import ClusterScopedEntity, HasStatusSubresource
+from kubex.models.resource_config import (
     ResourceConfig,
     Scope,
 )

@@ -1,7 +1,7 @@
 import pytest
 
 from kubex import Api, Client
-from kubex.models.base import ObjectMetadata
+from kubex.models.metadata import ObjectMetadata
 from kubex.models.pod import Pod
 
 

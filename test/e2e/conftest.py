@@ -7,7 +7,7 @@ from testcontainers.k3s import K3SContainer  # type: ignore[import-untyped]
 from yaml import safe_load
 
 from kubex import Api, Client, ClientConfiguration
-from kubex.models.base import ObjectMetadata
+from kubex.models.metadata import ObjectMetadata
 from kubex.models.namespace import Namespace
 
 

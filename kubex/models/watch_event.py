@@ -1,7 +1,8 @@
 from enum import Enum
 from typing import Any, Generic, Type
 
-from .base import BaseEntity, ResourceType
+from .base_entity import BaseEntity
+from .typing import ResourceType
 
 
 class EventType(str, Enum):

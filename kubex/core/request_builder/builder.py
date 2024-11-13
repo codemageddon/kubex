@@ -12,7 +12,7 @@ from kubex.core.patch import Patch
 from kubex.core.request import Request
 from kubex.core.request_builder.logs import LogsRequestBuilder
 from kubex.core.request_builder.metadata import MetadataRequestBuilder
-from kubex.models.base import ResourceConfig
+from kubex.models.resource_config import ResourceConfig
 
 from .constants import ACCEPT_HEADER, APPLICATION_JSON_MIME_TYPE, CONTENT_TYPE_HEADER
 from .subresource import SubresourceRequestBuilder
