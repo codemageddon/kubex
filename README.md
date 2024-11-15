@@ -1,27 +1,25 @@
 # Kubex
 
-Kubex is a Kubernetes client library for Python inspired by kube.rs
-Kubex is built on top of [Pydantic](https://github.com/pydantic/pydantic) and async-runtime agnostic
+Kubex is a Kubernetes client library for Python inspired by kube.rs. It is built on top of [Pydantic](https://github.com/pydantic/pydantic) and is async-runtime agnostic.
 
-> *ATTENTION:* Kubex is in the active development stage and backward compatibility may be broken in
-> future releases.
+> *ATTENTION:* Kubex is currently under active development, and backward compatibility may be broken in future releases.
 
-# Done:
+# Completed Features:
 
-* Basic Api interface that allows to work with almost any Kuebrnetes resources and theirs methods
-* Incluster client authorization with token refreashing
-* Basic support for kubeconfig file.
+* Basic API interface that allows interaction with almost any Kubernetes resources and their methods.
+* In-cluster client authorization with token refreshing.
+* Basic support for kubeconfig files.
 
-# TODOs
+# Planned Features:
 
-* [ ] Support OIDC and other auth extensions
-* [ ] Support aiohttp as an inner HTTTP-client
-* [ ] Tune timeouts
-* [ ] Kubernetes models library-set
-* [ ] Dynamic Api object creation to exclude methods that are not supported by the resource (requires some research for mypy compatibility)
-* [ ] ?Synchtronous version of the client?
-* [ ] More tests and examples
-* [ ] JsonPatch models?
-* [ ] Put `namesapace` as a method parameter instead of Api-instance-scoped parameter
-* [ ] More subresources support (status, ephimeral containers)
-* [ ] Pod.attach support
+* [ ] Support for OIDC and other authentication extensions.
+* [ ] Integration with aiohttp as an internal HTTP client.
+* [ ] Fine-tuning of timeouts.
+* [ ] Comprehensive library of Kubernetes models.
+* [ ] Dynamic API object creation to exclude unsupported methods for resources (requires research for mypy compatibility).
+* [ ] Potential synchronous version of the client.
+* [ ] Additional tests and examples.
+* [ ] JsonPatch models.
+* [ ] Allow `namespace` to be a method parameter instead of an API instance-scoped parameter.
+* [ ] Enhanced support for subresources (status, ephemeral containers).
+* [ ] Support for Pod.attach.
