@@ -49,6 +49,11 @@ class Client:
     def configuration(self) -> ClientConfiguration:
         return self._configuration
 
+    def _get_headers(self) -> dict[str, str]:
+        if self.configuration.token is None:
+            return {}
+        return {"Authorization": f"Bearer {self.configuration.token}"}
+
     def _create_inner_client(self) -> httpx.AsyncClient:
         return httpx.AsyncClient(
             base_url=str(self.configuration.base_url),
@@ -57,7 +62,7 @@ class Client:
         )
 
     async def __aenter__(self) -> Self:
-        await self.inner_client.__aenter__()
+        await self._inner_client.__aenter__()
         return self
 
     async def __aexit__(
@@ -66,13 +71,7 @@ class Client:
         exc_value: BaseException | None = None,
         traceback: TracebackType | None = None,
     ) -> None:
-        await self.inner_client.__aexit__(exc_type, exc_value, traceback)
-
-    @property
-    def inner_client(self) -> httpx.AsyncClient:
-        if self._inner_client.is_closed:
-            self._inner_client = self._create_inner_client()
-        return self._inner_client
+        await self._inner_client.__aexit__(exc_type, exc_value, traceback)
 
     def handle_request_error(self, response: Response) -> NoReturn:
         status_code = response.status_code
@@ -110,12 +109,15 @@ class Client:
         raise exceptions.KubernetesError(content=content)
 
     async def request(self, request: Request) -> Response:
-        _response = await self.inner_client.request(
+        headers = self._get_headers()
+        if request.headers:
+            headers.update(request.headers)
+        _response = await self._inner_client.request(
             method=request.method,
             url=request.url,
             params=request.query_params,
             content=request.body,
-            headers=request.headers,
+            headers=headers,
         )
         http_status = HTTPStatus(_response.status_code)
         response = Response(
@@ -133,7 +135,7 @@ class Client:
         return response
 
     async def stream_lines(self, request: Request) -> AsyncGenerator[str, None]:
-        async with self.inner_client.stream(
+        async with self._inner_client.stream(
             method=request.method,
             url=request.url,
             params=request.query_params,
@@ -152,4 +154,4 @@ class Client:
                 yield line
 
     async def close(self) -> None:
-        await self.inner_client.aclose()
+        await self._inner_client.aclose()
