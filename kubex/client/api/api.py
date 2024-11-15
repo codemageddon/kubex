@@ -4,7 +4,6 @@ import json
 from typing import (
     AsyncGenerator,
     Generic,
-    Self,
     Type,
 )
 
@@ -43,59 +42,28 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
     def __init__(
         self,
         resource_type: Type[ResourceType],
+        client: Client,
         *,
-        client: Client | None = None,
         namespace: str | None = None,
     ) -> None:
         self._resource = resource_type
-        self._client = client or Client()
+        self._client = client
         self._request_builder = RequestBuilder(
             resource_config=resource_type.__RESOURCE_CONFIG__,
         )
         self._request_builder.namespace = namespace
         self._namespace: str | None = namespace
 
-    def with_namespace(self, namespace: str) -> Self:
-        self._namespace = namespace
-        self._request_builder.namespace = namespace
-        return self
-
-    def with_default_namespace(self) -> Self:
-        self._namespace = self._client.configuration.namespace
-        self._request_builder.namespace = self._namespace
-        return self
-
-    def without_namespace(self) -> Self:
-        self._namespace = None
-        self._request_builder.namespace = None
-        return self
-
     @classmethod
-    def all(
-        cls: Type[Self], resource: Type[ResourceType], client: Client | None = None
-    ) -> Self:
-        api: Self = cls(resource, client=client)
-        return api
-
-    @classmethod
-    def namespaced(
-        cls: Type[Self],
-        resource: Type[ResourceType],
-        namespace: str,
+    async def create_api(
+        cls,
+        resource_type: Type[ResourceType],
+        *,
         client: Client | None = None,
-    ) -> Self:
-        api: Self = cls(resource, client=client, namespace=namespace)
-        return api
-
-    @classmethod
-    def default_namespaced(
-        cls: Type[Self], resource: Type[ResourceType], client: Client | None = None
-    ) -> Self:
-        if client is None:
-            client = Client()
-        return cls.namespaced(
-            resource, namespace=client.configuration.namespace, client=client
-        )
+        namespace: str | None = None,
+    ) -> Api[ResourceType]:
+        client = client or await Client.create()
+        return cls(resource_type, client=client, namespace=namespace)
 
     def _check_namespace(self) -> None:
         if (

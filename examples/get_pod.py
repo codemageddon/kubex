@@ -4,7 +4,10 @@ from kubex.models.pod import Pod
 
 
 async def main() -> None:
-    api: Api[Pod] = Api.namespaced(Pod, namespace="default")
+    api: Api[Pod] = await Api.create_api(
+        Pod,
+        namespace="default",
+    )
     pod = await api.create(
         Pod(
             metadata=ObjectMetadata(generate_name="example-pod-"),

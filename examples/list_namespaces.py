@@ -3,7 +3,7 @@ from kubex.models.namespace import Namespace
 
 
 async def main() -> None:
-    api: Api[Namespace] = Api.all(Namespace)
+    api: Api[Namespace] = await Api.create_api(Namespace)
     namespaces = await api.list()
     print(namespaces)
 

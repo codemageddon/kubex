@@ -34,7 +34,7 @@ class LogsMixin(ApiProtocol[ResourceType]):
             name, options=options or LogOptions.default()
         )
         response = await self._client.request(request)
-        return response.content
+        return response.text
 
     # TODO: Investigate how to force mypy to complain on stream_logs calling with non-Pod resources
     # @overload

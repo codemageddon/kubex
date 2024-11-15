@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import pathlib
 import warnings
 from http import HTTPStatus
 from types import TracebackType
@@ -10,6 +9,7 @@ from typing import AsyncGenerator, NoReturn, Self
 import httpx
 from pydantic import ValidationError
 
+from kubex.client.configuration import ClientConfiguration
 from kubex.core import exceptions
 from kubex.core.request import Request
 from kubex.core.request_builder.constants import (
@@ -19,41 +19,31 @@ from kubex.core.request_builder.constants import (
 from kubex.core.response import Response
 from kubex.models.status import Status
 
-# Following constants are just for development purposes and should be removed after configuration reading is implemented
-_CURRENT_PATH = pathlib.Path(__file__)
-_CERTS_PATH = _CURRENT_PATH.parent.parent.parent / "scratches" / ".certs"
-
-_DEFAULT_BASE_URL = "https://127.0.0.1:6443"
-_DEFAULT_SERVER_CA = str(_CERTS_PATH / "server_ca.crt")
-_DEFAULT_CLIENT_CERT = str(_CERTS_PATH / "client.crt")
-_DEFAULT_CLIENT_KEY = str(_CERTS_PATH / "client.key")
-
+from .file_config import configure_from_kubeconfig
+from .incluster_config import configure_from_pod_env
 
 logger = logging.getLogger("kubex.client")
 
 
-class ClientConfiguration:
-    def __init__(
-        self,
-        url: str | None = None,
-        server_ca_file: str | None = None,
-        client_cert_file: str | None = None,
-        client_key_file: str | None = None,
-        namespace: str | None = None,
-        log_api_warnings: bool = True,
-    ) -> None:
-        self.base_url = url or _DEFAULT_BASE_URL
-        self.server_ca_file = server_ca_file or _DEFAULT_SERVER_CA
-        self.client_cert_file = client_cert_file or _DEFAULT_CLIENT_CERT
-        self.client_key_file = client_key_file or _DEFAULT_CLIENT_KEY
-        self.namespace = namespace or "default"
-        self.log_api_warnings = log_api_warnings
+async def _try_read_configuration() -> ClientConfiguration:
+    try:
+        return await configure_from_kubeconfig()
+    except Exception as e:
+        logger.error("Failed to read configuration from kubeconfig", exc_info=e)
+        return await configure_from_pod_env()
 
 
 class Client:
-    def __init__(self, configuration: ClientConfiguration | None = None) -> None:
-        self._configuration = configuration or ClientConfiguration()
+    def __init__(self, configuration: ClientConfiguration) -> None:
+        self._configuration = configuration
         self._inner_client = self._create_inner_client()
+
+    @classmethod
+    async def create(cls, configuration: ClientConfiguration | None = None) -> Self:
+        if configuration is None:
+            configuration = await _try_read_configuration()
+        self = cls(configuration)
+        return self
 
     @property
     def configuration(self) -> ClientConfiguration:
@@ -61,12 +51,9 @@ class Client:
 
     def _create_inner_client(self) -> httpx.AsyncClient:
         return httpx.AsyncClient(
-            base_url=self.configuration.base_url,
-            cert=(
-                self.configuration.client_cert_file,
-                self.configuration.client_key_file,
-            ),
-            verify=self.configuration.server_ca_file,
+            base_url=str(self.configuration.base_url),
+            verify=self.configuration.verify,
+            cert=self.configuration.client_cert,
         )
 
     async def __aenter__(self) -> Self:
@@ -96,9 +83,9 @@ class Client:
                 try:
                     content = Status.model_validate_json(response.content)
                 except ValidationError:
-                    content = response.content.decode()
+                    content = response.text
             else:
-                content = response.content.decode()
+                content = response.text
         match status_code:
             case HTTPStatus.BAD_REQUEST:
                 raise exceptions.BadRequest(content=content)
@@ -117,7 +104,9 @@ class Client:
             case HTTPStatus.UNPROCESSABLE_ENTITY:
                 raise exceptions.UnprocessableEntity(content=content)
             case status:
-                raise exceptions.KubexApiError(content=content, status=status)
+                raise exceptions.KubexApiError(
+                    content=content, status=HTTPStatus(status)
+                )
         raise exceptions.KubernetesError(content=content)
 
     async def request(self, request: Request) -> Response:

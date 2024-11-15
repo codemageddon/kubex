@@ -6,7 +6,7 @@ from kubex.models.namespace import Namespace
 
 @pytest.mark.anyio
 async def test_list_namespaces(client: Client) -> None:
-    api: Api[Namespace] = Api.all(Namespace, client=client)
+    api: Api[Namespace] = Api(Namespace, client=client)
     namespaces = await api.list()
     assert namespaces is not None
     assert len(namespaces.items) > 0

@@ -15,6 +15,10 @@ class KubexClientException(KubexException):
 C = TypeVar("C", bound=str | Status)
 
 
+class ConfgiurationError(KubexException):
+    pass
+
+
 class KubexApiError(Generic[C], KubexClientException):
     status: HTTPStatus
     content: C
