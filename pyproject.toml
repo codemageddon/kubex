@@ -45,6 +45,9 @@ build-backend = "hatchling.build"
 
 [tool.mypy]
 strict = true
+plugins = [
+    "pydantic.mypy"
+]
 
 [tool.uv]
 dev-dependencies = [
