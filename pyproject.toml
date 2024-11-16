@@ -45,11 +45,15 @@ build-backend = "hatchling.build"
 
 [tool.mypy]
 strict = true
+plugins = [
+    "pydantic.mypy"
+]
 
 [tool.uv]
 dev-dependencies = [
     "anyio>=4.6.0",
     "mypy>=1.11.2",
+    "pre-commit>=4.0.1",
     "pytest-cov>=5.0.0",
     "pytest>=8.3.3",
     "ruff>=0.6.8",

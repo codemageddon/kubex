@@ -1,0 +1,37 @@
+name: Ruff
+on: [ push, pull_request ]
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: --all-files --verbose
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - name: Install dependencies
+        run: uv lock --python 3.13 && uv sync --python 3.13
+      - name: Run Ruff
+        run: uv run ruff check .
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - name: Install dependencies
+        run: uv lock --python 3.13 && uv sync --python 3.13
+      - name: Run Ruff
+        run: uv run ruff format --check .
+  mypy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - name: Install dependencies
+        run: uv lock --python 3.13 && uv sync --python 3.13 --all-extras
+      - name: Run mypy
+        run: uv run mypy .
