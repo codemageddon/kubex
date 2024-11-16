@@ -7,7 +7,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
       - name: Install dependencies
-        run: uv lock --python 3.13 && sync --python 3.13
+        run: uv lock --python 3.13 && uv sync --python 3.13
       - name: Run Ruff
         run: uv run ruff check .
   format:
@@ -19,7 +19,7 @@ jobs:
         with:
           enable-cache: true
       - name: Install dependencies
-        run: uv lock --python 3.13 && sync --python 3.13
+        run: uv lock --python 3.13 && uv sync --python 3.13
       - name: Run Ruff
         run: uv run ruff format --check .
   mypy:
@@ -28,6 +28,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
       - name: Install dependencies
-        run: uv lock --python 3.13 && sync --python 3.13 --all-extras
+        run: uv lock --python 3.13 && uv sync --python 3.13 --all-extras
       - name: Run mypy
         run: uv run mypy .
