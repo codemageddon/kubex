@@ -1,4 +1,4 @@
-from typing import Any, Self
+from typing import Any
 
 from kubex.core.params import (
     DeleteOptions,
@@ -23,73 +23,62 @@ class RequestBuilder(
 ):
     def __init__(self, resource_config: ResourceConfig[Any]) -> None:
         self.resource_config = resource_config
-        self._namespace: str | None = None
 
-    @property
-    def namespace(self) -> str | None:
-        return self._namespace
-
-    @namespace.setter
-    def namespace(self, namespace: str | None) -> None:
-        self._namespace = namespace
-
-    def with_namespace(self, namespace: str) -> Self:
-        self.namespace = namespace
-        return self
-
-    def without_namespace(self) -> Self:
-        self.namespace = None
-        return self
-
-    def get(self, name: str, options: GetOptions) -> Request:
+    def get(self, name: str, namespace: str | None, options: GetOptions) -> Request:
         query_params = options.as_query_params()
         return Request(
             method="GET",
-            url=self.resource_config.url(self._namespace, name),
+            url=self.resource_config.url(namespace, name),
             query_params=query_params,
         )
 
-    def list(self, options: ListOptions) -> Request:
+    def list(self, namespace: str | None, options: ListOptions) -> Request:
         query_params = options.as_query_params()
         return Request(
             method="GET",
-            url=self.resource_config.url(self._namespace),
+            url=self.resource_config.url(namespace),
             query_params=query_params,
         )
 
-    def create(self, options: PostOptions, data: str | bytes) -> Request:
+    def create(
+        self, namespace: str | None, options: PostOptions, data: str | bytes
+    ) -> Request:
         query_params = options.as_query_params()
         return Request(
             method="POST",
-            url=self.resource_config.url(self._namespace),
+            url=self.resource_config.url(namespace),
             query_params=query_params,
             body=data,
         )
 
-    def delete(self, name: str, options: DeleteOptions) -> Request:
+    def delete(
+        self, name: str, namespace: str | None, options: DeleteOptions
+    ) -> Request:
         body = options.as_request_body()
         return Request(
             method="DELETE",
-            url=self.resource_config.url(self._namespace, name),
+            url=self.resource_config.url(namespace, name),
             body=body,
         )
 
     def delete_collection(
-        self, options: ListOptions, delete_options: DeleteOptions
+        self, namespace: str | None, options: ListOptions, delete_options: DeleteOptions
     ) -> Request:
         query_params = options.as_query_params()
         body = delete_options.as_request_body()
         return Request(
             method="DELETE",
-            url=self.resource_config.url(self._namespace),
+            url=self.resource_config.url(namespace),
             query_params=query_params,
             body=body,
         )
 
-    def patch(self, name: str, options: PatchOptions, patch: Patch) -> Request:
+    def patch(
+        self, name: str, namespace: str | None, options: PatchOptions, patch: Patch
+    ) -> Request:
         return Request(
             method="PATCH",
-            url=self.resource_config.url(self._namespace, name),
+            url=self.resource_config.url(namespace, name),
             body=patch.serialize(by_alias=True, exclude_unset=True),
             query_params=options.as_query_params(),
             headers={
@@ -98,23 +87,28 @@ class RequestBuilder(
             },
         )
 
-    def replace(self, name: str, options: PostOptions, data: str | bytes) -> Request:
+    def replace(
+        self, name: str, namespace: str | None, options: PostOptions, data: str | bytes
+    ) -> Request:
         query_params = options.as_query_params()
         return Request(
             method="PUT",
-            url=self.resource_config.url(self._namespace, name),
+            url=self.resource_config.url(namespace, name),
             query_params=query_params,
             body=data,
         )
 
     def watch(
-        self, options: WatchOptions, resource_version: str | None = None
+        self,
+        namespace: str | None,
+        options: WatchOptions,
+        resource_version: str | None = None,
     ) -> Request:
         query_params = options.as_query_params()
         if resource_version is not None:
             query_params["resourceVersion"] = resource_version
         return Request(
             method="GET",
-            url=self.resource_config.url(self._namespace),
+            url=self.resource_config.url(namespace),
             query_params=query_params,
         )
