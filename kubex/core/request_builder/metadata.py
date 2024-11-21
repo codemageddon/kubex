@@ -1,4 +1,10 @@
-from kubex.core.params import GetOptions, ListOptions, PatchOptions, WatchOptions
+from kubex.core.params import (
+    GetOptions,
+    ListOptions,
+    NamespaceTypes,
+    PatchOptions,
+    WatchOptions,
+)
 from kubex.core.patch import Patch
 from kubex.core.request import Request
 from kubex.core.request_builder.constants import (
@@ -12,7 +18,9 @@ from kubex.core.request_builder.subresource import RequestBuilderProtocol
 
 
 class MetadataRequestBuilder(RequestBuilderProtocol):
-    def get_metadata(self, name: str, options: GetOptions) -> Request:
+    def get_metadata(
+        self, name: str, namespace: NamespaceTypes, options: GetOptions
+    ) -> Request:
         query_params = options.as_query_params()
         headers = {
             ACCEPT_HEADER: METADATA_MIME_TYPE,
@@ -20,12 +28,12 @@ class MetadataRequestBuilder(RequestBuilderProtocol):
         }
         return Request(
             method="GET",
-            url=self.resource_config.url(self.namespace, name),
+            url=self.resource_config.url(namespace, name),
             query_params=query_params,
             headers=headers,
         )
 
-    def list_metadata(self, options: ListOptions) -> Request:
+    def list_metadata(self, namespace: NamespaceTypes, options: ListOptions) -> Request:
         query_params = options.as_query_params()
         headers = {
             ACCEPT_HEADER: METADATA_LIST_MIME_TYPE,
@@ -33,13 +41,16 @@ class MetadataRequestBuilder(RequestBuilderProtocol):
         }
         return Request(
             method="GET",
-            url=self.resource_config.url(self.namespace),
+            url=self.resource_config.url(namespace),
             query_params=query_params,
             headers=headers,
         )
 
     def watch_metadata(
-        self, options: WatchOptions, resource_version: str | None = None
+        self,
+        namespace: NamespaceTypes,
+        options: WatchOptions,
+        resource_version: str | None = None,
     ) -> Request:
         query_params = options.as_query_params()
         if resource_version is not None:
@@ -50,15 +61,17 @@ class MetadataRequestBuilder(RequestBuilderProtocol):
         }
         return Request(
             method="GET",
-            url=self.resource_config.url(self.namespace),
+            url=self.resource_config.url(namespace),
             query_params=query_params,
             headers=headers,
         )
 
-    def patch_metadata(self, name: str, options: PatchOptions, patch: Patch) -> Request:
+    def patch_metadata(
+        self, name: str, namespace: NamespaceTypes, options: PatchOptions, patch: Patch
+    ) -> Request:
         return Request(
             method="PATCH",
-            url=self.resource_config.url(self.namespace, name),
+            url=self.resource_config.url(namespace, name),
             query_params=options.as_query_params(),
             headers={
                 ACCEPT_HEADER: METADATA_MIME_TYPE,

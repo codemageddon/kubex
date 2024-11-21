@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import json
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
+from uuid import UUID
 
 
 class VersionMatch(str, Enum):
@@ -26,11 +27,20 @@ class DryRun(str, Enum):
     ALL = "All"
 
 
+PropagationPolicyTypes = (
+    PropagationPolicy | Literal["Background", "Foreground", "Orphan"] | None
+)
+DryRunTypes = DryRun | bool | Literal["All"] | None
+UidTypes = UUID | str | None
+ResourceVersionTypes = str | None
+NamespaceTypes = str | None
+
+
 class Precondition:
     def __init__(
         self,
-        resource_version: str | None = None,
-        uid: str | None = None,
+        resource_version: ResourceVersionTypes = None,
+        uid: UidTypes = None,
     ) -> None:
         self.resource_version = resource_version
         self.uid = uid
@@ -45,7 +55,7 @@ class ListOptions:
         limit: int | None = None,
         continue_token: str | None = None,
         version_match: VersionMatch | None = None,
-        resource_version: str | None = None,
+        resource_version: ResourceVersionTypes = None,
     ) -> None:
         self.label_selector = label_selector
         self.field_selector = field_selector
@@ -117,7 +127,7 @@ class WatchOptions:
 class GetOptions:
     def __init__(
         self,
-        resource_version: str | None = None,
+        resource_version: ResourceVersionTypes = None,
     ) -> None:
         self.resource_version = resource_version
 
@@ -131,18 +141,20 @@ class GetOptions:
         return {"resourceVersion": self.resource_version}
 
 
-def convert_dry_run(dry_run: bool | DryRun | None) -> DryRun | None:
+def convert_dry_run(dry_run: DryRunTypes) -> DryRun | None:
     if dry_run is None:
         return None
     if isinstance(dry_run, DryRun):
         return dry_run
+    elif isinstance(dry_run, str):
+        return DryRun(dry_run)
     return DryRun.ALL if dry_run else None
 
 
 class PostOptions:
     def __init__(
         self,
-        dry_run: bool | DryRun | None = None,
+        dry_run: DryRunTypes = None,
         field_manager: str | None = None,
     ) -> None:
         self.dry_run = dry_run
@@ -165,7 +177,7 @@ class PostOptions:
 class PatchOptions:
     def __init__(
         self,
-        dry_run: bool | DryRun | None = None,
+        dry_run: DryRunTypes = None,
         field_manager: str | None = None,
         force: bool | None = None,
         field_validation: FieldValidation | None = None,
@@ -196,9 +208,9 @@ class PatchOptions:
 class DeleteOptions:
     def __init__(
         self,
-        dry_run: bool | DryRun | None = None,
+        dry_run: DryRunTypes = None,
         grace_period_seconds: int | None = None,
-        propagation_policy: PropagationPolicy | None = None,
+        propagation_policy: PropagationPolicyTypes = None,
         preconditions: Precondition | None = None,
     ) -> None:
         self.dry_run = dry_run
@@ -218,14 +230,16 @@ class DeleteOptions:
         if self.grace_period_seconds is not None:
             body["gracePeriodSeconds"] = str(self.grace_period_seconds)
         if self.propagation_policy is not None:
-            body["propagationPolicy"] = self.propagation_policy.value
+            if isinstance(self.propagation_policy, PropagationPolicy):
+                body["propagationPolicy"] = self.propagation_policy.value
+            body["propagationPolicy"] = self.propagation_policy
         if self.preconditions is not None:
             if self.preconditions.resource_version is not None:
                 body["preconditions"] = {
                     "resourceVersion": self.preconditions.resource_version
                 }
             if self.preconditions.uid is not None:
-                body["preconditions"] = {"uid": self.preconditions.uid}
+                body["preconditions"] = {"uid": str(self.preconditions.uid)}
         if body:
             return json.dumps(body)
         return None

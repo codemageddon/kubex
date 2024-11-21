@@ -2,21 +2,24 @@ import asyncio
 from contextlib import suppress
 from typing import cast
 
-from kubex import Api
-from kubex.core.params import WatchOptions
+from kubex import Api, create_api
 from kubex.models.metadata import ObjectMetadata
 from kubex.models.pod import Pod
 
+NAMESPACE = "default"
 
-async def watcher() -> None:
-    api: Api[Pod] = await Api.create_api(Pod)
-    async for event in api.watch(WatchOptions(allow_bookmarks=True)):
+
+async def watcher(pod_api: Api[Pod]) -> None:
+    async for event in pod_api.watch(
+        allow_bookmarks=True,
+        namespace=None,
+    ):
         print(event)
 
 
 async def main() -> None:
-    _watcher = asyncio.create_task(watcher())
-    api: Api[Pod] = await Api.create_api(Pod, namespace="default")
+    api: Api[Pod] = await create_api(Pod, namespace=NAMESPACE)
+    _watcher = asyncio.create_task(watcher(api))
     _pod = await api.create(
         Pod(
             metadata=ObjectMetadata(generate_name="example-pod-"),

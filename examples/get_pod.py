@@ -1,13 +1,12 @@
-from kubex import Api
+from kubex import Api, create_api
 from kubex.models.metadata import ObjectMetadata
 from kubex.models.pod import Pod
 
+NAMESPACE = "default"
+
 
 async def main() -> None:
-    api: Api[Pod] = await Api.create_api(
-        Pod,
-        namespace="default",
-    )
+    api: Api[Pod] = await create_api(Pod, namespace=NAMESPACE)
     pod = await api.create(
         Pod(
             metadata=ObjectMetadata(generate_name="example-pod-"),
