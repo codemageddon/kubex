@@ -41,6 +41,8 @@ from ._protocol import ApiNamespaceTypes
 
 
 class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[ResourceType]):
+    """API for interacting with Kubernetes resource."""
+
     def __init__(
         self,
         resource_type: Type[ResourceType],
@@ -57,6 +59,12 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
         self._ensure_optional_namespace(namespace)
 
     def _get_namespace(self, namespace: ApiNamespaceTypes) -> NamespaceTypes:
+        """Get the namespace to use for the API request.
+
+        If the namespace is not provided, the namespace provided when creating
+        the API will be used. If the namespace is provided, the namespace
+        provided when creating the API will be overridden.
+        """
         if namespace is Ellipsis:
             return self._namespace
         return namespace
@@ -95,7 +103,20 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
         namespace: ApiNamespaceTypes = Ellipsis,
         resource_version: ResourceVersionTypes = None,
     ) -> ResourceType:
-        """Read the specified resource."""
+        """Read the specified resource.
+
+        Args:
+            name: The name of the resource to read.
+            namespace: The namespace of the namespaced resource to read. If not provided,
+                the namespace provided when creating the API will be used.
+                The namespace is required for namespaced resources.
+                If namespace is provided for cluster-scoped resources, an error will be raised.
+            resource_version: The resource version to read. If not provided,
+                the current resource version will be read. For details look at
+                [Resource Version Semantics documentation](https://kubernetes.io/docs/reference/using-api/api-concepts/#semantics-for-get-and-list),
+        Returns:
+            ResourceType: the resource instance.
+        """
         _namespace = self._ensure_required_namespace(namespace)
         options = GetOptions(resource_version=resource_version)
         request = self._request_builder.get(name, _namespace, options)
@@ -114,7 +135,26 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
         version_match: VersionMatch | None = None,
         resource_version: ResourceVersionTypes = None,
     ) -> ListEntity[ResourceType]:
-        """List objects of kind."""
+        """List objects of kind.
+
+        Args:
+            namespace: The namespace of the namespaced resource to list. If not provided,
+                the namespace provided when creating the API will be used.
+                If namespace is provided for cluster-scoped resources, an error will be raised.
+            label_selector: A selector to restrict the list of returned objects by their labels.
+                For details look at [Label Selectors documentation](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors).
+            field_selector: A selector to restrict the list of returned objects by their fields.
+                For details look at [Field Selectors documentation](https://kubernetes.io/docs/concepts/overview/working-with-objects/field-selectors/).
+            timeout: Timeout for the list/watch call.
+            limit: The maximum number of items to return.
+            continue_token: The continue token for the list call.
+            version_match: Whether to watch for changes to a resource.
+            resource_version: The resource version to list. If not provided,
+                the current resource version will be listed. For details look at
+                [Resource Version Semantics documentation](https://kubernetes.io/docs/reference/using-api/api-concepts/#semantics-for-get-and-list),
+        Returns:
+            ListEntity[ResourceType]: the list of resource.
+        """
         _namespace = self._ensure_optional_namespace(namespace)
         options = ListOptions(
             label_selector=label_selector,
@@ -138,7 +178,19 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
         dry_run: DryRunTypes = None,
         field_manager: str | None = None,
     ) -> ResourceType:
-        """Create a resource."""
+        """Create a resource.
+
+        Args:
+            data (ResourceType): The resource instance to create.
+            namespace: The namespace to create the resource in. If not provided,
+                the namespace provided when creating the API will be used.
+                The namespace is required for namespaced resources.
+                If namespace is provided for cluster-scoped resources, an error will be raised.
+            dry_run: Whether to perform a dry run of the operation.
+            field_manager (str): The value to use for the fieldManager attribute of the created resource.
+        Returns:
+            ResourceType: the created resource instance.
+        """
         _namespace = self._ensure_required_namespace(namespace)
         options = PostOptions(dry_run=dry_run, field_manager=field_manager)
         request = self._request_builder.create(
@@ -159,7 +211,25 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
         propagation_policy: PropagationPolicyTypes = None,
         preconditions: Precondition | None = None,
     ) -> Status | ResourceType:
-        """Delete the specified resource."""
+        """Delete the specified resource.
+
+        Args:
+            name: The name of the resource to delete.
+            namespace: The namespace of the namespaced resource to delete. If not provided,
+                the namespace provided when creating the API will be used.
+                The namespace is required for namespaced resources.
+                If namespace is provided for cluster-scoped resources, an error will be raised.
+            dry_run: Whether to perform a dry run of the operation.
+            grace_period_seconds: The duration in seconds before the object should be deleted.
+            propagation_policy: Whether and how garbage collection will be performed.
+            preconditions: Preconditions for the operation.
+        Returns:
+            Status: the resource has been fully deleted.
+            ResourceType: the resource instance deletion process has started,
+                but the resource is not gone yet due to finalization process.
+                For details see
+                [Resource deletion documentation](https://kubernetes.io/docs/reference/using-api/api-concepts/#resource-deletion).
+        """
         _namespace = self._ensure_required_namespace(namespace)
         options = DeleteOptions(
             dry_run=dry_run,

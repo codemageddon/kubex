@@ -1,0 +1,12 @@
+name: Test
+on: [ push, pull_request ]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - name: Install dependencies
+        run: uv lock --python 3.13 && uv sync --python 3.13 --all-extras
+      - name: Run pytest
+        run: uv run pytest .
