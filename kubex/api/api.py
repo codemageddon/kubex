@@ -9,7 +9,7 @@ from typing import (
 
 from pydantic import ValidationError
 
-from kubex.client.client import Client
+from kubex.client.client import BaseClient, create_client
 from kubex.core.params import (
     DeleteOptions,
     DryRunTypes,
@@ -46,7 +46,7 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
     def __init__(
         self,
         resource_type: Type[ResourceType],
-        client: Client,
+        client: BaseClient,
         *,
         namespace: NamespaceTypes = None,
     ) -> None:
@@ -363,7 +363,7 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
 async def create_api(
     resource_type: Type[ResourceType],
     *,
-    client: Client | None = None,
+    client: BaseClient | None = None,
     namespace: NamespaceTypes = None,
 ) -> Api[ResourceType]:
     """Create an API for the specified resource type.
@@ -379,5 +379,5 @@ async def create_api(
     Returns:
         An Api instance for the specified resource type.
     """
-    client = client or await Client.create()
+    client = client or await create_client()
     return Api(resource_type, client=client, namespace=namespace)
