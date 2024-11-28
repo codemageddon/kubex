@@ -1,5 +1,3 @@
-from .api import Api, create_api
-from .client import Client
-from .configuration import ClientConfiguration
+from .client import BaseClient, ClientChoise, create_client
 
-__all__ = ["Api", "Client", "ClientConfiguration", "create_api"]
+__all__ = ["create_client", "BaseClient", "ClientChoise"]

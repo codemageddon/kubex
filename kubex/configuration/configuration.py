@@ -221,9 +221,11 @@ class ClientConfiguration:
         self._token = token
 
     @property
-    def verify(self) -> bool | str:
+    def verify(self) -> bool | str | None:
         if self.insecure_skip_tls_verify:
             return False
+        if self.server_ca_file is None:
+            return None
         return str(self.server_ca_file)
 
     @property

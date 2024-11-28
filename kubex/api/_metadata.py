@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import AsyncGenerator
 
-from kubex.client.api._protocol import ApiNamespaceTypes, ApiProtocol
+from kubex.api._protocol import ApiNamespaceTypes, ApiProtocol
 from kubex.core.params import (
     DryRunTypes,
     FieldValidation,
