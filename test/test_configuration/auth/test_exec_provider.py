@@ -19,4 +19,5 @@ async def test_exec_provider_run() -> None:
         )
     )
     result = await provider.run()
+    assert result.status is not None
     assert result.status.token == "test-token"

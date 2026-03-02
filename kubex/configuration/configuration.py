@@ -243,12 +243,12 @@ class ClientConfiguration:
         return str(self.server_ca_file)
 
     @property
-    def client_cert(self) -> tuple[str, str | None] | None:
+    def client_cert(self) -> tuple[str, str] | str | None:
         if self.client_cert_file is None:
             return None
-        return str(self.client_cert_file), str(
-            self.client_key_file
-        ) if self.client_key_file is not None else None
+        if self.client_key_file is not None:
+            return str(self.client_cert_file), str(self.client_key_file)
+        return str(self.client_cert_file)
 
     @property
     def token(self) -> str | None:
