@@ -105,6 +105,6 @@ class OIDCAuthProvider:
         response = await self._id_token()
         data = response.json()
         id_token = data.get("id_token")
-        if id_token is None:
+        if not isinstance(id_token, str):
             raise ValueError("OIDC: id_token not found in token response")
         return id_token
