@@ -9,7 +9,7 @@ from pydantic import SecretStr
 from .exec import ExecAuthProvider
 from .oidc import OIDCAuthProvider
 
-FILE_TOKEN_REFRRESH_INTERVAL = 60
+TOKEN_REFRESH_INTERVAL = 60
 
 
 def bearer_token(token: SecretStr) -> str:
@@ -49,7 +49,7 @@ class _AsyncRWLock:
             yield
 
 
-class BaseRefreachableToken(ABC):
+class BaseRefreshableToken(ABC):
     def __init__(self) -> None:
         self._lock = _AsyncRWLock()
         self._last_read_token: SecretStr | None = None
@@ -67,16 +67,18 @@ class BaseRefreachableToken(ABC):
     async def _id_token(self) -> SecretStr: ...
 
     async def to_header(self) -> str:
-        token: SecretStr | None = None
         async with self._lock.read_lock():
             token = self._cached_token()
-        if token is None:
-            async with self._lock.write_lock():
+        if token is not None:
+            return bearer_token(token)
+        async with self._lock.write_lock():
+            token = self._cached_token()
+            if token is None:
                 token = await self._id_token()
         return bearer_token(token)
 
 
-class FileRefreachableToken(BaseRefreachableToken):
+class FileRefreshableToken(BaseRefreshableToken):
     def __init__(self, path: Path) -> None:
         super().__init__()
         self.path = path
@@ -87,18 +89,18 @@ class FileRefreachableToken(BaseRefreachableToken):
             if not raw_token:
                 raise ValueError("Token is not set")
             self._last_read_token = SecretStr(raw_token)
-            self._expires_at = anyio.current_time() + FILE_TOKEN_REFRRESH_INTERVAL
+            self._expires_at = anyio.current_time() + TOKEN_REFRESH_INTERVAL
         return self._last_read_token
 
 
-class OidcRefreachableToken(BaseRefreachableToken):
+class OidcRefreshableToken(BaseRefreshableToken):
     def __init__(self, provider: OIDCAuthProvider) -> None:
         super().__init__()
         self._provider = provider
 
     def _get_expiration(self, token: str) -> float:
         # TODO: Implement this
-        return float(FILE_TOKEN_REFRRESH_INTERVAL)
+        return float(TOKEN_REFRESH_INTERVAL)
 
     async def _id_token(self) -> SecretStr:
         if not self._is_expiring() and self._last_read_token is not None:
@@ -109,10 +111,13 @@ class OidcRefreachableToken(BaseRefreachableToken):
         return self._last_read_token
 
 
-class ExecRefreachableToken(BaseRefreachableToken):
+class ExecRefreshableToken(BaseRefreshableToken):
     def __init__(self, provider: ExecAuthProvider) -> None:
         super().__init__()
         self._provider = provider
+
+    def _get_expiration(self, token: str) -> float:
+        return float(TOKEN_REFRESH_INTERVAL)
 
     async def _id_token(self) -> SecretStr:
         if not self._is_expiring() and self._last_read_token is not None:

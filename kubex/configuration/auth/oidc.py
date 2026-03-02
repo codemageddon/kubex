@@ -2,12 +2,10 @@ from base64 import b64encode
 from enum import Enum
 from urllib.parse import urlencode
 
-from httpx import AsyncClient
+from httpx import AsyncClient, Request, Response
 from pydantic import BaseModel
 
 from kubex.configuration.configuration import OIDCConfig
-from kubex.core.request import Request
-from kubex.core.response import Response
 
 
 class AuthStyle(Enum):
@@ -52,19 +50,16 @@ class OIDCAuthProvider:
         if self._auth_style is not None:
             request = await self._token_request(token_endpoint, self._auth_style)
             async with self._client() as client:
-                response = await client.post(request)
+                response = await client.send(request)
                 return response
-        else:
-            for auth_style in AuthStyle:
-                request = await self._token_request(token_endpoint, auth_style)
-                ok_response = None
-                async with self._client() as client:
-                    response = await client.send(request)
-                    if 300 < response.status_code >= 200:
-                        ok_response = response
-                        self._auth_style = auth_style
-                        break
-            return ok_response
+        for auth_style in AuthStyle:
+            request = await self._token_request(token_endpoint, auth_style)
+            async with self._client() as client:
+                response = await client.send(request)
+                if 200 <= response.status_code < 300:
+                    self._auth_style = auth_style
+                    return response
+        raise ValueError("OIDC token request failed: no auth style succeeded")
 
     def _basic_auth(self) -> str:
         credentials = f"{self.config.client_id.get_secret_value()}:{self.config.client_secret.get_secret_value()}"
@@ -80,9 +75,9 @@ class OIDCAuthProvider:
                 headers={
                     "Accept": "application/json",
                     "Content-Type": "application/x-www-form-urlencoded",
-                    "authorization": f"Basic {self._basic_auth()}",
+                    "Authorization": f"Basic {self._basic_auth()}",
                 },
-                body=urlencode(
+                content=urlencode(
                     [
                         ("grant_type", "refresh_token"),
                         ("refresh_token", self.config.refresh_token.get_secret_value()),
@@ -96,7 +91,7 @@ class OIDCAuthProvider:
                 "Accept": "application/json",
                 "Content-Type": "application/x-www-form-urlencoded",
             },
-            body=urlencode(
+            content=urlencode(
                 [
                     ("grant_type", "refresh_token"),
                     ("refresh_token", self.config.refresh_token.get_secret_value()),
@@ -107,4 +102,9 @@ class OIDCAuthProvider:
         )
 
     async def refresh_token(self) -> str:
-        raise NotImplementedError()
+        response = await self._id_token()
+        data = response.json()
+        id_token = data.get("id_token")
+        if id_token is None:
+            raise ValueError("OIDC: id_token not found in token response")
+        return id_token

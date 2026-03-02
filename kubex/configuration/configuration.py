@@ -131,7 +131,7 @@ class AuthInfo(BaseK8sModel):
     """ImpersonateUserExtra contains additional information for impersonated user."""
     auth_provider: AuthProviderConfig | None = Field(None, alias="auth-provider")
     """AuthProvider specifies a custom authentication plugin for the kubernetes cluster."""
-    exec: dict[str, str] | None = None
+    exec: ExecConfig | None = None
 
 
 class Context(BaseK8sModel):
@@ -189,7 +189,7 @@ class KubeConfig(BaseK8sModel):
     """CurrentContext is the name of the context that you would like to use by default."""
 
 
-TOKEN_REFRRESH_INTERVAL = 60
+TOKEN_REFRESH_INTERVAL = 60
 
 
 class ClientConfiguration:
@@ -261,7 +261,7 @@ class ClientConfiguration:
         if (
             self._current_token is None
             or self._last_token_read is None
-            or time() - self._last_token_read < TOKEN_REFRRESH_INTERVAL
+            or time() - self._last_token_read < TOKEN_REFRESH_INTERVAL
         ):
             self._current_token = self.token_file.read_text().strip()  # type: ignore[union-attr]
             self._last_token_read = time()
