@@ -1,12 +1,14 @@
 import typing
-from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from time import time
 
-from pydantic import BaseModel, Field, FilePath, HttpUrl
+from pydantic import Field, FilePath, HttpUrl, SecretStr
+
+from kubex.models.base import BaseK8sModel
 
 
-class RawExtension(BaseModel):
+class RawExtension(BaseK8sModel):
     """RawExtension is used to hold extensions in external versions"""
 
     raw: bytes | None = None
@@ -16,7 +18,7 @@ class RawExtension(BaseModel):
 	structs."""
 
 
-class NamedExtension(BaseModel):
+class NamedExtension(BaseK8sModel):
     """NamedExtension holds an extension with name."""
 
     name: str
@@ -25,7 +27,7 @@ class NamedExtension(BaseModel):
     """Extension holds the extension information."""
 
 
-class Cluster(BaseModel):
+class Cluster(BaseK8sModel):
     """Cluster contains information about how to communicate with a kubernetes cluster."""
 
     server: HttpUrl
@@ -49,16 +51,62 @@ class Cluster(BaseModel):
     """Extensions holds additional information. This is useful for extenders so that reads and writes don't clobber unknown fields."""
 
 
-class AuthProviderConfig(BaseModel):
+class OIDCConfig(BaseK8sModel):
+    client_id: SecretStr = Field(alias="client-id")
+    """ClientID is the client ID for the OpenID Connect client, as described in https://tools.ietf.org/html/rfc6749#section-2.2."""
+    client_secret: SecretStr = Field(alias="client-secret")
+    """ClientSecret is the client secret for the OpenID Connect client, as described in https://tools.ietf.org/html/rfc6749#section-2.3."""
+    refresh_token: SecretStr = Field(alias="refresh-token")
+    """RefreshToken is the refresh token for the OpenID Connect client, as described in https://tools.ietf.org/html/rfc6749#section-6."""
+    idp_issuer_url: str = Field(alias="idp-issuer-url")
+    """IDPIssuerURL is the URL of the OpenID issuer, only HTTPS scheme will be accepted."""
+    idp_certificate_authority_data: str | None = Field(
+        None, alias="idp-certificate-authority-data"
+    )
+
+
+class ExecInteractiveMode(str, Enum):
+    """ExecInteractiveMode define the interactity of the child process"""
+
+    NEVER = "Never"
+    """Never get interactive"""
+    IF_AVAILABLE = "IfAvailable"
+    """Get interactive if available"""
+    ALWAYS = "Always"
+    """Always get interactive"""
+
+
+class ExecConfig(BaseK8sModel):
+    """ExecConfig specifies a command to provide client credentials."""
+
+    api_version: (
+        typing.Literal[
+            "client.authentication.k8s.io/v1beta1", "client.authentication.k8s.io/v1"
+        ]
+        | None
+    ) = Field(None, alias="apiVersion")
+    """APIVersion is the version of the API."""
+    kind: typing.Literal["ExecCredential"] = "ExecCredential"
+    command: str
+    """Command to execute."""
+    args: list[str] | None = None
+    """Args to pass to the command when executing it."""
+    env: list[dict[str, str]] | None = None
+    """Env defines the environment variables to pass to the command."""
+    interactive_mode: ExecInteractiveMode | None = Field(None, alias="interactiveMode")
+    provide_cluster_info: bool | None = Field(None, alias="provideClusterInfo")
+
+
+class AuthProviderConfig(BaseK8sModel):
     """AuthProviderConfig holds the configuration for a custom authentication plugin."""
 
     name: str
     """Name is the name of the auth provider."""
-    config: dict[str, str] = Field(default_factory=dict)
+    config: OIDCConfig | dict[str, str]
     """Config holds the auth provider configuration data."""
 
 
-class AuthInfo(BaseModel):
+class AuthInfo(BaseK8sModel):
     """AuthInfo contains information that describes identity information. This is use to tell the kubernetes cluster who you are."""
 
     client_certificate: FilePath | None = Field(None, alias="client-certificate")
@@ -83,10 +131,10 @@ class AuthInfo(BaseModel):
     """ImpersonateUserExtra contains additional information for impersonated user."""
     auth_provider: AuthProviderConfig | None = Field(None, alias="auth-provider")
     """AuthProvider specifies a custom authentication plugin for the kubernetes cluster."""
-    exec: dict[str, str] | None = None
+    exec: ExecConfig | None = None
 
 
-class Context(BaseModel):
+class Context(BaseK8sModel):
     """Context holds user values, cluster values, and extension values."""
 
     cluster: str
@@ -99,7 +147,7 @@ class Context(BaseModel):
     """Extensions holds additional information. This is useful for extenders so that reads and writes don't clobber unknown fields."""
 
 
-class NamedClaster(BaseModel):
+class NamedClaster(BaseK8sModel):
     """NamedCluster holds a cluster with name."""
 
     name: str
@@ -108,7 +156,7 @@ class NamedClaster(BaseModel):
     """Cluster holds the cluster information."""
 
 
-class NamedAuthInfo(BaseModel):
+class NamedAuthInfo(BaseK8sModel):
     """NamedAuthInfo holds an AuthInfo with name."""
 
     name: str
@@ -117,7 +165,7 @@ class NamedAuthInfo(BaseModel):
     """AuthInfo holds the auth info."""
 
 
-class NamedContext(BaseModel):
+class NamedContext(BaseK8sModel):
     """NamedContext holds a context with name."""
 
     name: str
@@ -126,7 +174,7 @@ class NamedContext(BaseModel):
     """Context holds the context information."""
 
 
-class KubeConfig(BaseModel):
+class KubeConfig(BaseK8sModel):
     """Config holds the information needed to build connect to remote kubernetes clusters as a given user."""
 
     api_version: typing.Literal["v1"] = "v1"
@@ -141,41 +189,7 @@ class KubeConfig(BaseModel):
     """CurrentContext is the name of the context that you would like to use by default."""
 
 
-@dataclass
-class TokenAuth:
-    token: str
-    """Token is the bearer token for authentication to the kubernetes cluster."""
-
-
-@dataclass
-class mTLSAuth:
-    cert_file: FilePath | None = None
-    """CertFile is the path to a client cert file for TLS."""
-    cert_data: bytes | None = None
-    """CertData contains PEM-encoded data from a client cert file for TLS. Overrides CertFile."""
-    key_file: FilePath | None = None
-    """KeyFile is the path to a client key file for TLS."""
-    key_data: bytes | None = None
-    """KeyData contains PEM-encoded data from a client key file for TLS. Overrides KeyFile."""
-
-
-@dataclass
-class Configuration:
-    server: str
-    """Server is the address of the kubernetes cluster (https://hostname:port)."""
-    verify_tls: bool = True
-    """VerifyTLS indicates whether the client should verify the server's certificate chain and host name."""
-    ca_cert: str | None = None
-    """CACert is the path to a cert file for the certificate authority."""
-    ca_cert_data: bytes | None = None
-    """CACertData contains PEM-encoded certificate authority certificates. Overrides CACert."""
-    auth: TokenAuth | mTLSAuth | None = None
-    """Auth provides the configuration for authenticating against the kubernetes cluster."""
-    client_side_validation: bool = True
-    """ClientSideValidation indicates whether the client should validate objects."""
-
-
-TOKEN_REFRRESH_INTERVAL = 60
+TOKEN_REFRESH_INTERVAL = 60
 
 
 class ClientConfiguration:
@@ -229,12 +243,12 @@ class ClientConfiguration:
         return str(self.server_ca_file)
 
     @property
-    def client_cert(self) -> tuple[str, str | None] | None:
+    def client_cert(self) -> tuple[str, str] | str | None:
         if self.client_cert_file is None:
             return None
-        return str(self.client_cert_file), str(
-            self.client_key_file
-        ) if self.client_key_file is not None else None
+        if self.client_key_file is not None:
+            return str(self.client_cert_file), str(self.client_key_file)
+        return str(self.client_cert_file)
 
     @property
     def token(self) -> str | None:
@@ -247,7 +261,7 @@ class ClientConfiguration:
         if (
             self._current_token is None
             or self._last_token_read is None
-            or time() - self._last_token_read < TOKEN_REFRRESH_INTERVAL
+            or time() - self._last_token_read < TOKEN_REFRESH_INTERVAL
         ):
             self._current_token = self.token_file.read_text().strip()  # type: ignore[union-attr]
             self._last_token_read = time()
