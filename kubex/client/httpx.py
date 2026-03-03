@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ssl
 import warnings
 from http import HTTPStatus
 from typing import AsyncGenerator
@@ -31,19 +32,25 @@ class HttpxClient(BaseClient):
         return {"Authorization": f"Bearer {self.configuration.token}"}
 
     def _create_inner_client(self) -> httpx.AsyncClient:
-        _verify: bool | str = True
         verify = self.configuration.verify
         if verify is False:
-            _verify = False
-        elif verify is None:
-            _verify = True
+            _verify: ssl.SSLContext | bool = False
+        elif isinstance(verify, str):
+            ssl_context = ssl.create_default_context(cafile=verify)
+            if (client_cert := self.configuration.client_cert) is not None:
+                if isinstance(client_cert, tuple):
+                    ssl_context.load_cert_chain(
+                        certfile=client_cert[0], keyfile=client_cert[1]
+                    )
+                else:
+                    ssl_context.load_cert_chain(certfile=client_cert)
+            _verify = ssl_context
         else:
-            _verify = verify
+            _verify = True
 
         return httpx.AsyncClient(
             base_url=str(self.configuration.base_url),
             verify=_verify,
-            cert=self.configuration.client_cert,
         )
 
     async def request(self, request: Request) -> Response:
