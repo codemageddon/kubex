@@ -11,13 +11,20 @@ Usage:
 
 from __future__ import annotations
 
-import argparse
 import subprocess
-import sys
 from pathlib import Path
+from typing import Annotated
+
+import typer
 
 from scripts.codegen import model_emitter, resource_detector, spec_loader
 from scripts.codegen.package_builder import RenderInputs, write_package
+
+app = typer.Typer(
+    add_completion=False,
+    help="Generate and verify kubex-k8s-<version> resource packages.",
+    no_args_is_help=True,
+)
 
 
 def _version_tag(k8s_version: str) -> str:
@@ -25,115 +32,87 @@ def _version_tag(k8s_version: str) -> str:
     return "v" + k8s_version.replace(".", "_")
 
 
-def cmd_generate(args: argparse.Namespace) -> int:
-    spec = spec_loader.load_swagger(args.swagger)
-    if args.v3_dir:
-        spec_loader.merge_v3_supplement(spec, args.v3_dir)
+@app.command()
+def generate(
+    swagger: Annotated[Path, typer.Option(help="Path to swagger.json")],
+    k8s_version: Annotated[str, typer.Option(help='Kubernetes version, e.g. "1.30"')],
+    v3_dir: Annotated[
+        Path | None,
+        typer.Option(help="Optional directory of v3 per-group files"),
+    ] = None,
+    package_version: Annotated[
+        str, typer.Option(help="Generated package version")
+    ] = "0.1.0-alpha.1",
+    output: Annotated[Path, typer.Option(help="Output root directory")] = Path(
+        "packages/"
+    ),
+    only_groups: Annotated[
+        str | None,
+        typer.Option(help='Comma-separated groups to emit (e.g. "core,apps")'),
+    ] = None,
+    format: Annotated[
+        bool,
+        typer.Option(
+            "--format/--no-format",
+            help="Run ruff format on the output (default: on).",
+        ),
+    ] = True,
+) -> None:
+    """Generate a kubex-k8s-* package from a swagger.json."""
+    spec = spec_loader.load_swagger(swagger)
+    if v3_dir is not None:
+        spec_loader.merge_v3_supplement(spec, v3_dir)
 
     resources = resource_detector.detect_resources(spec.definitions, spec.paths)
-    if args.only_groups:
-        wanted = {g.strip() for g in args.only_groups.split(",") if g.strip()}
+    if only_groups:
+        wanted = {g.strip() for g in only_groups.split(",") if g.strip()}
         resources = [r for r in resources if r.group in wanted]
         if not resources:
-            print(
-                f"No resources matched --only-groups={args.only_groups}",
-                file=sys.stderr,
+            typer.echo(
+                f"No resources matched --only-groups={only_groups}",
+                err=True,
             )
-            return 1
+            raise typer.Exit(code=1)
 
-    k8s_version_tag = _version_tag(args.k8s_version)
+    k8s_version_tag = _version_tag(k8s_version)
     build = model_emitter.build_modules(
         k8s_version_tag=k8s_version_tag,
         definitions=spec.definitions,
         resources=resources,
     )
-
-    inputs = RenderInputs(
-        output_root=Path(args.output),
-        k8s_version=args.k8s_version,
-        k8s_version_tag=k8s_version_tag,
-        package_version=args.package_version,
-        modules=build.modules,
-        shared_enums=build.shared_enums,
+    pkg_root = write_package(
+        RenderInputs(
+            output_root=output,
+            k8s_version=k8s_version,
+            k8s_version_tag=k8s_version_tag,
+            package_version=package_version,
+            modules=build.modules,
+            shared_enums=build.shared_enums,
+        )
     )
-    pkg_root = write_package(inputs)
-    print(f"Wrote generated package to {pkg_root}")
+    typer.echo(f"Wrote generated package to {pkg_root}")
 
-    if args.format:
-        _run_ruff_format(pkg_root)
-    return 0
+    if format:
+        subprocess.run(["uv", "run", "ruff", "format", str(pkg_root)], check=False)
 
 
-def cmd_verify(args: argparse.Namespace) -> int:
-    """Validate a generated package: ruff, format, mypy, smoke-import."""
-    pkg = Path(args.package)
+@app.command()
+def verify(
+    package: Annotated[Path, typer.Argument(help="Path to kubex-k8s-* package dir")],
+) -> None:
+    """Run ruff/mypy against a generated package."""
     rc = 0
     for cmd in (
-        ["uv", "run", "ruff", "check", str(pkg)],
-        ["uv", "run", "ruff", "format", "--check", str(pkg)],
-        ["uv", "run", "mypy", "--strict", str(pkg / "src")],
+        ["uv", "run", "ruff", "check", str(package)],
+        ["uv", "run", "ruff", "format", "--check", str(package)],
+        ["uv", "run", "mypy", "--strict", str(package)],
     ):
-        print(f"$ {' '.join(cmd)}")
+        typer.echo(f"$ {' '.join(cmd)}")
         result = subprocess.run(cmd, check=False)
         if result.returncode != 0:
             rc = result.returncode
-    return rc
-
-
-def _run_ruff_format(pkg_root: Path) -> None:
-    subprocess.run(["uv", "run", "ruff", "format", str(pkg_root)], check=False)
-
-
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="scripts.codegen")
-    sub = parser.add_subparsers(dest="cmd", required=True)
-
-    gen = sub.add_parser(
-        "generate", help="Generate a kubex-k8s-* package from a swagger.json"
-    )
-    gen.add_argument("--swagger", required=True, help="Path to swagger.json")
-    gen.add_argument(
-        "--v3-dir", default=None, help="Optional directory of v3 per-group files"
-    )
-    gen.add_argument(
-        "--k8s-version", required=True, help='Kubernetes version, e.g. "1.30"'
-    )
-    gen.add_argument(
-        "--package-version", default="0.1.0-alpha.1", help="Generated package version"
-    )
-    gen.add_argument("--output", default="packages/", help="Output root directory")
-    gen.add_argument(
-        "--only-groups",
-        default=None,
-        help='Comma-separated list of groups to emit (e.g. "core,apps")',
-    )
-    gen.add_argument(
-        "--format",
-        dest="format",
-        action="store_true",
-        default=True,
-        help="Run ruff format on the output",
-    )
-    gen.add_argument(
-        "--no-format",
-        dest="format",
-        action="store_false",
-        help="Skip ruff format on the output",
-    )
-    gen.set_defaults(func=cmd_generate)
-
-    verify = sub.add_parser("verify", help="Run ruff/mypy against a generated package")
-    verify.add_argument("package", help="Path to kubex-k8s-* package directory")
-    verify.set_defaults(func=cmd_verify)
-
-    return parser
-
-
-def main(argv: list[str] | None = None) -> int:
-    parser = build_parser()
-    args = parser.parse_args(argv)
-    return int(args.func(args))
+    raise typer.Exit(code=rc)
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    app()

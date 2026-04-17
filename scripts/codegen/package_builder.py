@@ -5,14 +5,14 @@ Produces a directory tree:
     packages/kubex-k8s-1-30/
     ├── pyproject.toml
     ├── README.md
-    └── src/kubex/k8s/v1_30/
+    └── kubex/k8s/v1_30/
         ├── __init__.py
         ├── _common.py
         ├── core_v1.py
         └── ...
 
-`kubex.k8s.v1_30` is a PEP 420 namespace — we do *not* create
-`src/kubex/__init__.py` or `src/kubex/k8s/__init__.py`.
+`kubex` and `kubex.k8s` are PEP 420 namespace — we do *not* create
+`__init__.py` files for those intermediate packages.
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 from scripts.codegen import enum_emitter
-from scripts.codegen.model_emitter import EmittedClass, EmittedField, EmittedModule
+from scripts.codegen.ir import EmittedClass, EmittedField, EmittedModule
 
 _TEMPLATE_DIR = Path(__file__).parent / "templates"
 
@@ -53,7 +53,7 @@ def write_package(inputs: RenderInputs) -> Path:
 
     k8s_version_dashed = inputs.k8s_version.replace(".", "-")
     pkg_root = inputs.output_root / f"kubex-k8s-{k8s_version_dashed}"
-    src_root = pkg_root / "src" / "kubex" / "k8s" / inputs.k8s_version_tag
+    src_root = pkg_root / "kubex" / "k8s" / inputs.k8s_version_tag
     src_root.mkdir(parents=True, exist_ok=True)
 
     # pyproject.toml, README.

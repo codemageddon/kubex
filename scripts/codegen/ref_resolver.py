@@ -20,10 +20,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-# ---------------------------------------------------------------------------
-# Overrides: swagger definition name -> (python module, class name).
-# ---------------------------------------------------------------------------
-
+# Swagger definition name -> (python module, class name).
 OVERRIDES: dict[str, tuple[str, str]] = {
     "io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta": (
         "kubex_core.models.metadata",
@@ -38,11 +35,6 @@ OVERRIDES: dict[str, tuple[str, str]] = {
         "OwnerReference",
     ),
 }
-
-# ---------------------------------------------------------------------------
-# Type aliases: definition name -> Python type expression (as it will appear
-# in generated code), plus an optional import.
-# ---------------------------------------------------------------------------
 
 
 @dataclass(frozen=True)
@@ -75,11 +67,6 @@ TYPE_ALIASES: dict[str, TypeAlias] = {
         imports=(("typing", "Any"),),
     ),
 }
-
-
-# ---------------------------------------------------------------------------
-# Module resolution.
-# ---------------------------------------------------------------------------
 
 
 @dataclass(frozen=True)

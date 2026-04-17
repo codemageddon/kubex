@@ -1,7 +1,7 @@
 [project]
-name = "kubex-k8s-{{ k8s_version_dashed }}"
-version = "{{ package_version }}"
-description = "Pydantic v2 Kubernetes {{ k8s_version }} resource models for Kubex"
+name = "kubex-k8s-1-30"
+version = "0.0.0.dev0"
+description = "Pydantic v2 Kubernetes 1.30 resource models for Kubex"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT License"}

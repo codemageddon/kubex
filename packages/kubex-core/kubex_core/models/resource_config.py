@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from enum import Enum
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Generic, Literal, Self, Type
+from typing import TYPE_CHECKING, Any, Generic, Literal, Self, Type, cast
 
 from pydantic import create_model
 
@@ -143,7 +143,9 @@ def create_list_model(
         items=(list[single_model], ...),  # type: ignore[valid-type]
         __base__=ListEntity[single_model],  # type: ignore[valid-type]
     )
-    return list_model  # type: ignore[return-value]
+    # pydantic.create_model's return type is `type[BaseModel]`; we know the
+    # __base__ narrows it to ListEntity[ResourceType], but mypy cannot prove it.
+    return cast("Type[ListEntity[ResourceType]]", list_model)
 
 
 def get_version_and_froup_from_api_version(api_version: str | None) -> tuple[str, str]:
