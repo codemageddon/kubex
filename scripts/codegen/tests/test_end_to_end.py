@@ -155,9 +155,7 @@ def test_enum_placement_inline(generated_package: Path) -> None:
     """Single-use enums live inside the class file, not in _common.py."""
     src = generated_package / "kubex" / "k8s" / "v1_30"
     node_status = (src / "core" / "v1" / "node_status.py").read_text()
-    deployment_condition = (
-        src / "apps" / "v1" / "deployment_condition.py"
-    ).read_text()
+    deployment_condition = (src / "apps" / "v1" / "deployment_condition.py").read_text()
     common = (src / "_common.py").read_text()
 
     assert "class NodeStatusPhase(str, Enum):" in node_status

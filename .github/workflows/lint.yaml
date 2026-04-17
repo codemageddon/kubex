@@ -35,3 +35,10 @@ jobs:
         run: uv lock --python 3.13 && uv sync --python 3.13 --all-extras
       - name: Run mypy
         run: uv run mypy .
+      - name: Run mypy on generated packages
+        run: |
+          for pkg in packages/kubex-k8s-*/; do
+            echo "::group::mypy $pkg"
+            uv run python -m scripts.codegen verify "$pkg"
+            echo "::endgroup::"
+          done

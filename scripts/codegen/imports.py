@@ -17,7 +17,9 @@ class ImportSet:
         self._typing: set[str] = set()
         self._from: dict[str, set[str]] = {}  # module -> set of symbols
         self._raw_modules: set[str] = set()  # `import X`
-        self.future_annotations: bool = False  # prepend `from __future__ import annotations`
+        self.future_annotations: bool = (
+            False  # prepend `from __future__ import annotations`
+        )
 
     def add_stdlib(self, module: str, symbol: str) -> None:
         self._stdlib.add((module, symbol))

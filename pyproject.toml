@@ -52,11 +52,14 @@ strict = true
 plugins = [
     "pydantic.mypy"
 ]
-# Golden snapshot tree isn't installed; its intra-package imports (e.g.
-# `kubex.k8s.v1_30._common`) can't resolve under the repo-wide mypy pass.
-# The snapshot test and the generator's own `verify` command cover it.
+# Generated packages use PEP 420 namespace packages (`kubex/` without
+# `__init__.py`) which conflict with the repo-root `kubex/` regular package
+# during a repo-wide mypy pass.  The generator's `verify` command runs mypy
+# from inside each generated package with --namespace-packages so they are
+# fully type-checked independently.
 exclude = [
     "scripts/codegen/tests/golden/",
+    "packages/",
 ]
 
 [dependency-groups]
