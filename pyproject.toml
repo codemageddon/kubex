@@ -49,14 +49,11 @@ build-backend = "hatchling.build"
 
 [tool.mypy]
 strict = true
+namespace_packages = true
+explicit_package_bases = true
 plugins = [
     "pydantic.mypy"
 ]
-# Generated packages use PEP 420 namespace packages (`kubex/` without
-# `__init__.py`) which conflict with the repo-root `kubex/` regular package
-# during a repo-wide mypy pass.  The generator's `verify` command runs mypy
-# from inside each generated package with --namespace-packages so they are
-# fully type-checked independently.
 exclude = [
     "scripts/codegen/tests/golden/",
     "packages/",
@@ -64,6 +61,7 @@ exclude = [
 
 [dependency-groups]
 dev = [
+    "kubex-k8s-1-32",
     "anyio>=4.6.0",
     "mypy==1.11.2",
     "pre-commit>=4.0.1",
@@ -84,6 +82,7 @@ members = ["packages/*"]
 
 [tool.uv.sources]
 kubex-core = { workspace = true }
+kubex-k8s-1-32 = { workspace = true }
 
 [tool.hatch.version]
 path = "kubex/__version__.py"

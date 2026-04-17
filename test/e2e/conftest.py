@@ -4,14 +4,14 @@ import pytest
 from testcontainers.k3s import K3SContainer  # type: ignore[import-untyped]
 from yaml import safe_load
 
-from kubex import Api
+from kubex.api import Api
 from kubex.client.aiohttp import AioHttpClient
 from kubex.client.client import BaseClient, ClientChoise, create_client
 from kubex.client.httpx import HttpxClient
 from kubex.configuration.configuration import ClientConfiguration, KubeConfig
 from kubex.configuration.file_config import configure_from_kubeconfig
 from kubex_core.models.metadata import ObjectMetadata
-from kubex_core.models.namespace import Namespace
+from kubex.k8s.v1_32.core.v1.namespace import Namespace
 
 
 @pytest.fixture(scope="session")

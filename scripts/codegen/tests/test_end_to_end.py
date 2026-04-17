@@ -71,16 +71,23 @@ def test_generated_is_ruff_clean(generated_package: Path) -> None:
 
 
 def test_generated_imports_and_validates(generated_package: Path) -> None:
-    """Import the generated modules and exercise them against sample JSON."""
-    import kubex
+    """Import the generated modules and exercise them against sample JSON.
 
-    extra_path = str(generated_package / "kubex")
-    original_path = list(kubex.__path__)
-    kubex.__path__.append(extra_path)
+    `kubex` is a PEP 420 namespace package.  Adding the generated package
+    root to `sys.path` lets the import system discover `kubex.k8s.*`
+    alongside the main `kubex.*` sub-packages.
+    """
+    extra_path = str(generated_package)
+    sys.path.insert(0, extra_path)
     try:
         for mod in list(sys.modules):
             if mod.startswith("kubex.k8s.v1_30"):
                 sys.modules.pop(mod, None)
+        # Re-import kubex so the namespace path is recalculated.
+        if "kubex" in sys.modules:
+            importlib.invalidate_caches()
+            importlib.reload(sys.modules["kubex"])
+
         node_mod = importlib.import_module("kubex.k8s.v1_30.core.v1.node")
         node_list_mod = importlib.import_module("kubex.k8s.v1_30.core.v1.node_list")
         deployment_mod = importlib.import_module("kubex.k8s.v1_30.apps.v1.deployment")
@@ -145,7 +152,7 @@ def test_generated_imports_and_validates(generated_package: Path) -> None:
         assert issubclass(Deployment, HasStatusSubresource)
         assert issubclass(Deployment, HasScaleSubresource)
     finally:
-        kubex.__path__[:] = original_path
+        sys.path.remove(extra_path)
         for mod in list(sys.modules):
             if mod.startswith("kubex.k8s.v1_30"):
                 sys.modules.pop(mod, None)

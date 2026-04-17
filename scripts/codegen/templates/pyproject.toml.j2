@@ -37,3 +37,8 @@ packages = ["kubex"]
 [tool.mypy]
 namespace_packages = true
 explicit_package_bases = true
+
+[tool.ty.environment]
+# Point ty to the workspace venv so it can resolve pydantic, kubex_core, etc.
+# when editing generated files directly.
+python = "../../.venv"

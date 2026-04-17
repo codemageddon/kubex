@@ -1,8 +1,11 @@
 import pytest
 
-from kubex import Api, BaseClient, create_api
+from kubex.api import Api, create_api
+from kubex.client import BaseClient
 from kubex_core.models.metadata import ObjectMetadata
-from kubex_core.models.pod import Pod
+from kubex.k8s.v1_32.core.v1.container import Container
+from kubex.k8s.v1_32.core.v1.pod import Pod
+from kubex.k8s.v1_32.core.v1.pod_spec import PodSpec
 
 
 @pytest.mark.anyio
@@ -11,7 +14,7 @@ async def test_core_api_pod(client: BaseClient, tmp_namespace_name: str) -> None
     pod = await pod_api.create(
         Pod(
             metadata=ObjectMetadata(name="example-pod", namespace=tmp_namespace_name),
-            spec={"containers": [{"name": "example", "image": "nginx"}]},
+            spec=PodSpec(containers=[Container(name="example", image="nginx")]),
         ),
         namespace=tmp_namespace_name,
     )
