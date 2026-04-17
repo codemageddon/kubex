@@ -1,0 +1,18 @@
+from kubex.k8s.v1_33.resource.v1beta1.counter import Counter
+from kubex_core.models.base import BaseK8sModel
+from pydantic import Field
+
+
+class CounterSet(BaseK8sModel):
+    """CounterSet defines a named set of counters that are available to be used by devices defined in the ResourceSlice. The counters are not allocatable by themselves, but can be referenced by devices. When a device is allocated, the portion of counters it uses will no longer be available for use by other devices."""
+
+    counters: dict[str, Counter] = Field(
+        ...,
+        alias="counters",
+        description="Counters defines the set of counters for this CounterSet The name of each counter must be unique in that set and must be a DNS label. The maximum number of counters is 32.",
+    )
+    name: str = Field(
+        ...,
+        alias="name",
+        description="Name defines the name of the counter set. It must be a DNS label.",
+    )

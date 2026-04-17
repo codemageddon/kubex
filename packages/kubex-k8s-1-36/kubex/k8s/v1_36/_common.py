@@ -1,0 +1,1 @@
+IntOrString = int | str
