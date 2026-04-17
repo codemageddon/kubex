@@ -1,0 +1,6 @@
+{#- Top-level package __init__.py: declares __all__ for the generated package. -#}
+__all__ = [
+{% for name in all_names %}
+    "{{ name }}",
+{% endfor %}
+]

@@ -1,0 +1,13 @@
+from kubex.k8s.v1_32.core.v1.daemon_endpoint import DaemonEndpoint
+from kubex_core.models.base import BaseK8sModel
+from pydantic import Field
+
+
+class NodeDaemonEndpoints(BaseK8sModel):
+    """NodeDaemonEndpoints lists ports opened by daemons running on the Node."""
+
+    kubelet_endpoint: DaemonEndpoint | None = Field(
+        default=None,
+        alias="kubeletEndpoint",
+        description="Endpoint on which Kubelet is listening.",
+    )

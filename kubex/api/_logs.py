@@ -1,8 +1,8 @@
 from typing import AsyncGenerator
 
 from kubex.core.params import LogOptions
-from kubex.models.interfaces import HasLogs
-from kubex.models.typing import ResourceType
+from kubex_core.models.interfaces import HasLogs
+from kubex_core.models.typing import ResourceType
 
 from ._protocol import ApiNamespaceTypes, ApiProtocol
 

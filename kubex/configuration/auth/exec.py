@@ -5,7 +5,7 @@ import anyio
 from pydantic import Field
 
 from kubex.configuration.configuration import ExecConfig, ExecInteractiveMode
-from kubex.models.base import BaseK8sModel
+from kubex_core.models.base import BaseK8sModel
 
 
 class ExecCredentialStatus(BaseK8sModel):

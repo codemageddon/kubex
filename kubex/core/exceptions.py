@@ -1,7 +1,7 @@
 from http import HTTPStatus
 from typing import Any, Generic, TypeVar
 
-from kubex.models.status import Status
+from kubex_core.models.status import Status
 
 
 class KubexException(Exception):

@@ -1,0 +1,20 @@
+{#-
+  Per-group module template: renders imports, enums, classes, trailing wires.
+  `imports` is a pre-rendered import block string. `enums` is a list of
+  rendered enum source snippets. `classes` is a list of objects with .render().
+-#}
+{{ imports }}
+{% for enum_src in enums %}
+
+{{ enum_src }}
+{% endfor %}
+{% for cls in classes %}
+
+{{ cls }}
+{% endfor %}
+{% if trailing_assignments %}
+
+{% for stmt in trailing_assignments %}
+{{ stmt }}
+{% endfor %}
+{% endif %}

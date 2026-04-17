@@ -5,7 +5,7 @@ from time import time
 
 from pydantic import Field, FilePath, HttpUrl, SecretStr
 
-from kubex.models.base import BaseK8sModel
+from kubex_core.models.base import BaseK8sModel
 
 
 class RawExtension(BaseK8sModel):

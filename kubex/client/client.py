@@ -18,7 +18,7 @@ from kubex.core.request_builder.constants import (
     CONTENT_TYPE_HEADER,
 )
 from kubex.core.response import Response
-from kubex.models.status import Status
+from kubex_core.models.status import Status
 
 logger = logging.getLogger("kubex.client")
 

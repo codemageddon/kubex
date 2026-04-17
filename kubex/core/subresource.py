@@ -1,6 +1,6 @@
 from enum import Enum
 
-from kubex.models.interfaces import HasScaleSubresource, HasStatusSubresource
+from kubex_core.models.interfaces import HasScaleSubresource, HasStatusSubresource
 
 
 class SubresourceConfiguration:

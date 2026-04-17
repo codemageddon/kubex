@@ -15,12 +15,12 @@ from kubex.core.params import (
     WatchOptions,
 )
 from kubex.core.patch import Patch
-from kubex.models.list_entity import ListEntity
-from kubex.models.partial_object_meta import PartialObjectMetadata
-from kubex.models.typing import (
+from kubex_core.models.list_entity import ListEntity
+from kubex_core.models.partial_object_meta import PartialObjectMetadata
+from kubex_core.models.typing import (
     ResourceType,
 )
-from kubex.models.watch_event import WatchEvent
+from kubex_core.models.watch_event import WatchEvent
 
 
 class MetadataMixin(ApiProtocol[ResourceType]):

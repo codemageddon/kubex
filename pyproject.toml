@@ -14,6 +14,7 @@ maintainers = [
 dependencies = [
     "pydantic>=2.0,<3",
     "pyyaml>=6.0.2",
+    "kubex-core",
 ]
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -25,6 +26,7 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
 ]
 
 [project.urls]
@@ -47,12 +49,19 @@ build-backend = "hatchling.build"
 
 [tool.mypy]
 strict = true
+namespace_packages = true
+explicit_package_bases = true
 plugins = [
     "pydantic.mypy"
 ]
+exclude = [
+    "scripts/codegen/tests/golden/",
+    "packages/",
+]
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
+    "kubex-k8s-1-32",
     "anyio>=4.6.0",
     "mypy==1.11.2",
     "pre-commit>=4.0.1",
@@ -63,7 +72,17 @@ dev-dependencies = [
     "trio>=0.26.2",
     "types-pyyaml>=6.0.12.20240917",
     "types-ujson>=5.10.0.20240515",
+    "jinja2>=3.1",
+    "httpx>=0.27.2",
+    "typer>=0.24.1",
 ]
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.uv.sources]
+kubex-core = { workspace = true }
+kubex-k8s-1-32 = { workspace = true }
 
 [tool.hatch.version]
 path = "kubex/__version__.py"

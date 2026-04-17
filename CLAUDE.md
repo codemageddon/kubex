@@ -49,40 +49,70 @@ kubex/                          # Main package
 ├── configuration/              # Auth and cluster config
 │   ├── configuration.py        # ClientConfiguration, KubeConfig pydantic models
 │   ├── file_config.py          # configure_from_kubeconfig() — kubeconfig file parsing
-│   └── incluster_config.py     # configure_from_pod_env() — in-cluster service account auth
-├── core/                       # Request/response primitives
-│   ├── exceptions.py           # Exception hierarchy (KubexException → KubexApiError → HTTP-specific)
-│   ├── request.py              # Request dataclass
-│   ├── response.py             # Response dataclass + HeadersWrapper
-│   ├── params.py               # API option classes (ListOptions, GetOptions, DeleteOptions, etc.)
-│   ├── patch.py                # Patch protocols (ApplyPatch, MergePatch, StrategicMergePatch, JsonPatch)
-│   ├── subresource.py          # Subresource definitions
-│   └── request_builder/        # Constructs HTTP requests from API calls
-│       ├── builder.py          # RequestBuilder (main builder composing mixins)
-│       ├── constants.py        # HTTP headers and MIME types
-│       ├── metadata.py         # Metadata request building
-│       ├── subresource.py      # Subresource request building
-│       └── logs.py             # Log streaming request building
-└── models/                     # Kubernetes resource models
-    ├── base.py                 # BaseK8sModel — Pydantic base with camelCase alias
-    ├── base_entity.py          # BaseEntity — base for all K8s resources (__RESOURCE_CONFIG__)
-    ├── interfaces.py           # Marker classes: ClusterScopedEntity, NamespaceScopedEntity, HasLogs, etc.
-    ├── resource_config.py      # ResourceConfig[T] descriptor — kind, version, scope, URL generation
-    ├── metadata.py             # ObjectMetadata, ListMetadata, OwnerReference
-    ├── typing.py               # ResourceType TypeVar
-    ├── pod.py                  # Pod model
-    ├── namespace.py            # Namespace model
-    ├── list_entity.py          # ListEntity[ResourceType] wrapper
-    ├── watch_event.py          # WatchEvent[ResourceType] and EventType enum
-    ├── status.py               # Status response model
-    ├── scale.py                # Scale subresource model
-    └── partial_object_meta.py  # Partial metadata variant
+│   ├── incluster_config.py     # configure_from_pod_env() — in-cluster service account auth
+│   └── auth/                   # Authentication mechanisms
+│       ├── exec.py             # Exec provider authentication
+│       ├── oidc.py             # OIDC provider (in progress)
+│       └── refreshable_token.py # Token refresh logic
+└── core/                       # Request/response primitives
+    ├── exceptions.py           # Exception hierarchy (KubexException → KubexApiError → HTTP-specific)
+    ├── request.py              # Request dataclass
+    ├── response.py             # Response dataclass + HeadersWrapper
+    ├── params.py               # API option classes (ListOptions, GetOptions, DeleteOptions, etc.)
+    ├── patch.py                # Patch protocols (ApplyPatch, MergePatch, StrategicMergePatch, JsonPatch)
+    ├── subresource.py          # Subresource definitions
+    └── request_builder/        # Constructs HTTP requests from API calls
+        ├── builder.py          # RequestBuilder (main builder composing mixins)
+        ├── constants.py        # HTTP headers and MIME types
+        ├── metadata.py         # Metadata request building
+        ├── subresource.py      # Subresource request building
+        └── logs.py             # Log streaming request building
+
+packages/                       # Workspace packages
+├── kubex-core/                 # Shared base models and types (kubex_core)
+│   └── kubex_core/models/
+│       ├── base.py             # BaseK8sModel — Pydantic base with camelCase alias
+│       ├── base_entity.py      # BaseEntity — base for all K8s resources (__RESOURCE_CONFIG__)
+│       ├── interfaces.py       # Marker classes: ClusterScopedEntity, NamespaceScopedEntity, HasLogs, etc.
+│       ├── resource_config.py  # ResourceConfig[T] descriptor — kind, version, scope, URL generation
+│       ├── metadata.py         # ObjectMetadata, ListMetadata, OwnerReference
+│       ├── typing.py           # ResourceType TypeVar
+│       ├── list_entity.py      # ListEntity[ResourceType] wrapper
+│       ├── watch_event.py      # WatchEvent[ResourceType] and EventType enum
+│       ├── status.py           # Status response model
+│       ├── scale.py            # Scale subresource model
+│       └── partial_object_meta.py # Partial metadata variant
+└── kubex-k8s-1-32/             # Generated Kubernetes 1.32 resource models
+    └── kubex/k8s/v1_32/        # ~666 generated model files across ~30 API groups
+        ├── core/v1/            # Pod, Namespace, Service, ConfigMap, Secret, etc.
+        ├── apps/v1/            # Deployment, StatefulSet, DaemonSet, ReplicaSet
+        ├── batch/v1/           # Job, CronJob
+        ├── networking/v1/      # Ingress, NetworkPolicy
+        ├── rbac/v1/            # Role, ClusterRole, RoleBinding, ClusterRoleBinding
+        └── ...                 # All other K8s 1.32 API groups
+
+scripts/codegen/                # OpenAPI → Pydantic v2 code generator
+├── __main__.py                 # Typer CLI: generate, verify commands
+├── spec_loader.py              # OpenAPI/Swagger JSON parsing
+├── resource_detector.py        # Identifies K8s resources from spec
+├── type_mapper.py              # OpenAPI type → Python type mapping
+├── model_emitter.py            # Generates Pydantic model code
+├── enum_emitter.py             # Generates enum definitions
+├── ir.py                       # Intermediate representation of models
+├── naming.py                   # Python naming conventions
+├── package_builder.py          # Writes generated package to disk
+├── ref_resolver.py             # Resolves $ref links in OpenAPI spec
+├── templates/                  # Jinja2 templates for code generation
+└── tests/                      # Codegen tests with golden snapshots
 
 test/                           # Test suite
-└── e2e/                        # End-to-end tests (testcontainers + K3S)
-    ├── conftest.py             # Fixtures: K3S container, client fixtures, temp namespace
-    ├── test_core_api_pod.py    # Pod CRUD tests
-    └── test_core_api_namespaces.py  # Namespace listing tests
+├── e2e/                        # End-to-end tests (testcontainers + K3S)
+│   ├── conftest.py             # Fixtures: K3S container, client fixtures, temp namespace
+│   ├── test_core_api_pod.py    # Pod CRUD tests
+│   └── test_core_api_namespaces.py  # Namespace listing tests
+└── test_configuration/         # Unit tests
+    └── auth/
+        └── test_exec_provider.py # Exec provider unit tests
 
 examples/                       # Usage examples
 ├── get_pod.py                  # Create, get, list metadata, delete a Pod
@@ -91,19 +121,21 @@ examples/                       # Usage examples
 └── list_namespaces.py          # List cluster namespaces
 
 .github/workflows/
-├── lint.yaml                   # Pre-commit, ruff check, ruff format --check, mypy
+├── lint.yaml                   # Pre-commit, ruff check, ruff format --check, mypy, codegen verify
 └── test.yaml                   # pytest with all extras on Python 3.13
 ```
 
 ## Build System & Dependencies
 
-- **Package manager**: [uv](https://github.com/astral-sh/uv)
+- **Package manager**: [uv](https://github.com/astral-sh/uv) with workspace support
 - **Build backend**: hatchling
-- **Python**: 3.10, 3.11, 3.12, 3.13
-- **Core deps**: `pydantic>=2.0,<3`, `pyyaml>=6.0.2`
+- **Python**: 3.10, 3.11, 3.12, 3.13, 3.14
+- **Workspace members**: `packages/*` (kubex-core, kubex-k8s-1-32)
+- **Core deps**: `pydantic>=2.0,<3`, `pyyaml>=6.0.2`, `kubex-core` (workspace)
 - **Optional deps** (install via `--all-extras` or individually):
   - `httpx>=0.27.2` — primary HTTP client
   - `aiohttp>=3.11.2` — alternative HTTP client
+- **Dev deps** include `kubex-k8s-1-32` (workspace), `jinja2`, `typer` (for codegen), testing/linting tools
 - **Version** is stored in `kubex/__version__.py` and referenced from `pyproject.toml` via hatch
 
 ## Code Quality Tools
@@ -120,6 +152,8 @@ examples/                       # Usage examples
 ### Generics for type safety
 The central `Api[ResourceType]` class is generic over the Kubernetes resource type. This enables type-safe CRUD operations:
 ```python
+from kubex.k8s.v1_32.core.v1 import Pod
+
 api: Api[Pod] = Api(Pod, client=client)
 pod: Pod = await api.get("my-pod", namespace="default")
 ```
@@ -161,9 +195,10 @@ Resources declare capabilities via multiple inheritance from marker classes: `Na
 ## Testing
 
 - **Framework**: pytest with `pytest-cov` and `anyio` for async support
-- **E2E tests** use `testcontainers` with a K3S container (requires Docker)
-- Tests are parameterized over both HTTP clients (`httpx`, `aiohttp`) and async backends (`asyncio`, `trio` — trio only with httpx)
-- Test files are in `test/e2e/`
+- **E2E tests** use `testcontainers` with a K3S container (requires Docker); located in `test/e2e/`
+- **Unit tests** for configuration/auth in `test/test_configuration/`
+- **Codegen tests** with golden snapshots in `scripts/codegen/tests/`
+- E2E tests are parameterized over both HTTP clients (`httpx`, `aiohttp`) and async backends (`asyncio`, `trio` — trio only with httpx)
 - Mark async tests with `@pytest.mark.anyio`
 - The `conftest.py` provides session-scoped K3S cluster, per-test client fixtures, and a temporary namespace fixture that creates/cleans up namespaces
 
@@ -176,6 +211,7 @@ Two GitHub Actions workflows run on push and pull_request:
 2. `ruff check .`
 3. `ruff format --check .`
 4. `mypy .` (strict, with all extras installed)
+5. Verify generated packages — runs `python -m scripts.codegen verify` for each `packages/kubex-k8s-*`
 
 **Test** (`test.yaml`):
 1. `pytest .` on Python 3.13 with all extras
@@ -193,22 +229,29 @@ Two GitHub Actions workflows run on push and pull_request:
 - **Protocols** used for structural typing (e.g., `Patch` protocol in `core/patch.py`)
 - **No synchronous API** — all client operations are async
 
-## Adding a New Kubernetes Resource
+## Code Generation
 
-1. Create a new file in `kubex/models/` (e.g., `deployment.py`)
-2. Define the model inheriting from appropriate interfaces:
-   ```python
-   class Deployment(NamespaceScopedEntity, HasStatusSubresource, HasScaleSubresource):
-       __RESOURCE_CONFIG__: ClassVar[ResourceConfig["Deployment"]] = ResourceConfig(
-           version="v1", kind="Deployment", group="apps",
-           plural="deployments", scope=Scope.NAMESPACE,
-       )
-       api_version: Literal["apps/v1"] = "apps/v1"
-       kind: Literal["Deployment"] = "Deployment"
-       spec: dict[str, Any] | None = None
-       status: dict[str, Any] | None = None
-   ```
-3. The `Api[Deployment]` class will automatically work with the new resource type
+Kubernetes resource models are generated from the official OpenAPI spec using a built-in code generator at `scripts/codegen/`. Generated packages live under `packages/` (e.g., `kubex-k8s-1-32`).
+
+```bash
+# Generate models for a Kubernetes version (downloads swagger.json automatically)
+uv run python -m scripts.codegen generate --version 1.32
+
+# Verify generated package passes mypy
+uv run python -m scripts.codegen verify packages/kubex-k8s-1-32
+```
+
+Generated models are fully typed with proper spec/status fields (not generic dicts), inherit from `kubex-core` base classes, and include marker interfaces (`HasStatusSubresource`, `HasLogs`, etc.) based on the resource's API capabilities. They are importable as:
+```python
+from kubex.k8s.v1_32.core.v1 import Pod, Namespace
+from kubex.k8s.v1_32.apps.v1 import Deployment
+```
+
+### Adding support for a new Kubernetes version
+
+1. Run the codegen: `uv run python -m scripts.codegen generate --version <VERSION>`
+2. Add the new `kubex-k8s-<VERSION>` package to workspace sources in `pyproject.toml`
+3. Verify with `uv run python -m scripts.codegen verify packages/kubex-k8s-<VERSION>`
 
 ## Known Quirks
 

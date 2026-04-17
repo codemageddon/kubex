@@ -7,9 +7,9 @@ from kubex.core.params import (
     PostOptions,
 )
 from kubex.core.patch import Patch
-from kubex.models.interfaces import HasScaleSubresource
-from kubex.models.scale import Scale
-from kubex.models.typing import ResourceType
+from kubex_core.models.interfaces import HasScaleSubresource
+from kubex_core.models.scale import Scale
+from kubex_core.models.typing import ResourceType
 
 from ._protocol import ApiNamespaceTypes, ApiProtocol
 

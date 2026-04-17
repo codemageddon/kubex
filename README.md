@@ -9,14 +9,14 @@ Kubex is a Kubernetes client library for Python inspired by kube.rs. It is built
 * Basic API interface that allows interaction with almost any Kubernetes resources and their methods.
 * In-cluster client authorization with token refreshing.
 * Basic support for kubeconfig files.
-* `httpx` and `aiohttp` as an underlying http-client support
-* `asyncio` and `trio` async runtime support (only `httpx` client is supported for `trio`)
+* `httpx` and `aiohttp` as an underlying http-client support.
+* `asyncio` and `trio` async runtime support (only `httpx` client is supported for `trio`).
+* Comprehensive, fully-typed Kubernetes 1.32 resource models generated from the OpenAPI spec via a built-in code generator.
 
 # Planned Features:
 
 * [ ] Support for OIDC and other authentication extensions.
 * [ ] Fine-tuning of timeouts.
-* [ ] Comprehensive library of Kubernetes models.
 * [ ] Dynamic API object creation to exclude unsupported methods for resources (requires research for mypy compatibility).
 * [ ] Potential synchronous version of the client.
 * [ ] Additional tests and examples.
