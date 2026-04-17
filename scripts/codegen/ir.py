@@ -35,8 +35,6 @@ class EmittedClass:
     bases: list[str]
     docstring: str | None
     fields: list[EmittedField]
-    # References to same-module classes — edges in the topological sort graph.
-    local_refs: set[str] = field(default_factory=set)
     # A resource class gets a `__RESOURCE_CONFIG__` literal.
     resource_info: ResourceInfo | None = None
     # A list class is wired via a trailing assignment; carries the single

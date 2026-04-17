@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from scripts.codegen.naming import py_field_name
 from scripts.codegen.type_mapper import MappedType, map_type
 
 
@@ -15,7 +16,7 @@ def _map(
         schema,
         k8s_version_tag="v1_30",
         owner_definition=owner,
-        owner_module="kubex.k8s.v1_30.core_v1",
+        owner_module=f"kubex.k8s.v1_30.core.v1.{py_field_name(owner.rsplit('.', 1)[-1])}",
         property_name=prop,
     )
 
@@ -72,10 +73,14 @@ def test_ref_alias_intorstring() -> None:
     assert out.expression == "int | str"
 
 
-def test_ref_to_same_module_is_local() -> None:
+def test_ref_to_different_class_is_cross_ref() -> None:
     out = _map(
         {"$ref": "#/definitions/io.k8s.api.core.v1.NodeAddress"},
         owner="io.k8s.api.core.v1.NodeStatus",
     )
     assert out.expression == "NodeAddress"
-    assert "NodeAddress" in out.local_refs
+    assert any(
+        x.class_name == "NodeAddress"
+        and x.module == "kubex.k8s.v1_30.core.v1.node_address"
+        for x in out.cross_refs
+    )

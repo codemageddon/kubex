@@ -40,9 +40,19 @@ def test_package_layout(generated_package: Path) -> None:
     src = generated_package / "kubex" / "k8s" / "v1_30"
     assert (src / "__init__.py").is_file()
     assert (src / "_common.py").is_file()
-    assert (src / "core_v1.py").is_file()
-    assert (src / "apps_v1.py").is_file()
+    # Nested group/version directories
+    assert (src / "core" / "v1" / "__init__.py").is_file()
+    assert (src / "core" / "v1" / "node.py").is_file()
+    assert (src / "core" / "v1" / "node_list.py").is_file()
+    assert (src / "core" / "v1" / "node_address.py").is_file()
+    assert (src / "core" / "v1" / "node_status.py").is_file()
+    assert (src / "apps" / "v1" / "__init__.py").is_file()
+    assert (src / "apps" / "v1" / "deployment.py").is_file()
+    assert (src / "apps" / "v1" / "deployment_list.py").is_file()
     assert (generated_package / "pyproject.toml").is_file()
+    # Old flat files should NOT exist
+    assert not (src / "core_v1.py").exists()
+    assert not (src / "apps_v1.py").exists()
 
 
 def test_generated_is_ruff_clean(generated_package: Path) -> None:
@@ -61,13 +71,7 @@ def test_generated_is_ruff_clean(generated_package: Path) -> None:
 
 
 def test_generated_imports_and_validates(generated_package: Path) -> None:
-    """Import the generated modules and exercise them against sample JSON.
-
-    In production, `kubex` and `kubex-k8s-<version>` install to the same
-    site-packages/kubex/ directory, so the subpackage resolves naturally.
-    Here we extend `kubex.__path__` at test scope only to point at the
-    generator's temp output — no runtime sys.path fiddling involved.
-    """
+    """Import the generated modules and exercise them against sample JSON."""
     import kubex
 
     extra_path = str(generated_package / "kubex")
@@ -77,13 +81,17 @@ def test_generated_imports_and_validates(generated_package: Path) -> None:
         for mod in list(sys.modules):
             if mod.startswith("kubex.k8s.v1_30"):
                 sys.modules.pop(mod, None)
-        core_v1 = importlib.import_module("kubex.k8s.v1_30.core_v1")
-        apps_v1 = importlib.import_module("kubex.k8s.v1_30.apps_v1")
+        node_mod = importlib.import_module("kubex.k8s.v1_30.core.v1.node")
+        node_list_mod = importlib.import_module("kubex.k8s.v1_30.core.v1.node_list")
+        deployment_mod = importlib.import_module("kubex.k8s.v1_30.apps.v1.deployment")
+        deployment_list_mod = importlib.import_module(
+            "kubex.k8s.v1_30.apps.v1.deployment_list"
+        )
 
-        Node = core_v1.Node
-        NodeList = core_v1.NodeList
-        Deployment = apps_v1.Deployment
-        DeploymentList = apps_v1.DeploymentList
+        Node = node_mod.Node
+        NodeList = node_list_mod.NodeList
+        Deployment = deployment_mod.Deployment
+        DeploymentList = deployment_list_mod.DeploymentList
 
         assert Node.__RESOURCE_CONFIG__.url() == "/api/v1/nodes"
         assert Node.__RESOURCE_CONFIG__.url(name="nd1") == "/api/v1/nodes/nd1"
@@ -144,14 +152,16 @@ def test_generated_imports_and_validates(generated_package: Path) -> None:
 
 
 def test_enum_placement_inline(generated_package: Path) -> None:
-    """Single-use enums live inside the group module, not in _common.py."""
+    """Single-use enums live inside the class file, not in _common.py."""
     src = generated_package / "kubex" / "k8s" / "v1_30"
-    core = (src / "core_v1.py").read_text()
-    apps = (src / "apps_v1.py").read_text()
+    node_status = (src / "core" / "v1" / "node_status.py").read_text()
+    deployment_condition = (
+        src / "apps" / "v1" / "deployment_condition.py"
+    ).read_text()
     common = (src / "_common.py").read_text()
 
-    assert "class NodeStatusPhase(str, Enum):" in core
-    assert "class DeploymentConditionType(str, Enum):" in apps
+    assert "class NodeStatusPhase(str, Enum):" in node_status
+    assert "class DeploymentConditionType(str, Enum):" in deployment_condition
     assert "class NodeStatusPhase" not in common
     assert "class DeploymentConditionType" not in common
 
@@ -161,8 +171,11 @@ def test_common_exports_intorstring(generated_package: Path) -> None:
     assert "IntOrString = int | str" in common
 
 
-def test_init_re_exports_index(generated_package: Path) -> None:
+def test_init_has_all(generated_package: Path) -> None:
     init = (generated_package / "kubex" / "k8s" / "v1_30" / "__init__.py").read_text()
-    assert "INDEX" in init
-    assert "Node," in init or "Node\n" in init
-    assert "Deployment," in init or "Deployment\n" in init
+    assert "__all__" in init
+    assert '"Node"' in init or "'Node'" in init
+    assert '"Deployment"' in init or "'Deployment'" in init
+    # No INDEX, no re-export imports
+    assert "INDEX" not in init
+    assert "from kubex" not in init

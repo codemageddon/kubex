@@ -105,12 +105,27 @@ def verify(
     for cmd in (
         ["uv", "run", "ruff", "check", str(package)],
         ["uv", "run", "ruff", "format", "--check", str(package)],
-        ["uv", "run", "mypy", "--strict", str(package)],
     ):
         typer.echo(f"$ {' '.join(cmd)}")
         result = subprocess.run(cmd, check=False)
         if result.returncode != 0:
             rc = result.returncode
+    # mypy must run from within the package directory so it resolves the
+    # `kubex` namespace package correctly (the repo-root `kubex/` with its
+    # own `__init__.py` would otherwise shadow the generated namespace).
+    mypy_cmd = [
+        "uv",
+        "run",
+        "mypy",
+        "--strict",
+        "--namespace-packages",
+        "--explicit-package-bases",
+        "kubex/",
+    ]
+    typer.echo(f"$ (cd {package}) {' '.join(mypy_cmd)}")
+    result = subprocess.run(mypy_cmd, check=False, cwd=str(package))
+    if result.returncode != 0:
+        rc = result.returncode
     raise typer.Exit(code=rc)
 
 

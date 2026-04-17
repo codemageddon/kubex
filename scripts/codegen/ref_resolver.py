@@ -20,6 +20,8 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from scripts.codegen.naming import py_field_name
+
 # Swagger definition name -> (python module, class name).
 OVERRIDES: dict[str, tuple[str, str]] = {
     "io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta": (
@@ -93,6 +95,9 @@ _API_RE = re.compile(
 _APIEXTENSIONS_RE = re.compile(
     r"^io\.k8s\.apiextensions-apiserver\.pkg\.apis\.apiextensions\.(?P<version>v[0-9a-z]+)\.(?P<cls>[A-Za-z0-9]+)$"
 )
+_KUBE_AGGREGATOR_RE = re.compile(
+    r"^io\.k8s\.kube-aggregator\.pkg\.apis\.apiregistration\.(?P<version>v[0-9a-z]+)\.(?P<cls>[A-Za-z0-9]+)$"
+)
 _APIMACHINERY_META_RE = re.compile(
     r"^io\.k8s\.apimachinery\.pkg\.apis\.meta\.(?P<version>v[0-9a-z]+)\.(?P<cls>[A-Za-z0-9]+)$"
 )
@@ -107,23 +112,29 @@ def module_for_definition(name: str, *, k8s_version_tag: str) -> tuple[str, str]
     if m := _API_RE.match(name):
         group = m["group"]
         version = m["version"]
-        return f"{base}.{_group_module(group, version)}", m["cls"]
+        cls = m["cls"]
+        return (
+            f"{base}.{_group_version_prefix(group, version)}.{py_field_name(cls)}",
+            cls,
+        )
     if m := _APIEXTENSIONS_RE.match(name):
         version = m["version"]
-        return f"{base}.apiextensions_k8s_io_{version}", m["cls"]
+        cls = m["cls"]
+        return f"{base}.apiextensions_k8s_io.{version}.{py_field_name(cls)}", cls
+    if m := _KUBE_AGGREGATOR_RE.match(name):
+        version = m["version"]
+        cls = m["cls"]
+        return f"{base}.apiregistration.{version}.{py_field_name(cls)}", cls
     if m := _APIMACHINERY_META_RE.match(name):
         version = m["version"]
-        return f"{base}.meta_{version}", m["cls"]
+        cls = m["cls"]
+        return f"{base}.meta.{version}.{py_field_name(cls)}", cls
     raise ValueError(f"Cannot determine module for definition: {name!r}")
 
 
-def _group_module(group: str, version: str) -> str:
-    """`core` + `v1` -> `core_v1`; handles dots in group names (`apps` / `networking.k8s.io`)."""
-    # Group names like "networking.k8s.io" would be reshaped to "networking_k8s_io";
-    # but the `io.k8s.api.<group>` prefix already strips the `.k8s.io` suffix —
-    # so the captured `group` is typically a single segment. We defensively
-    # snake-ify anyway.
-    return f"{group.replace('.', '_').replace('-', '_')}_{version}"
+def _group_version_prefix(group: str, version: str) -> str:
+    """`core` + `v1` -> `core.v1`; handles dots in group names."""
+    return f"{group.replace('.', '_').replace('-', '_')}.{version}"
 
 
 def resolve(name: str, *, k8s_version_tag: str) -> Resolved:

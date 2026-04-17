@@ -17,6 +17,7 @@ class ImportSet:
         self._typing: set[str] = set()
         self._from: dict[str, set[str]] = {}  # module -> set of symbols
         self._raw_modules: set[str] = set()  # `import X`
+        self.future_annotations: bool = False  # prepend `from __future__ import annotations`
 
     def add_stdlib(self, module: str, symbol: str) -> None:
         self._stdlib.add((module, symbol))
@@ -32,6 +33,8 @@ class ImportSet:
 
     def render(self) -> str:
         blocks: list[str] = []
+        if self.future_annotations:
+            blocks.append("from __future__ import annotations")
         raw_modules = sorted(self._raw_modules | {m for m, _ in self._stdlib})
         if raw_modules:
             blocks.append("\n".join(f"import {m}" for m in raw_modules))

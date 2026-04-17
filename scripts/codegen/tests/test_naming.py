@@ -35,6 +35,12 @@ def test_camel_to_snake(input_: str, expected: str) -> None:
         ("class", "class_"),
         ("namespace", "namespace"),
         ("podIPs", "pod_ips"),
+        # PascalCase class names — used for module file names
+        ("Pod", "pod"),
+        ("PodList", "pod_list"),
+        ("PersistentVolumeClaim", "persistent_volume_claim"),
+        ("CSIDriver", "csi_driver"),
+        ("AWSElasticBlockStoreVolumeSource", "aws_elastic_block_store_volume_source"),
     ],
 )
 def test_py_field_name(input_: str, expected: str) -> None:

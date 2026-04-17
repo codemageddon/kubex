@@ -37,6 +37,19 @@ class EnumPlan:
     request_index: dict[tuple[str, str], tuple[str, str]] = field(default_factory=dict)
 
 
+def _group_enums_module(modules: set[str]) -> str | None:
+    """If all modules share a group/version prefix, return the `_enums` module path.
+
+    E.g., given `{"kubex.k8s.v1_30.core.v1.pod", "kubex.k8s.v1_30.core.v1.service"}`,
+    returns `"kubex.k8s.v1_30.core.v1._enums"`.
+    Returns `None` if modules span different groups/versions.
+    """
+    prefixes = {mod.rsplit(".", 1)[0] for mod in modules}
+    if len(prefixes) == 1:
+        return f"{next(iter(prefixes))}._enums"
+    return None
+
+
 def plan_enums(requests: list[EnumRequest], *, common_module: str) -> EnumPlan:
     """Resolve a flat list of enum requests into an emission plan."""
     # Group requests by (class_name, values); conflicting-value requests that
@@ -59,9 +72,11 @@ def plan_enums(requests: list[EnumRequest], *, common_module: str) -> EnumPlan:
     for (name, values), reqs in grouped.items():
         final_name = renames.get((name, values), name)
         target_modules = {r.owner_module for r in reqs}
-        target_module = (
-            next(iter(target_modules)) if len(target_modules) == 1 else common_module
-        )
+        if len(target_modules) == 1:
+            target_module = next(iter(target_modules))
+        else:
+            group_module = _group_enums_module(target_modules)
+            target_module = group_module if group_module is not None else common_module
         plan.by_module.setdefault(target_module, []).append(
             EmittedEnum(
                 class_name=final_name, values=values, target_module=target_module

@@ -1,10 +1,9 @@
-"""Emit one Python module per (group, version) from OpenAPI definitions.
+"""Emit one Python module per definition from OpenAPI definitions.
 
 This module orchestrates:
 - walking the definitions belonging to a module,
 - calling `type_mapper` to produce a type expression per property,
-- accumulating enum requests and cross-module imports,
-- topologically sorting classes so ordinary (non-string) annotations work.
+- accumulating enum requests and cross-module imports.
 
 Resources (carrying `x-kubernetes-group-version-kind`) are emitted with the
 right marker-interface inheritance + `__RESOURCE_CONFIG__`. Their paired
@@ -60,12 +59,9 @@ def build_modules(
         if resolved.is_override or resolved.is_alias:
             continue
         module_path = resolved.module
-        module = modules.setdefault(
-            module_path,
-            EmittedModule(
-                module_path=module_path,
-                file_name=module_path.rsplit(".", 1)[-1] + ".py",
-            ),
+        module = EmittedModule(
+            module_path=module_path,
+            file_name=module_path.rsplit(".", 1)[-1] + ".py",
         )
         emitted = _emit_definition(
             defn,
@@ -74,12 +70,29 @@ def build_modules(
             module=module,
         )
         module.classes.append(emitted)
+        # Detect self-referential types: if any field's type expression
+        # references the class being defined, we need `from __future__ import
+        # annotations` so the forward reference is valid at runtime.
+        if _class_has_self_reference(emitted):
+            module.imports.future_annotations = True
+        modules[module_path] = module
 
     enum_plan = enum_emitter.plan_enums(
         ctx.pending_enum_requests,
         common_module=f"kubex.k8s.{k8s_version_tag}._common",
     )
     _rewrite_enum_references(modules, enum_plan)
+
+    # Create EmittedModule entries for _enums.py modules that don't exist yet
+    for enum_module_path in enum_plan.by_module:
+        if (
+            enum_module_path not in modules
+            and enum_module_path != f"kubex.k8s.{k8s_version_tag}._common"
+        ):
+            modules[enum_module_path] = EmittedModule(
+                module_path=enum_module_path,
+                file_name="_enums.py",
+            )
 
     for module_path, module in modules.items():
         module.enums = enum_plan.by_module.get(module_path, [])
@@ -88,9 +101,8 @@ def build_modules(
     _wire_cross_module_enum_imports(modules, enum_plan)
 
     for module in modules.values():
-        module.classes = _topo_sort(module.classes)
-        module.imports.add_from("pydantic", "Field")
-        module.imports.add_from("kubex_core.models.base", "BaseK8sModel")
+        if any(cls.fields for cls in module.classes):
+            module.imports.add_from("pydantic", "Field")
 
     for module in modules.values():
         _emit_list_wire_assignments(module)
@@ -120,7 +132,6 @@ def _emit_definition(
     )
 
     fields: list[EmittedField] = []
-    local_refs: set[str] = set()
 
     # For resource classes, `metadata` is inherited from BaseEntity; skip.
     # For list classes, we redeclare metadata/items explicitly since they use
@@ -139,7 +150,6 @@ def _emit_definition(
             property_name=prop_name,
         )
         _merge_imports(module, mapped)
-        local_refs |= mapped.local_refs
         ctx.pending_enum_requests.extend(mapped.enum_requests)
 
         # api_version / kind on a resource or list carry a concrete Literal
@@ -198,7 +208,6 @@ def _emit_definition(
         bases=bases,
         docstring=description,
         fields=fields,
-        local_refs=local_refs,
         resource_info=res_info if is_resource else None,
         list_owner_class=_list_owner_name(defn, ctx) if is_list else None,
     )
@@ -319,41 +328,6 @@ def _merge_imports(module: EmittedModule, mapped: MappedType) -> None:
         module.imports.add_from(xref.module, xref.class_name)
 
 
-def _topo_sort(classes: list[EmittedClass]) -> list[EmittedClass]:
-    """Stable topological sort: classes without dependencies first, alphabetical within a layer."""
-    by_name = {c.class_name: c for c in classes}
-    in_degree = {c.class_name: 0 for c in classes}
-    deps: dict[str, set[str]] = {c.class_name: set() for c in classes}
-    for c in classes:
-        for ref in c.local_refs:
-            if ref in by_name and ref != c.class_name:
-                deps[c.class_name].add(ref)
-    for name, d in deps.items():
-        in_degree[name] = len(d)
-
-    ready = sorted([n for n, deg in in_degree.items() if deg == 0])
-    ordered: list[EmittedClass] = []
-    removed: set[str] = set()
-    while ready:
-        name = ready.pop(0)
-        ordered.append(by_name[name])
-        removed.add(name)
-        next_ready: list[str] = []
-        for other, d in deps.items():
-            if other in removed:
-                continue
-            if name in d:
-                d.discard(name)
-                if not d:
-                    next_ready.append(other)
-        ready = sorted(ready + next_ready)
-
-    if len(ordered) != len(classes):
-        remaining = [c.class_name for c in classes if c.class_name not in removed]
-        raise RuntimeError(f"Cycle detected among generated classes: {remaining}")
-    return ordered
-
-
 def _emit_list_wire_assignments(module: EmittedModule) -> None:
     for cls in module.classes:
         if cls.list_owner_class is not None:
@@ -392,6 +366,16 @@ def _wire_cross_module_enum_imports(
         if module is None or target_module == orig_module:
             continue
         module.imports.add_from(target_module, final_name)
+
+
+def _class_has_self_reference(cls: EmittedClass) -> bool:
+    """Return True if any field type expression references the class itself."""
+    import re
+
+    name = cls.class_name
+    # Match the class name as a whole word (not as part of a longer name).
+    pattern = re.compile(rf"\b{re.escape(name)}\b")
+    return any(pattern.search(f.type_expression) for f in cls.fields)
 
 
 def _clean_doc(value: Any) -> str | None:

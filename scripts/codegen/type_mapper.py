@@ -46,7 +46,6 @@ class MappedType:
         default_factory=set
     )  # (module, symbol)
     cross_refs: list[CrossRef] = field(default_factory=list)
-    local_refs: set[str] = field(default_factory=set)  # same-module class names
     enum_requests: list[EnumRequest] = field(default_factory=list)
 
 
@@ -174,9 +173,7 @@ def _map_ref(ref: str, *, k8s_version_tag: str, owner_module: str) -> MappedType
         return out
     # Class lives in some module — same or cross.
     if resolved.module == owner_module:
-        return MappedType(
-            expression=resolved.class_name, local_refs={resolved.class_name}
-        )
+        return MappedType(expression=resolved.class_name)
     return MappedType(
         expression=resolved.class_name,
         cross_refs=[CrossRef(module=resolved.module, class_name=resolved.class_name)],
@@ -190,7 +187,6 @@ def _merge(inner: MappedType) -> MappedType:
         typing_imports=set(inner.typing_imports),
         stdlib_imports=set(inner.stdlib_imports),
         cross_refs=list(inner.cross_refs),
-        local_refs=set(inner.local_refs),
         enum_requests=list(inner.enum_requests),
     )
 

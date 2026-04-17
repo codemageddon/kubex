@@ -1,17 +1,6 @@
-{#- Top-level package __init__.py: re-exports every generated resource. -#}
-{% for module, names in exports.items() %}
-from {{ module }} import {{ names | join(', ') }}
-{% endfor %}
-
-INDEX: tuple[type, ...] = (
-{% for cls in index %}
-    {{ cls }},
-{% endfor %}
-)
-
+{#- Top-level package __init__.py: declares __all__ for the generated package. -#}
 __all__ = [
-{% for name in exports_flat %}
+{% for name in all_names %}
     "{{ name }}",
 {% endfor %}
-    "INDEX",
 ]

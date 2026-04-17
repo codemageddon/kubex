@@ -8,7 +8,11 @@ Produces a directory tree:
     └── kubex/k8s/v1_30/
         ├── __init__.py
         ├── _common.py
-        ├── core_v1.py
+        ├── core/
+        │   └── v1/
+        │       ├── __init__.py
+        │       ├── pod.py
+        │       └── ...
         └── ...
 
 `kubex` and `kubex.k8s` are PEP 420 namespace — we do *not* create
@@ -69,6 +73,9 @@ def write_package(inputs: RenderInputs) -> Path:
             f"# kubex-k8s-{k8s_version_dashed}\n\nPydantic v2 models for Kubernetes {inputs.k8s_version}.\n"
         )
 
+    # PEP 561 py.typed marker for the generated package.
+    (src_root / "py.typed").write_text("")
+
     # _common.py
     common_src = env.get_template("common.py.j2").render(
         has_enums=bool(inputs.shared_enums),
@@ -76,10 +83,12 @@ def write_package(inputs: RenderInputs) -> Path:
     )
     (src_root / "_common.py").write_text(common_src)
 
-    # Per-group modules.
-    exports: dict[str, list[str]] = {}
-    index_symbols: list[str] = []
+    # Per-class modules.
+    base_prefix = f"kubex.k8s.{inputs.k8s_version_tag}"
+    created_dirs: set[Path] = set()
+    all_class_names: list[str] = []
     module_tpl = env.get_template("module.py.j2")
+
     for module in inputs.modules.values():
         rendered_classes = [_render_class(c) for c in module.classes]
         rendered_enums = [enum_emitter.render_enum(e) for e in module.enums]
@@ -89,22 +98,36 @@ def write_package(inputs: RenderInputs) -> Path:
             enums=rendered_enums,
             trailing_assignments=module.trailing_assignments,
         )
-        # Collapse triple blank lines -> double blank for readability; the
-        # Jinja emitter sometimes stacks them when both enums and classes are
-        # present.
         source = _collapse_blanks(source)
-        (src_root / module.file_name).write_text(source)
-        exports[module.module_path] = [c.class_name for c in module.classes]
-        for c in module.classes:
-            if c.resource_info is not None:
-                index_symbols.append(c.class_name)
 
-    # __init__.py
-    exports_flat = [name for names in exports.values() for name in names]
+        # Derive nested path from module_path.
+        relative = module.module_path.removeprefix(base_prefix + ".")
+        parts = relative.split(".")
+        dir_parts = parts[:-1]
+        file_part = parts[-1] + ".py"
+
+        if dir_parts:
+            dir_path = src_root / Path(*dir_parts)
+            if dir_path not in created_dirs:
+                dir_path.mkdir(parents=True, exist_ok=True)
+                # Create __init__.py for each intermediate package.
+                for i in range(1, len(dir_parts) + 1):
+                    init_dir = src_root / Path(*dir_parts[:i])
+                    init_file = init_dir / "__init__.py"
+                    if not init_file.exists():
+                        init_file.write_text("")
+                created_dirs.add(dir_path)
+            (dir_path / file_part).write_text(source)
+        else:
+            (src_root / file_part).write_text(source)
+
+        for c in module.classes:
+            all_class_names.append(c.class_name)
+
+    # __init__.py — just __all__, no re-exports, no INDEX.
+    all_class_names.sort()
     init_src = env.get_template("package_init.py.j2").render(
-        exports=exports,
-        exports_flat=exports_flat,
-        index=index_symbols,
+        all_names=all_class_names,
     )
     (src_root / "__init__.py").write_text(init_src)
 

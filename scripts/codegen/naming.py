@@ -31,6 +31,9 @@ _RESERVED_EXTRAS: frozenset[str] = frozenset(
         "import",
         "match",
         "case",
+        # Pydantic BaseModel has a deprecated `schema()` classmethod that
+        # clashes with the K8s `$schema` / `schema` JSON properties.
+        "schema",
     }
 )
 

@@ -25,15 +25,19 @@ from scripts.codegen.package_builder import RenderInputs, write_package
 FIXTURE = Path(__file__).parent / "fixtures" / "mini_swagger.json"
 GOLDEN_ROOT = Path(__file__).parent / "golden" / "kubex-k8s-1-30"
 
-# Files in the golden tree that are part of the snapshot. We skip
-# pyproject.toml because it's static (template-driven) and has its own
-# coverage via `test_generated_is_ruff_clean`.
-_RELEVANT = (
-    "kubex/k8s/v1_30/__init__.py",
-    "kubex/k8s/v1_30/_common.py",
-    "kubex/k8s/v1_30/core_v1.py",
-    "kubex/k8s/v1_30/apps_v1.py",
-)
+
+def _collect_relevant_files(root: Path) -> list[str]:
+    """Walk the golden tree and return relative paths of all .py files."""
+    base = root / "kubex" / "k8s" / "v1_30"
+    if not base.exists():
+        return []
+    paths = []
+    for p in sorted(base.rglob("*.py")):
+        paths.append(str(p.relative_to(root)))
+    return paths
+
+
+_RELEVANT = _collect_relevant_files(GOLDEN_ROOT)
 
 
 def _regenerate(tmp_path: Path) -> Path:
