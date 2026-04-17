@@ -1,8 +1,8 @@
 from typing import Generic
 
-from kubex.models.base import BaseK8sModel
-from kubex.models.metadata import ListMetadata
-from kubex.models.typing import ResourceType
+from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.metadata import ListMetadata
+from kubex_core.models.typing import ResourceType
 
 
 class ListEntity(BaseK8sModel, Generic[ResourceType]):

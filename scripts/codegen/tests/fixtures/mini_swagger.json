@@ -1,0 +1,183 @@
+{
+  "swagger": "2.0",
+  "info": {"title": "Mini K8s", "version": "1.30"},
+  "definitions": {
+    "io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta": {
+      "type": "object",
+      "description": "ObjectMeta override target.",
+      "properties": {
+        "name": {"type": "string"},
+        "namespace": {"type": "string"},
+        "labels": {"type": "object", "additionalProperties": {"type": "string"}}
+      }
+    },
+    "io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta": {
+      "type": "object",
+      "description": "ListMeta override target.",
+      "properties": {
+        "continue": {"type": "string"},
+        "remainingItemCount": {"type": "integer"},
+        "resourceVersion": {"type": "string"},
+        "selfLink": {"type": "string"}
+      }
+    },
+    "io.k8s.apimachinery.pkg.apis.meta.v1.OwnerReference": {
+      "type": "object",
+      "description": "OwnerReference override target.",
+      "properties": {
+        "apiVersion": {"type": "string"},
+        "kind": {"type": "string"},
+        "name": {"type": "string"},
+        "uid": {"type": "string"}
+      }
+    },
+    "io.k8s.apimachinery.pkg.util.intstr.IntOrString": {
+      "type": "string",
+      "format": "int-or-string",
+      "description": "Alias target."
+    },
+    "io.k8s.api.core.v1.NodeAddress": {
+      "type": "object",
+      "description": "NodeAddress reports a node address.",
+      "required": ["type", "address"],
+      "properties": {
+        "type": {"type": "string"},
+        "address": {"type": "string"},
+        "internalIP": {"type": "string"},
+        "podIPs": {"type": "array", "items": {"type": "string"}},
+        "someNiceAPI": {"type": "string"}
+      }
+    },
+    "io.k8s.api.core.v1.NodeStatus": {
+      "type": "object",
+      "description": "NodeStatus is information about the current status of a node.",
+      "properties": {
+        "addresses": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/io.k8s.api.core.v1.NodeAddress"}
+        },
+        "phase": {
+          "type": "string",
+          "enum": ["Pending", "Running", "Terminated"],
+          "description": "NodePhase is the recently observed lifecycle phase of the node."
+        }
+      }
+    },
+    "io.k8s.api.core.v1.Node": {
+      "type": "object",
+      "description": "Node is a worker node in Kubernetes.",
+      "required": ["metadata"],
+      "properties": {
+        "apiVersion": {"type": "string"},
+        "kind": {"type": "string"},
+        "metadata": {"$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"},
+        "status": {"$ref": "#/definitions/io.k8s.api.core.v1.NodeStatus"}
+      },
+      "x-kubernetes-group-version-kind": [
+        {"group": "", "kind": "Node", "version": "v1"}
+      ]
+    },
+    "io.k8s.api.core.v1.NodeList": {
+      "type": "object",
+      "description": "NodeList is the whole list of all Nodes.",
+      "required": ["items"],
+      "properties": {
+        "apiVersion": {"type": "string"},
+        "kind": {"type": "string"},
+        "metadata": {"$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta"},
+        "items": {"type": "array", "items": {"$ref": "#/definitions/io.k8s.api.core.v1.Node"}}
+      },
+      "x-kubernetes-group-version-kind": [
+        {"group": "", "kind": "NodeList", "version": "v1"}
+      ]
+    },
+    "io.k8s.api.apps.v1.DeploymentCondition": {
+      "type": "object",
+      "description": "DeploymentCondition describes a condition of a Deployment.",
+      "required": ["type", "status"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["Available", "Progressing", "ReplicaFailure"],
+          "description": "Type of deployment condition."
+        },
+        "status": {"type": "string"},
+        "reason": {"type": "string"}
+      }
+    },
+    "io.k8s.api.apps.v1.DeploymentSpec": {
+      "type": "object",
+      "description": "DeploymentSpec is the specification of the desired behavior of the Deployment.",
+      "properties": {
+        "replicas": {"type": "integer"},
+        "minReadySeconds": {"type": "integer"},
+        "paused": {"type": "boolean"},
+        "maxSurge": {"type": "string", "format": "int-or-string"}
+      }
+    },
+    "io.k8s.api.apps.v1.DeploymentStatus": {
+      "type": "object",
+      "description": "DeploymentStatus is the most recently observed status of the Deployment.",
+      "properties": {
+        "replicas": {"type": "integer"},
+        "availableReplicas": {"type": "integer"},
+        "conditions": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/io.k8s.api.apps.v1.DeploymentCondition"}
+        }
+      }
+    },
+    "io.k8s.api.apps.v1.Deployment": {
+      "type": "object",
+      "description": "Deployment enables declarative updates for Pods and ReplicaSets.",
+      "required": ["metadata", "spec"],
+      "properties": {
+        "apiVersion": {"type": "string"},
+        "kind": {"type": "string"},
+        "metadata": {"$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"},
+        "spec": {"$ref": "#/definitions/io.k8s.api.apps.v1.DeploymentSpec"},
+        "status": {"$ref": "#/definitions/io.k8s.api.apps.v1.DeploymentStatus"}
+      },
+      "x-kubernetes-group-version-kind": [
+        {"group": "apps", "kind": "Deployment", "version": "v1"}
+      ]
+    },
+    "io.k8s.api.apps.v1.DeploymentList": {
+      "type": "object",
+      "description": "DeploymentList is a list of Deployments.",
+      "required": ["items"],
+      "properties": {
+        "apiVersion": {"type": "string"},
+        "kind": {"type": "string"},
+        "metadata": {"$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta"},
+        "items": {"type": "array", "items": {"$ref": "#/definitions/io.k8s.api.apps.v1.Deployment"}}
+      },
+      "x-kubernetes-group-version-kind": [
+        {"group": "apps", "kind": "DeploymentList", "version": "v1"}
+      ]
+    }
+  },
+  "paths": {
+    "/api/v1/nodes": {
+      "get": {"x-kubernetes-group-version-kind": {"group": "", "kind": "Node", "version": "v1"}}
+    },
+    "/api/v1/nodes/{name}": {
+      "get": {"x-kubernetes-group-version-kind": {"group": "", "kind": "Node", "version": "v1"}}
+    },
+    "/api/v1/nodes/{name}/status": {
+      "put": {"x-kubernetes-group-version-kind": {"group": "", "kind": "Node", "version": "v1"}}
+    },
+    "/apis/apps/v1/namespaces/{namespace}/deployments": {
+      "get": {"x-kubernetes-group-version-kind": {"group": "apps", "kind": "Deployment", "version": "v1"}}
+    },
+    "/apis/apps/v1/namespaces/{namespace}/deployments/{name}": {
+      "get": {"x-kubernetes-group-version-kind": {"group": "apps", "kind": "Deployment", "version": "v1"}}
+    },
+    "/apis/apps/v1/namespaces/{namespace}/deployments/{name}/status": {
+      "put": {"x-kubernetes-group-version-kind": {"group": "apps", "kind": "Deployment", "version": "v1"}}
+    },
+    "/apis/apps/v1/namespaces/{namespace}/deployments/{name}/scale": {
+      "put": {"x-kubernetes-group-version-kind": {"group": "apps", "kind": "Deployment", "version": "v1"}}
+    }
+  }
+}

@@ -1,4 +1,4 @@
-from kubex.models.base_entity import BaseEntity
+from kubex_core.models.base_entity import BaseEntity
 
 
 class ClusterScopedEntity(BaseEntity): ...

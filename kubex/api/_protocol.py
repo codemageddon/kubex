@@ -4,7 +4,7 @@ from typing import Protocol, Type
 from kubex.client.client import BaseClient
 from kubex.core.params import NamespaceTypes
 from kubex.core.request_builder.builder import RequestBuilder
-from kubex.models.typing import ResourceType
+from kubex_core.models.typing import ResourceType
 
 ApiNamespaceTypes = NamespaceTypes | EllipsisType
 

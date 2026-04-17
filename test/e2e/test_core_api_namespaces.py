@@ -1,7 +1,7 @@
 import pytest
 
 from kubex import Api, BaseClient
-from kubex.models.namespace import Namespace
+from kubex_core.models.namespace import Namespace
 
 
 @pytest.mark.anyio

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Literal
 
-from kubex.models.base_entity import BaseEntity
-from kubex.models.metadata import ObjectMetadata
+from kubex_core.models.base_entity import BaseEntity
+from kubex_core.models.metadata import ObjectMetadata
 
 
 class PartialObjectMetadata(BaseEntity):

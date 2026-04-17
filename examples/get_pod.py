@@ -1,6 +1,6 @@
 from kubex import Api, create_api
-from kubex.models.metadata import ObjectMetadata
-from kubex.models.pod import Pod
+from kubex_core.models.metadata import ObjectMetadata
+from kubex_core.models.pod import Pod
 
 NAMESPACE = "default"
 

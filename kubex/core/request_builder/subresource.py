@@ -5,7 +5,7 @@ import typing
 from kubex.core.params import NamespaceTypes, PatchOptions, PostOptions
 from kubex.core.patch import Patch
 from kubex.core.request import Request
-from kubex.models.resource_config import ResourceConfig
+from kubex_core.models.resource_config import ResourceConfig
 
 from .constants import ACCEPT_HEADER, CONTENT_TYPE_HEADER
 

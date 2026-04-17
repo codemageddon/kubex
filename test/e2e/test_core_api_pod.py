@@ -1,8 +1,8 @@
 import pytest
 
 from kubex import Api, BaseClient, create_api
-from kubex.models.metadata import ObjectMetadata
-from kubex.models.pod import Pod
+from kubex_core.models.metadata import ObjectMetadata
+from kubex_core.models.pod import Pod
 
 
 @pytest.mark.anyio

@@ -27,13 +27,13 @@ from kubex.core.params import (
 )
 from kubex.core.patch import Patch
 from kubex.core.request_builder.builder import RequestBuilder
-from kubex.models.list_entity import ListEntity
-from kubex.models.resource_config import Scope
-from kubex.models.status import Status
-from kubex.models.typing import (
+from kubex_core.models.list_entity import ListEntity
+from kubex_core.models.resource_config import Scope
+from kubex_core.models.status import Status
+from kubex_core.models.typing import (
     ResourceType,
 )
-from kubex.models.watch_event import WatchEvent
+from kubex_core.models.watch_event import WatchEvent
 
 from ._logs import LogsMixin
 from ._metadata import MetadataMixin

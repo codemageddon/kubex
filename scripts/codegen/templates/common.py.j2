@@ -1,0 +1,11 @@
+{#- _common.py: IntOrString alias + cross-module shared enums. -#}
+{% if has_enums %}
+from enum import Enum
+{% endif %}
+
+IntOrString = int | str
+{% for enum_src in enums %}
+
+
+{{ enum_src }}
+{% endfor %}

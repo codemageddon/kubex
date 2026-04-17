@@ -4,7 +4,7 @@ import datetime
 
 from pydantic import Field
 
-from kubex.models.base import BaseK8sModel
+from kubex_core.models.base import BaseK8sModel
 
 
 class OwnerReference(BaseK8sModel):
