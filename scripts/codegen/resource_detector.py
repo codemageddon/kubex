@@ -72,7 +72,12 @@ def detect_resources(
 
     # 2) Walk paths to learn scope/plural/subresources, keyed by (group, version, kind).
     discovered: dict[tuple[str, str, str], ResourceInfo] = {}
+    by_plural: dict[tuple[str, str, str], tuple[str, str, str]] = {}
+    pending_flags: dict[tuple[str, str, str], set[str]] = {}
+
     for path, ops in paths.items():
+        _collect_subresource_flags(path, pending_flags)
+
         info = _scan_path(path, ops, by_gvk=by_gvk)
         if info is None:
             continue
@@ -80,11 +85,25 @@ def detect_resources(
         existing = discovered.get(key)
         if existing is None:
             discovered[key] = info
+            by_plural[(info.group, info.version, info.plural)] = key
         else:
+            existing.is_namespaced = existing.is_namespaced or info.is_namespaced
             existing.has_status = existing.has_status or info.has_status
             existing.has_scale = existing.has_scale or info.has_scale
             existing.has_logs = existing.has_logs or info.has_logs
             existing.is_evictable = existing.is_evictable or info.is_evictable
+
+    # Apply subresource flags detected from path structure to parent resources.
+    # This handles cases where the subresource endpoint's GVK refers to a
+    # different kind (e.g. /scale -> "Scale", /eviction -> "Eviction") and
+    # _scan_path could not match it to the parent resource.
+    for (group, version, plural), flags in pending_flags.items():
+        parent_key = by_plural.get((group, version, plural))
+        if parent_key is None:
+            continue
+        parent = discovered[parent_key]
+        for flag in flags:
+            setattr(parent, flag, True)
 
     # 3) Attach paired *List definitions where they exist.
     for info in discovered.values():
@@ -93,6 +112,30 @@ def detect_resources(
             info.list_definition = list_def
 
     return sorted(discovered.values(), key=lambda r: (r.group, r.version, r.kind))
+
+
+def _collect_subresource_flags(
+    path: str,
+    pending: dict[tuple[str, str, str], set[str]],
+) -> None:
+    """Detect subresource flags purely from path structure.
+
+    Stores them keyed by ``(group, version, plural)`` so they can be
+    applied to the parent resource after the main discovery loop, even
+    when the endpoint's GVK refers to a different kind (e.g. ``Scale``).
+    """
+    m = _NAMESPACED_COLLECTION.match(path) or _CLUSTER_COLLECTION.match(path)
+    if m is None:
+        return
+    group = m.groupdict().get("group") or "core"
+    version = m["version"]
+    plural = m["plural"]
+    tail = m.groupdict().get("tail") or ""
+    trimmed = _strip_name(tail)
+    for suffix, flag in _SUBRESOURCE_FLAGS.items():
+        if trimmed == suffix:
+            pending.setdefault((group, version, plural), set()).add(flag)
+            return
 
 
 def _scan_path(

@@ -167,6 +167,9 @@
     "/api/v1/nodes/{name}/status": {
       "put": {"x-kubernetes-group-version-kind": {"group": "", "kind": "Node", "version": "v1"}}
     },
+    "/apis/apps/v1/deployments": {
+      "get": {"x-kubernetes-group-version-kind": {"group": "apps", "kind": "Deployment", "version": "v1"}}
+    },
     "/apis/apps/v1/namespaces/{namespace}/deployments": {
       "get": {"x-kubernetes-group-version-kind": {"group": "apps", "kind": "Deployment", "version": "v1"}}
     },
@@ -177,7 +180,7 @@
       "put": {"x-kubernetes-group-version-kind": {"group": "apps", "kind": "Deployment", "version": "v1"}}
     },
     "/apis/apps/v1/namespaces/{namespace}/deployments/{name}/scale": {
-      "put": {"x-kubernetes-group-version-kind": {"group": "apps", "kind": "Deployment", "version": "v1"}}
+      "put": {"x-kubernetes-group-version-kind": {"group": "autoscaling", "kind": "Scale", "version": "v1"}}
     }
   }
 }

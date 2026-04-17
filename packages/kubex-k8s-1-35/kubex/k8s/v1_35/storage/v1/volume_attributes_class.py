@@ -1,0 +1,41 @@
+from __future__ import annotations
+
+from typing import ClassVar, Literal
+
+from kubex_core.models.interfaces import ClusterScopedEntity
+from kubex_core.models.resource_config import ResourceConfig, Scope
+from pydantic import Field
+
+
+class VolumeAttributesClass(ClusterScopedEntity):
+    """VolumeAttributesClass represents a specification of mutable volume attributes defined by the CSI driver. The class can be specified during dynamic provisioning of PersistentVolumeClaims, and changed in the PersistentVolumeClaim spec after provisioning."""
+
+    __RESOURCE_CONFIG__: ClassVar[ResourceConfig["VolumeAttributesClass"]] = (
+        ResourceConfig["VolumeAttributesClass"](
+            version="v1",
+            kind="VolumeAttributesClass",
+            group="storage.k8s.io",
+            plural="volumeattributesclasses",
+            scope=Scope.CLUSTER,
+        )
+    )
+    api_version: Literal["storage.k8s.io/v1"] = Field(
+        default="storage.k8s.io/v1",
+        alias="apiVersion",
+        description="APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+    )
+    driver_name: str = Field(
+        ...,
+        alias="driverName",
+        description="Name of the CSI driver This field is immutable.",
+    )
+    kind: Literal["VolumeAttributesClass"] = Field(
+        default="VolumeAttributesClass",
+        alias="kind",
+        description="Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+    )
+    parameters: dict[str, str] | None = Field(
+        default=None,
+        alias="parameters",
+        description='parameters hold volume attributes defined by the CSI driver. These values are opaque to the Kubernetes and are passed directly to the CSI driver. The underlying storage provider supports changing these attributes on an existing volume, however the parameters field itself is immutable. To invoke a volume update, a new VolumeAttributesClass should be created with new parameters, and the PersistentVolumeClaim should be updated to reference the new VolumeAttributesClass. This field is required and must contain at least one key/value pair. The keys cannot be empty, and the maximum number of parameters is 512, with a cumulative max size of 256K. If the CSI driver rejects invalid parameters, the target PersistentVolumeClaim will be set to an "Infeasible" state in the modifyVolumeStatus field.',
+    )

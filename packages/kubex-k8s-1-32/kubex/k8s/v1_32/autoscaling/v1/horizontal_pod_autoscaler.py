@@ -8,12 +8,12 @@ from kubex.k8s.v1_32.autoscaling.v1.horizontal_pod_autoscaler_spec import (
 from kubex.k8s.v1_32.autoscaling.v1.horizontal_pod_autoscaler_status import (
     HorizontalPodAutoscalerStatus,
 )
-from kubex_core.models.interfaces import ClusterScopedEntity, HasStatusSubresource
+from kubex_core.models.interfaces import HasStatusSubresource, NamespaceScopedEntity
 from kubex_core.models.resource_config import ResourceConfig, Scope
 from pydantic import Field
 
 
-class HorizontalPodAutoscaler(ClusterScopedEntity, HasStatusSubresource):
+class HorizontalPodAutoscaler(NamespaceScopedEntity, HasStatusSubresource):
     """configuration of a horizontal pod autoscaler."""
 
     __RESOURCE_CONFIG__: ClassVar[ResourceConfig["HorizontalPodAutoscaler"]] = (
@@ -22,7 +22,7 @@ class HorizontalPodAutoscaler(ClusterScopedEntity, HasStatusSubresource):
             kind="HorizontalPodAutoscaler",
             group="autoscaling",
             plural="horizontalpodautoscalers",
-            scope=Scope.CLUSTER,
+            scope=Scope.NAMESPACE,
         )
     )
     api_version: Literal["autoscaling/v1"] = Field(

@@ -1,7 +1,7 @@
 from kubex.api import Api, create_api
-from kubex.k8s.v1_32.core.v1.container import Container
-from kubex.k8s.v1_32.core.v1.pod import Pod
-from kubex.k8s.v1_32.core.v1.pod_spec import PodSpec
+from kubex.k8s.v1_35.core.v1.container import Container
+from kubex.k8s.v1_35.core.v1.pod import Pod
+from kubex.k8s.v1_35.core.v1.pod_spec import PodSpec
 from kubex_core.models.metadata import ObjectMetadata
 
 NAMESPACE = "default"

@@ -125,7 +125,7 @@ def write_package(inputs: RenderInputs) -> Path:
             all_class_names.append(c.class_name)
 
     # __init__.py — just __all__, no re-exports, no INDEX.
-    all_class_names.sort()
+    all_class_names = sorted(set(all_class_names))
     init_src = env.get_template("package_init.py.j2").render(
         all_names=all_class_names,
     )

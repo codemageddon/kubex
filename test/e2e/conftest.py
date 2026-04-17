@@ -11,7 +11,7 @@ from kubex.client.httpx import HttpxClient
 from kubex.configuration.configuration import ClientConfiguration, KubeConfig
 from kubex.configuration.file_config import configure_from_kubeconfig
 from kubex_core.models.metadata import ObjectMetadata
-from kubex.k8s.v1_32.core.v1.namespace import Namespace
+from kubex.k8s.v1_35.core.v1.namespace import Namespace
 
 
 @pytest.fixture(scope="session")

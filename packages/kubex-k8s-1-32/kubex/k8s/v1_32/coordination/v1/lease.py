@@ -3,12 +3,12 @@ from __future__ import annotations
 from typing import ClassVar, Literal
 
 from kubex.k8s.v1_32.coordination.v1.lease_spec import LeaseSpec
-from kubex_core.models.interfaces import ClusterScopedEntity
+from kubex_core.models.interfaces import NamespaceScopedEntity
 from kubex_core.models.resource_config import ResourceConfig, Scope
 from pydantic import Field
 
 
-class Lease(ClusterScopedEntity):
+class Lease(NamespaceScopedEntity):
     """Lease defines a lease concept."""
 
     __RESOURCE_CONFIG__: ClassVar[ResourceConfig["Lease"]] = ResourceConfig["Lease"](
@@ -16,7 +16,7 @@ class Lease(ClusterScopedEntity):
         kind="Lease",
         group="coordination.k8s.io",
         plural="leases",
-        scope=Scope.CLUSTER,
+        scope=Scope.NAMESPACE,
     )
     api_version: Literal["coordination.k8s.io/v1"] = Field(
         default="coordination.k8s.io/v1",
