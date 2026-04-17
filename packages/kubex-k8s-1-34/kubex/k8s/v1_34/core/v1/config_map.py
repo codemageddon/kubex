@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import ClassVar, Literal
 
-from kubex_core.models.interfaces import ClusterScopedEntity
+from kubex_core.models.interfaces import NamespaceScopedEntity
 from kubex_core.models.resource_config import ResourceConfig, Scope
 from pydantic import Field
 
 
-class ConfigMap(ClusterScopedEntity):
+class ConfigMap(NamespaceScopedEntity):
     """ConfigMap holds configuration data for pods to consume."""
 
     __RESOURCE_CONFIG__: ClassVar[ResourceConfig["ConfigMap"]] = ResourceConfig[
@@ -17,7 +17,7 @@ class ConfigMap(ClusterScopedEntity):
         kind="ConfigMap",
         group="core",
         plural="configmaps",
-        scope=Scope.CLUSTER,
+        scope=Scope.NAMESPACE,
     )
     api_version: Literal["v1"] = Field(
         default="v1",

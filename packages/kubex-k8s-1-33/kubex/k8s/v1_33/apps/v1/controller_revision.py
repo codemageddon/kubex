@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import Any, ClassVar, Literal
 
-from kubex_core.models.interfaces import ClusterScopedEntity
+from kubex_core.models.interfaces import NamespaceScopedEntity
 from kubex_core.models.resource_config import ResourceConfig, Scope
 from pydantic import Field
 
 
-class ControllerRevision(ClusterScopedEntity):
+class ControllerRevision(NamespaceScopedEntity):
     """ControllerRevision implements an immutable snapshot of state data. Clients are responsible for serializing and deserializing the objects that contain their internal state. Once a ControllerRevision has been successfully created, it can not be updated. The API Server will fail validation of all requests that attempt to mutate the Data field. ControllerRevisions may, however, be deleted. Note that, due to its use by both the DaemonSet and StatefulSet controllers for update and rollback, this object is beta. However, it may be subject to name and representation changes in future releases, and clients should not depend on its stability. It is primarily for internal use by controllers."""
 
     __RESOURCE_CONFIG__: ClassVar[ResourceConfig["ControllerRevision"]] = (
@@ -16,7 +16,7 @@ class ControllerRevision(ClusterScopedEntity):
             kind="ControllerRevision",
             group="apps",
             plural="controllerrevisions",
-            scope=Scope.CLUSTER,
+            scope=Scope.NAMESPACE,
         )
     )
     api_version: Literal["apps/v1"] = Field(

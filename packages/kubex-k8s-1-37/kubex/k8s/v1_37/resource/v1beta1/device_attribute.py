@@ -5,7 +5,7 @@ from pydantic import Field
 class DeviceAttribute(BaseK8sModel):
     """DeviceAttribute must have exactly one field set."""
 
-    bool: bool | None = Field(
+    bool_: bool | None = Field(
         default=None, alias="bool", description="BoolValue is a true/false value."
     )
     bools: list[bool] | None = Field(
@@ -13,7 +13,7 @@ class DeviceAttribute(BaseK8sModel):
         alias="bools",
         description="BoolValues is a non-empty list of true/false values.",
     )
-    int: int | None = Field(
+    int_: int | None = Field(
         default=None, alias="int", description="IntValue is a number."
     )
     ints: list[int] | None = Field(

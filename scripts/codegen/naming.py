@@ -34,6 +34,18 @@ _RESERVED_EXTRAS: frozenset[str] = frozenset(
         # Pydantic BaseModel has a deprecated `schema()` classmethod that
         # clashes with the K8s `$schema` / `schema` JSON properties.
         "schema",
+        # Builtin type names that, if used as field names, would shadow the
+        # builtin in type annotations of sibling fields (e.g. `bool` field
+        # shadows `bool` in `list[bool]`).
+        "bool",
+        "int",
+        "float",
+        "str",
+        "bytes",
+        "list",
+        "dict",
+        "set",
+        "tuple",
     }
 )
 

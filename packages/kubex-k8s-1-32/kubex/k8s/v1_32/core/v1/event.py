@@ -6,12 +6,12 @@ from typing import ClassVar, Literal
 from kubex.k8s.v1_32.core.v1.event_series import EventSeries
 from kubex.k8s.v1_32.core.v1.event_source import EventSource
 from kubex.k8s.v1_32.core.v1.object_reference import ObjectReference
-from kubex_core.models.interfaces import ClusterScopedEntity
+from kubex_core.models.interfaces import NamespaceScopedEntity
 from kubex_core.models.resource_config import ResourceConfig, Scope
 from pydantic import Field
 
 
-class Event(ClusterScopedEntity):
+class Event(NamespaceScopedEntity):
     """Event is a report of an event somewhere in the cluster. Events have a limited retention time and triggers and messages may evolve with time. Event consumers should not rely on the timing of an event with a given Reason reflecting a consistent underlying trigger, or the continued existence of events with that Reason. Events should be treated as informative, best-effort, supplemental data."""
 
     __RESOURCE_CONFIG__: ClassVar[ResourceConfig["Event"]] = ResourceConfig["Event"](
@@ -19,7 +19,7 @@ class Event(ClusterScopedEntity):
         kind="Event",
         group="core",
         plural="events",
-        scope=Scope.CLUSTER,
+        scope=Scope.NAMESPACE,
     )
     action: str | None = Field(
         default=None,

@@ -4,12 +4,12 @@ from typing import ClassVar, Literal
 
 from kubex.k8s.v1_33.discovery.v1.endpoint import Endpoint
 from kubex.k8s.v1_33.discovery.v1.endpoint_port import EndpointPort
-from kubex_core.models.interfaces import ClusterScopedEntity
+from kubex_core.models.interfaces import NamespaceScopedEntity
 from kubex_core.models.resource_config import ResourceConfig, Scope
 from pydantic import Field
 
 
-class EndpointSlice(ClusterScopedEntity):
+class EndpointSlice(NamespaceScopedEntity):
     """EndpointSlice represents a set of service endpoints. Most EndpointSlices are created by the EndpointSlice controller to represent the Pods selected by Service objects. For a given service there may be multiple EndpointSlice objects which must be joined to produce the full set of endpoints; you can find all of the slices for a given service by listing EndpointSlices in the service's namespace whose `kubernetes.io/service-name` label contains the service's name."""
 
     __RESOURCE_CONFIG__: ClassVar[ResourceConfig["EndpointSlice"]] = ResourceConfig[
@@ -19,7 +19,7 @@ class EndpointSlice(ClusterScopedEntity):
         kind="EndpointSlice",
         group="discovery.k8s.io",
         plural="endpointslices",
-        scope=Scope.CLUSTER,
+        scope=Scope.NAMESPACE,
     )
     address_type: str = Field(
         ...,

@@ -4,12 +4,12 @@ from typing import ClassVar, Literal
 
 from kubex.k8s.v1_33.networking.v1.ingress_spec import IngressSpec
 from kubex.k8s.v1_33.networking.v1.ingress_status import IngressStatus
-from kubex_core.models.interfaces import ClusterScopedEntity, HasStatusSubresource
+from kubex_core.models.interfaces import HasStatusSubresource, NamespaceScopedEntity
 from kubex_core.models.resource_config import ResourceConfig, Scope
 from pydantic import Field
 
 
-class Ingress(ClusterScopedEntity, HasStatusSubresource):
+class Ingress(NamespaceScopedEntity, HasStatusSubresource):
     """Ingress is a collection of rules that allow inbound connections to reach the endpoints defined by a backend. An Ingress can be configured to give services externally-reachable urls, load balance traffic, terminate SSL, offer name based virtual hosting etc."""
 
     __RESOURCE_CONFIG__: ClassVar[ResourceConfig["Ingress"]] = ResourceConfig[
@@ -19,7 +19,7 @@ class Ingress(ClusterScopedEntity, HasStatusSubresource):
         kind="Ingress",
         group="networking.k8s.io",
         plural="ingresses",
-        scope=Scope.CLUSTER,
+        scope=Scope.NAMESPACE,
     )
     api_version: Literal["networking.k8s.io/v1"] = Field(
         default="networking.k8s.io/v1",

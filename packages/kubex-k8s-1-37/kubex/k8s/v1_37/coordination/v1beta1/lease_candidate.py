@@ -3,12 +3,12 @@ from __future__ import annotations
 from typing import ClassVar, Literal
 
 from kubex.k8s.v1_37.coordination.v1beta1.lease_candidate_spec import LeaseCandidateSpec
-from kubex_core.models.interfaces import ClusterScopedEntity
+from kubex_core.models.interfaces import NamespaceScopedEntity
 from kubex_core.models.resource_config import ResourceConfig, Scope
 from pydantic import Field
 
 
-class LeaseCandidate(ClusterScopedEntity):
+class LeaseCandidate(NamespaceScopedEntity):
     """LeaseCandidate defines a candidate for a Lease object. Candidates are created such that coordinated leader election will pick the best leader from the list of candidates."""
 
     __RESOURCE_CONFIG__: ClassVar[ResourceConfig["LeaseCandidate"]] = ResourceConfig[
@@ -18,7 +18,7 @@ class LeaseCandidate(ClusterScopedEntity):
         kind="LeaseCandidate",
         group="coordination.k8s.io",
         plural="leasecandidates",
-        scope=Scope.CLUSTER,
+        scope=Scope.NAMESPACE,
     )
     api_version: Literal["coordination.k8s.io/v1beta1"] = Field(
         default="coordination.k8s.io/v1beta1",

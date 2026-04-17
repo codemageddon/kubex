@@ -41,6 +41,16 @@ def test_camel_to_snake(input_: str, expected: str) -> None:
         ("PersistentVolumeClaim", "persistent_volume_claim"),
         ("CSIDriver", "csi_driver"),
         ("AWSElasticBlockStoreVolumeSource", "aws_elastic_block_store_volume_source"),
+        # Builtin type names must be suffixed to avoid shadowing in annotations
+        ("bool", "bool_"),
+        ("int", "int_"),
+        ("float", "float_"),
+        ("str", "str_"),
+        ("bytes", "bytes_"),
+        ("list", "list_"),
+        ("dict", "dict_"),
+        ("set", "set_"),
+        ("tuple", "tuple_"),
     ],
 )
 def test_py_field_name(input_: str, expected: str) -> None:

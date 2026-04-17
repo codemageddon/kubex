@@ -82,14 +82,14 @@ packages/                       # Workspace packages
 │       ├── status.py           # Status response model
 │       ├── scale.py            # Scale subresource model
 │       └── partial_object_meta.py # Partial metadata variant
-└── kubex-k8s-1-32/             # Generated Kubernetes 1.32 resource models
-    └── kubex/k8s/v1_32/        # ~666 generated model files across ~30 API groups
+└── kubex-k8s-{1-32..1-37}/     # Generated Kubernetes resource models (one package per K8s version)
+    └── kubex/k8s/v1_NN/        # ~666 generated model files across ~30 API groups
         ├── core/v1/            # Pod, Namespace, Service, ConfigMap, Secret, etc.
         ├── apps/v1/            # Deployment, StatefulSet, DaemonSet, ReplicaSet
         ├── batch/v1/           # Job, CronJob
         ├── networking/v1/      # Ingress, NetworkPolicy
         ├── rbac/v1/            # Role, ClusterRole, RoleBinding, ClusterRoleBinding
-        └── ...                 # All other K8s 1.32 API groups
+        └── ...                 # All other API groups for that K8s version
 
 scripts/codegen/                # OpenAPI → Pydantic v2 code generator
 ├── __main__.py                 # Typer CLI: generate, verify commands
@@ -130,12 +130,12 @@ examples/                       # Usage examples
 - **Package manager**: [uv](https://github.com/astral-sh/uv) with workspace support
 - **Build backend**: hatchling
 - **Python**: 3.10, 3.11, 3.12, 3.13, 3.14
-- **Workspace members**: `packages/*` (kubex-core, kubex-k8s-1-32)
+- **Workspace members**: `packages/*` (kubex-core, kubex-k8s-1-32 through kubex-k8s-1-37)
 - **Core deps**: `pydantic>=2.0,<3`, `pyyaml>=6.0.2`, `kubex-core` (workspace)
 - **Optional deps** (install via `--all-extras` or individually):
   - `httpx>=0.27.2` — primary HTTP client
   - `aiohttp>=3.11.2` — alternative HTTP client
-- **Dev deps** include `kubex-k8s-1-32` (workspace), `jinja2`, `typer` (for codegen), testing/linting tools
+- **Dev deps** include `kubex-k8s-1-35` (workspace, used for tests), `jinja2`, `typer` (for codegen), testing/linting tools
 - **Version** is stored in `kubex/__version__.py` and referenced from `pyproject.toml` via hatch
 
 ## Code Quality Tools
@@ -152,7 +152,7 @@ examples/                       # Usage examples
 ### Generics for type safety
 The central `Api[ResourceType]` class is generic over the Kubernetes resource type. This enables type-safe CRUD operations:
 ```python
-from kubex.k8s.v1_32.core.v1 import Pod
+from kubex.k8s.v1_35.core.v1.pod import Pod
 
 api: Api[Pod] = Api(Pod, client=client)
 pod: Pod = await api.get("my-pod", namespace="default")
@@ -234,24 +234,26 @@ Two GitHub Actions workflows run on push and pull_request:
 Kubernetes resource models are generated from the official OpenAPI spec using a built-in code generator at `scripts/codegen/`. Generated packages live under `packages/` (e.g., `kubex-k8s-1-32`).
 
 ```bash
-# Generate models for a Kubernetes version (downloads swagger.json automatically)
-uv run python -m scripts.codegen generate --version 1.32
+# Generate models for a Kubernetes version (requires a local swagger.json)
+uv run python -m scripts.codegen generate --swagger <path-to-swagger.json> --k8s-version 1.35
 
 # Verify generated package passes mypy
-uv run python -m scripts.codegen verify packages/kubex-k8s-1-32
+uv run python -m scripts.codegen verify packages/kubex-k8s-1-35
 ```
 
 Generated models are fully typed with proper spec/status fields (not generic dicts), inherit from `kubex-core` base classes, and include marker interfaces (`HasStatusSubresource`, `HasLogs`, etc.) based on the resource's API capabilities. They are importable as:
 ```python
-from kubex.k8s.v1_32.core.v1 import Pod, Namespace
-from kubex.k8s.v1_32.apps.v1 import Deployment
+from kubex.k8s.v1_35.core.v1.pod import Pod
+from kubex.k8s.v1_35.core.v1.namespace import Namespace
+from kubex.k8s.v1_35.apps.v1.deployment import Deployment
 ```
 
 ### Adding support for a new Kubernetes version
 
-1. Run the codegen: `uv run python -m scripts.codegen generate --version <VERSION>`
-2. Add the new `kubex-k8s-<VERSION>` package to workspace sources in `pyproject.toml`
-3. Verify with `uv run python -m scripts.codegen verify packages/kubex-k8s-<VERSION>`
+1. Run the codegen: `uv run python -m scripts.codegen generate --swagger <path-to-swagger.json> --k8s-version <VERSION>`
+2. Add `kubex-k8s-<VERSION> = { workspace = true }` to `[tool.uv.sources]` in `pyproject.toml`
+3. Add `"k8s-<VERSION>" = ["kubex-k8s-<VERSION>"]` to `[project.optional-dependencies]` in `pyproject.toml`
+4. Verify with `uv run python -m scripts.codegen verify packages/kubex-k8s-<VERSION>`
 
 ## Known Quirks
 

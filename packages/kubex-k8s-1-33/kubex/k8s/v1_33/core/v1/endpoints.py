@@ -3,12 +3,12 @@ from __future__ import annotations
 from typing import ClassVar, Literal
 
 from kubex.k8s.v1_33.core.v1.endpoint_subset import EndpointSubset
-from kubex_core.models.interfaces import ClusterScopedEntity
+from kubex_core.models.interfaces import NamespaceScopedEntity
 from kubex_core.models.resource_config import ResourceConfig, Scope
 from pydantic import Field
 
 
-class Endpoints(ClusterScopedEntity):
+class Endpoints(NamespaceScopedEntity):
     """Endpoints is a collection of endpoints that implement the actual service. Example: Name: "mysvc", Subsets: [ { Addresses: [{"ip": "10.10.1.1"}, {"ip": "10.10.2.2"}], Ports: [{"name": "a", "port": 8675}, {"name": "b", "port": 309}] }, { Addresses: [{"ip": "10.10.3.3"}], Ports: [{"name": "a", "port": 93}, {"name": "b", "port": 76}] }, ] Endpoints is a legacy API and does not contain information about all Service features. Use discoveryv1.EndpointSlice for complete information about Service endpoints. Deprecated: This API is deprecated in v1.33+. Use discoveryv1.EndpointSlice."""
 
     __RESOURCE_CONFIG__: ClassVar[ResourceConfig["Endpoints"]] = ResourceConfig[
@@ -18,7 +18,7 @@ class Endpoints(ClusterScopedEntity):
         kind="Endpoints",
         group="core",
         plural="endpoints",
-        scope=Scope.CLUSTER,
+        scope=Scope.NAMESPACE,
     )
     api_version: Literal["v1"] = Field(
         default="v1",

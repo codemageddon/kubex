@@ -1,5 +1,5 @@
 from kubex.api import Api, create_api
-from kubex.k8s.v1_32.core.v1.namespace import Namespace
+from kubex.k8s.v1_35.core.v1.namespace import Namespace
 
 
 async def main() -> None:

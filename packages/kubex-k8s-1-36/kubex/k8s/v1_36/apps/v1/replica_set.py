@@ -4,12 +4,16 @@ from typing import ClassVar, Literal
 
 from kubex.k8s.v1_36.apps.v1.replica_set_spec import ReplicaSetSpec
 from kubex.k8s.v1_36.apps.v1.replica_set_status import ReplicaSetStatus
-from kubex_core.models.interfaces import HasStatusSubresource, NamespaceScopedEntity
+from kubex_core.models.interfaces import (
+    HasScaleSubresource,
+    HasStatusSubresource,
+    NamespaceScopedEntity,
+)
 from kubex_core.models.resource_config import ResourceConfig, Scope
 from pydantic import Field
 
 
-class ReplicaSet(NamespaceScopedEntity, HasStatusSubresource):
+class ReplicaSet(NamespaceScopedEntity, HasScaleSubresource, HasStatusSubresource):
     """ReplicaSet ensures that a specified number of pod replicas are running at any given time."""
 
     __RESOURCE_CONFIG__: ClassVar[ResourceConfig["ReplicaSet"]] = ResourceConfig[

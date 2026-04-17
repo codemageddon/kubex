@@ -8,12 +8,18 @@ from kubex.k8s.v1_35.core.v1.replication_controller_spec import (
 from kubex.k8s.v1_35.core.v1.replication_controller_status import (
     ReplicationControllerStatus,
 )
-from kubex_core.models.interfaces import HasStatusSubresource, NamespaceScopedEntity
+from kubex_core.models.interfaces import (
+    HasScaleSubresource,
+    HasStatusSubresource,
+    NamespaceScopedEntity,
+)
 from kubex_core.models.resource_config import ResourceConfig, Scope
 from pydantic import Field
 
 
-class ReplicationController(NamespaceScopedEntity, HasStatusSubresource):
+class ReplicationController(
+    NamespaceScopedEntity, HasScaleSubresource, HasStatusSubresource
+):
     """ReplicationController represents the configuration of a replication controller."""
 
     __RESOURCE_CONFIG__: ClassVar[ResourceConfig["ReplicationController"]] = (

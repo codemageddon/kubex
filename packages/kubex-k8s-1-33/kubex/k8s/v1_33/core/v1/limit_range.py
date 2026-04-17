@@ -3,12 +3,12 @@ from __future__ import annotations
 from typing import ClassVar, Literal
 
 from kubex.k8s.v1_33.core.v1.limit_range_spec import LimitRangeSpec
-from kubex_core.models.interfaces import ClusterScopedEntity
+from kubex_core.models.interfaces import NamespaceScopedEntity
 from kubex_core.models.resource_config import ResourceConfig, Scope
 from pydantic import Field
 
 
-class LimitRange(ClusterScopedEntity):
+class LimitRange(NamespaceScopedEntity):
     """LimitRange sets resource usage limits for each kind of resource in a Namespace."""
 
     __RESOURCE_CONFIG__: ClassVar[ResourceConfig["LimitRange"]] = ResourceConfig[
@@ -18,7 +18,7 @@ class LimitRange(ClusterScopedEntity):
         kind="LimitRange",
         group="core",
         plural="limitranges",
-        scope=Scope.CLUSTER,
+        scope=Scope.NAMESPACE,
     )
     api_version: Literal["v1"] = Field(
         default="v1",

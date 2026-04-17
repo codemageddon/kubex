@@ -4,12 +4,12 @@ from typing import ClassVar, Literal
 
 from kubex.k8s.v1_34.batch.v1.cron_job_spec import CronJobSpec
 from kubex.k8s.v1_34.batch.v1.cron_job_status import CronJobStatus
-from kubex_core.models.interfaces import ClusterScopedEntity, HasStatusSubresource
+from kubex_core.models.interfaces import HasStatusSubresource, NamespaceScopedEntity
 from kubex_core.models.resource_config import ResourceConfig, Scope
 from pydantic import Field
 
 
-class CronJob(ClusterScopedEntity, HasStatusSubresource):
+class CronJob(NamespaceScopedEntity, HasStatusSubresource):
     """CronJob represents the configuration of a single cron job."""
 
     __RESOURCE_CONFIG__: ClassVar[ResourceConfig["CronJob"]] = ResourceConfig[
@@ -19,7 +19,7 @@ class CronJob(ClusterScopedEntity, HasStatusSubresource):
         kind="CronJob",
         group="batch",
         plural="cronjobs",
-        scope=Scope.CLUSTER,
+        scope=Scope.NAMESPACE,
     )
     api_version: Literal["batch/v1"] = Field(
         default="batch/v1",

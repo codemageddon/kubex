@@ -4,12 +4,16 @@ from typing import ClassVar, Literal
 
 from kubex.k8s.v1_36.apps.v1.stateful_set_spec import StatefulSetSpec
 from kubex.k8s.v1_36.apps.v1.stateful_set_status import StatefulSetStatus
-from kubex_core.models.interfaces import HasStatusSubresource, NamespaceScopedEntity
+from kubex_core.models.interfaces import (
+    HasScaleSubresource,
+    HasStatusSubresource,
+    NamespaceScopedEntity,
+)
 from kubex_core.models.resource_config import ResourceConfig, Scope
 from pydantic import Field
 
 
-class StatefulSet(NamespaceScopedEntity, HasStatusSubresource):
+class StatefulSet(NamespaceScopedEntity, HasScaleSubresource, HasStatusSubresource):
     """StatefulSet represents a set of pods with consistent identities. Identities are defined as: - Network: A single stable DNS and hostname. - Storage: As many VolumeClaims as requested. The StatefulSet guarantees that a given network identity will always map to the same storage identity."""
 
     __RESOURCE_CONFIG__: ClassVar[ResourceConfig["StatefulSet"]] = ResourceConfig[

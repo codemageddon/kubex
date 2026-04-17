@@ -4,12 +4,12 @@ from typing import ClassVar, Literal
 
 from kubex.k8s.v1_35.apps.v1.daemon_set_spec import DaemonSetSpec
 from kubex.k8s.v1_35.apps.v1.daemon_set_status import DaemonSetStatus
-from kubex_core.models.interfaces import ClusterScopedEntity, HasStatusSubresource
+from kubex_core.models.interfaces import HasStatusSubresource, NamespaceScopedEntity
 from kubex_core.models.resource_config import ResourceConfig, Scope
 from pydantic import Field
 
 
-class DaemonSet(ClusterScopedEntity, HasStatusSubresource):
+class DaemonSet(NamespaceScopedEntity, HasStatusSubresource):
     """DaemonSet represents the configuration of a daemon set."""
 
     __RESOURCE_CONFIG__: ClassVar[ResourceConfig["DaemonSet"]] = ResourceConfig[
@@ -19,7 +19,7 @@ class DaemonSet(ClusterScopedEntity, HasStatusSubresource):
         kind="DaemonSet",
         group="apps",
         plural="daemonsets",
-        scope=Scope.CLUSTER,
+        scope=Scope.NAMESPACE,
     )
     api_version: Literal["apps/v1"] = Field(
         default="apps/v1",

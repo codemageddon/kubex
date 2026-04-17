@@ -5,6 +5,7 @@ from typing import ClassVar, Literal
 from kubex.k8s.v1_37.core.v1.pod_spec import PodSpec
 from kubex.k8s.v1_37.core.v1.pod_status import PodStatus
 from kubex_core.models.interfaces import (
+    Evictable,
     HasLogs,
     HasStatusSubresource,
     NamespaceScopedEntity,
@@ -13,7 +14,7 @@ from kubex_core.models.resource_config import ResourceConfig, Scope
 from pydantic import Field
 
 
-class Pod(NamespaceScopedEntity, HasLogs, HasStatusSubresource):
+class Pod(NamespaceScopedEntity, HasLogs, Evictable, HasStatusSubresource):
     """Pod is a collection of containers that can run on a host. This resource is created by clients and scheduled onto hosts."""
 
     __RESOURCE_CONFIG__: ClassVar[ResourceConfig["Pod"]] = ResourceConfig["Pod"](
