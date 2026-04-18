@@ -43,7 +43,7 @@ is pinned to `>=33.0.0,<34` — both sides target the same 1.33 wire schema.
 ## Install
 
 ```bash
-uv sync --group benchmark --python 3.13
+uv sync --group benchmark --python 3.14
 ```
 
 The `benchmark` dependency group adds:
