@@ -44,8 +44,11 @@ class K8sAsyncioAdapter:
             self._api_client = None
             self._core = None
 
-    async def list_pods(self, namespace: str) -> int:
-        result = await self._core.list_namespaced_pod(namespace=namespace)
+    async def list_pods(self, namespace: str, *, limit: int | None = None) -> int:
+        kwargs: dict[str, object] = {"namespace": namespace}
+        if limit is not None:
+            kwargs["limit"] = limit
+        result = await self._core.list_namespaced_pod(**kwargs)
         return len(result.items)
 
     async def get_pod(self, namespace: str, name: str) -> None:

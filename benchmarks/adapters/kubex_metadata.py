@@ -34,8 +34,8 @@ class KubexMetadataAdapter(KubexAdapterBase):
         assert isinstance(config, ClientConfiguration)
         return HttpxClient(config)
 
-    async def list_pods(self, namespace: str) -> int:
-        result = await self._pods().list_metadata(namespace=namespace)
+    async def list_pods(self, namespace: str, *, limit: int | None = None) -> int:
+        result = await self._pods().list_metadata(namespace=namespace, limit=limit)
         return len(result.items or [])
 
     async def get_pod(self, namespace: str, name: str) -> None:

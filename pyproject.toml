@@ -95,8 +95,8 @@ dev = [
     "typer>=0.24.1",
 ]
 benchmark = [
-    "kubex-k8s-1-33",
-    "kubernetes-asyncio>=33.0.0,<34",
+    "kubex-k8s-1-35",
+    "kubernetes-asyncio>=35.0.1,<36",
     "memray>=1.14",
     "pytest-memray>=1.7",
     "pytest-benchmark>=4.0",

@@ -110,7 +110,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--cpu-profile", action="store_true")
     p.add_argument("--warmup-iters", type=int, default=-1)
     p.add_argument("--measure-iters", type=int, default=-1)
-    p.add_argument("--k8s-version", default="1.33")
+    p.add_argument("--k8s-version", default="1.35")
     return p.parse_args(argv)
 
 

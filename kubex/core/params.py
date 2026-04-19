@@ -228,11 +228,12 @@ class DeleteOptions:
         if dry_run is not None:
             body["dryRun"] = dry_run.value
         if self.grace_period_seconds is not None:
-            body["gracePeriodSeconds"] = str(self.grace_period_seconds)
+            body["gracePeriodSeconds"] = self.grace_period_seconds
         if self.propagation_policy is not None:
             if isinstance(self.propagation_policy, PropagationPolicy):
                 body["propagationPolicy"] = self.propagation_policy.value
-            body["propagationPolicy"] = self.propagation_policy
+            else:
+                body["propagationPolicy"] = self.propagation_policy
         if self.preconditions is not None:
             if self.preconditions.resource_version is not None:
                 body["preconditions"] = {

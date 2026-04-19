@@ -21,9 +21,9 @@ No benchmark numbers are committed — run the suite yourself and read
 kubernetes-asyncio does not support trio (its aiohttp backend is
 asyncio-only), so trio rows exist only for the kubex-httpx combination.
 
-K8s server is pinned to **v1.33** via the K3s testcontainer image. kubex
-uses models from the `kubex-k8s-1-33` workspace package; kubernetes-asyncio
-is pinned to `>=33.0.0,<34` — both sides target the same 1.33 wire schema.
+K8s server is pinned to **v1.35** via the K3s testcontainer image. kubex
+uses models from the `kubex-k8s-1-35` workspace package; kubernetes-asyncio
+is pinned to `>=35.0.1,<36` — both sides target the same 1.35 wire schema.
 
 ## Scenarios
 
@@ -48,10 +48,10 @@ uv sync --group benchmark --python 3.14
 
 The `benchmark` dependency group adds:
 
-- `kubernetes-asyncio>=33,<34`
+- `kubernetes-asyncio>=35.0.1,<36`
 - `memray`, `pytest-memray`, `pyinstrument`
 - `pytest-benchmark`
-- `kubex-k8s-1-33` (explicitly, in addition to the dev-default `1-35`)
+- `kubex-k8s-1-35` (same as dev-default)
 - Both HTTP backends (`httpx`, `aiohttp`) and `trio`
 
 ## Run

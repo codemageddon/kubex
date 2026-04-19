@@ -12,8 +12,9 @@ from . import Scenario, ScenarioContext, ScenarioResult
 
 
 async def _list_pods(adapter: ClientAdapter, ctx: ScenarioContext) -> ScenarioResult:
+    limit = ctx.list_size if ctx.list_size > 0 else None
     t0 = time.perf_counter_ns()
-    count = await adapter.list_pods(ctx.namespace)
+    count = await adapter.list_pods(ctx.namespace, limit=limit)
     t1 = time.perf_counter_ns()
     return ScenarioResult(work_ns=t1 - t0, items=count)
 

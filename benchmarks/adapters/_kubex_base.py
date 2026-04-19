@@ -9,10 +9,10 @@ from kubex.api.api import Api, create_api
 from kubex.client.client import BaseClient
 from kubex.configuration.configuration import KubeConfig
 from kubex.configuration.file_config import configure_from_kubeconfig
-from kubex.k8s.v1_33.core.v1.container import Container
-from kubex.k8s.v1_33.core.v1.namespace import Namespace
-from kubex.k8s.v1_33.core.v1.pod import Pod
-from kubex.k8s.v1_33.core.v1.pod_spec import PodSpec
+from kubex.k8s.v1_35.core.v1.container import Container
+from kubex.k8s.v1_35.core.v1.namespace import Namespace
+from kubex.k8s.v1_35.core.v1.pod import Pod
+from kubex.k8s.v1_35.core.v1.pod_spec import PodSpec
 from kubex_core.models.metadata import ObjectMetadata
 
 from .protocol import (
@@ -75,8 +75,8 @@ class KubexAdapterBase:
         assert self._namespace_api is not None, "setup() not called"
         return self._namespace_api
 
-    async def list_pods(self, namespace: str) -> int:
-        result = await self._pods().list(namespace=namespace)
+    async def list_pods(self, namespace: str, *, limit: int | None = None) -> int:
+        result = await self._pods().list(namespace=namespace, limit=limit)
         return len(result.items or [])
 
     async def get_pod(self, namespace: str, name: str) -> None:

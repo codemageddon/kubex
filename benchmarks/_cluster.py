@@ -21,15 +21,15 @@ from kubex.api.api import Api, create_api
 from kubex.client.httpx import HttpxClient
 from kubex.configuration.configuration import KubeConfig
 from kubex.configuration.file_config import configure_from_kubeconfig
-from kubex.k8s.v1_33.core.v1.container import Container
-from kubex.k8s.v1_33.core.v1.namespace import Namespace
-from kubex.k8s.v1_33.core.v1.pod import Pod
-from kubex.k8s.v1_33.core.v1.pod_spec import PodSpec
+from kubex.k8s.v1_35.core.v1.container import Container
+from kubex.k8s.v1_35.core.v1.namespace import Namespace
+from kubex.k8s.v1_35.core.v1.pod import Pod
+from kubex.k8s.v1_35.core.v1.pod_spec import PodSpec
 from kubex_core.models.metadata import ObjectMetadata
 
-# K3s image pinned to 1.33 so the wire server matches the kubernetes-asyncio
-# 33.x client schema and the kubex-k8s-1-33 model package.
-DEFAULT_K3S_IMAGE = "rancher/k3s:v1.33.4-k3s1"
+# K3s image pinned to 1.35 so the wire server matches the kubernetes-asyncio
+# 35.x client schema and the kubex-k8s-1-35 model package.
+DEFAULT_K3S_IMAGE = "rancher/k3s:v1.35.3-k3s1"
 
 # Pause image — minimal container used for seeded pods. We do not wait for
 # Running state; list/get endpoints serve the created object regardless of

@@ -9,8 +9,8 @@ from .metrics import Metrics, loads
 _HEADER_NOTE = """\
 # Kubex vs kubernetes-asyncio — Benchmark Report
 
-Both libraries run against the same K3s testcontainer (K8s 1.33). kubex uses
-the `kubex-k8s-1-33` model package; `kubernetes-asyncio 33.x` targets the same
+Both libraries run against the same K3s testcontainer (K8s 1.35). kubex uses
+the `kubex-k8s-1-35` model package; `kubernetes-asyncio 35.x` targets the same
 server schema — any schema-size differences on the wire are minimised.
 
 Columns:
