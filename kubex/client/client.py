@@ -88,10 +88,10 @@ async def create_client(
             return AioHttpClient(configuration)
         case ClientChoise.AUTO:
             try:
-                return await create_client(configuration, ClientChoise.HTTPX)
+                return await create_client(configuration, ClientChoise.AIOHTTP)
             except ImportError:
                 try:
-                    return await create_client(configuration, ClientChoise.AIOHTTP)
+                    return await create_client(configuration, ClientChoise.HTTPX)
                 except ImportError:
                     raise ImportError(
                         "You need to install either httpx or aiohttp to use the client"
