@@ -2,15 +2,13 @@
 
 Kubex is a Kubernetes client library for Python inspired by kube.rs. It is built on top of [Pydantic](https://github.com/pydantic/pydantic) and is async-runtime agnostic.
 
-> *ATTENTION:* Kubex is currently under active development, and backward compatibility may be broken in future releases.
-
 # Why Kubex?
 
 ### Performance
 
 Kubex is dramatically faster than [kubernetes-asyncio](https://github.com/tomplus/kubernetes_asyncio), the most popular async Kubernetes client for Python. Benchmarks against a K3s 1.35 cluster (see `benchmarks/`):
 
-| Scenario | k8s-asyncio | kubex (aiohttp) | kubex (httpx) | Speedup |
+| Scenario | kubernetes-asyncio | kubex (aiohttp) | kubex (httpx) | Speedup |
 |---|---|---|---|---|
 | Single GET | 60 ms | 6 ms | 28 ms | **10x** |
 | List 100 pods | 2,783 ms | 74 ms | 102 ms | **37x** |

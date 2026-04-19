@@ -130,3 +130,6 @@ only-include = ["kubex"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["kubex"]
+
+[tool.pytest.ini_options]
+addopts = "--ignore=benchmarks"
