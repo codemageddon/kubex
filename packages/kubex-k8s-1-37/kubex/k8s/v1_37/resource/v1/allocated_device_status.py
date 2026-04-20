@@ -1,9 +1,10 @@
 from typing import Any
 
+from pydantic import Field
+
 from kubex.k8s.v1_37.meta.v1.condition import Condition
 from kubex.k8s.v1_37.resource.v1.network_device_data import NetworkDeviceData
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class AllocatedDeviceStatus(BaseK8sModel):

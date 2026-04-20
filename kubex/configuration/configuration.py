@@ -258,11 +258,14 @@ class ClientConfiguration:
         if self._token is not None:
             return self._token
 
+        if self.token_file is None:
+            return None
+
         if (
             self._current_token is None
             or self._last_token_read is None
-            or time() - self._last_token_read < TOKEN_REFRESH_INTERVAL
+            or time() - self._last_token_read > TOKEN_REFRESH_INTERVAL
         ):
-            self._current_token = self.token_file.read_text().strip()  # type: ignore[union-attr]
+            self._current_token = self.token_file.read_text().strip()
             self._last_token_read = time()
         return self._current_token

@@ -1,8 +1,9 @@
+from pydantic import Field
+
 from kubex.k8s.v1_34.apps.v1.daemon_set_update_strategy import DaemonSetUpdateStrategy
 from kubex.k8s.v1_34.core.v1.pod_template_spec import PodTemplateSpec
 from kubex.k8s.v1_34.meta.v1.label_selector import LabelSelector
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class DaemonSetSpec(BaseK8sModel):

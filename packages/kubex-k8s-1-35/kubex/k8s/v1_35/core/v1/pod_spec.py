@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from kubex.k8s.v1_35.core.v1.affinity import Affinity
 from kubex.k8s.v1_35.core.v1.container import Container
 from kubex.k8s.v1_35.core.v1.ephemeral_container import EphemeralContainer
@@ -15,7 +17,6 @@ from kubex.k8s.v1_35.core.v1.topology_spread_constraint import TopologySpreadCon
 from kubex.k8s.v1_35.core.v1.volume import Volume
 from kubex.k8s.v1_35.core.v1.workload_reference import WorkloadReference
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class PodSpec(BaseK8sModel):

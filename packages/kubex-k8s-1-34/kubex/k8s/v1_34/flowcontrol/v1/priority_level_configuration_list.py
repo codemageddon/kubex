@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from typing import Literal
 
+from pydantic import Field
+
 from kubex.k8s.v1_34.flowcontrol.v1.priority_level_configuration import (
     PriorityLevelConfiguration,
 )
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.metadata import ListMetadata
-from pydantic import Field
 
 
 class PriorityLevelConfigurationList(ListEntity[PriorityLevelConfiguration]):

@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from kubex.k8s.v1_34.core.v1.app_armor_profile import AppArmorProfile
 from kubex.k8s.v1_34.core.v1.se_linux_options import SELinuxOptions
 from kubex.k8s.v1_34.core.v1.seccomp_profile import SeccompProfile
@@ -6,7 +8,6 @@ from kubex.k8s.v1_34.core.v1.windows_security_context_options import (
     WindowsSecurityContextOptions,
 )
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class PodSecurityContext(BaseK8sModel):

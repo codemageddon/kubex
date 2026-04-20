@@ -1,8 +1,9 @@
+from pydantic import Field
+
 from kubex.k8s.v1_32.resource.v1alpha3.opaque_device_configuration import (
     OpaqueDeviceConfiguration,
 )
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class DeviceClassConfiguration(BaseK8sModel):

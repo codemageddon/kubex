@@ -1,9 +1,10 @@
+from pydantic import Field
+
 from kubex.k8s.v1_37.scheduling.v1alpha2.pod_group_template import PodGroupTemplate
 from kubex.k8s.v1_37.scheduling.v1alpha2.typed_local_object_reference import (
     TypedLocalObjectReference,
 )
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class WorkloadSpec(BaseK8sModel):

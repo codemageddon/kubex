@@ -73,6 +73,7 @@ class LogsMixin(ApiProtocol[ResourceType]):
     async def stream_logs(
         self,
         name: str,
+        *,
         namespace: ApiNamespaceTypes = Ellipsis,
         container: str | None = None,
         limit_bytes: int | None = None,
@@ -81,7 +82,6 @@ class LogsMixin(ApiProtocol[ResourceType]):
         since_seconds: int | None = None,
         tail_lines: int | None = None,
         timestamps: bool | None = None,
-        options: LogOptions | None = None,
     ) -> AsyncGenerator[str, None]:
         self._check_implemented()
         _namespace = self._ensure_required_namespace(namespace)

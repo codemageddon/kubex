@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_32.resource.v1alpha3.device_attribute import DeviceAttribute
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class BasicDevice(BaseK8sModel):

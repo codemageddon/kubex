@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_37.scheduling.v1alpha2.topology_constraint import TopologyConstraint
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class PodGroupSchedulingConstraints(BaseK8sModel):

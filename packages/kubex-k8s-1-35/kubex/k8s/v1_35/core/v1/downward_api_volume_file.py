@@ -1,7 +1,8 @@
+from pydantic import Field
+
 from kubex.k8s.v1_35.core.v1.object_field_selector import ObjectFieldSelector
 from kubex.k8s.v1_35.core.v1.resource_field_selector import ResourceFieldSelector
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class DownwardAPIVolumeFile(BaseK8sModel):

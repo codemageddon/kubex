@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_36.core.v1.node_swap_status import NodeSwapStatus
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class NodeSystemInfo(BaseK8sModel):

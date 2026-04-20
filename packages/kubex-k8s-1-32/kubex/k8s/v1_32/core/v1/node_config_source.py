@@ -1,8 +1,9 @@
+from pydantic import Field
+
 from kubex.k8s.v1_32.core.v1.config_map_node_config_source import (
     ConfigMapNodeConfigSource,
 )
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class NodeConfigSource(BaseK8sModel):

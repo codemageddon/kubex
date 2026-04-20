@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_34.core.v1.pod_affinity_term import PodAffinityTerm
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class WeightedPodAffinityTerm(BaseK8sModel):

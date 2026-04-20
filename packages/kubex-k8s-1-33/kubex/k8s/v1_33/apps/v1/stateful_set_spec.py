@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from kubex.k8s.v1_33.apps.v1.stateful_set_ordinals import StatefulSetOrdinals
 from kubex.k8s.v1_33.apps.v1.stateful_set_persistent_volume_claim_retention_policy import (
     StatefulSetPersistentVolumeClaimRetentionPolicy,
@@ -9,7 +11,6 @@ from kubex.k8s.v1_33.core.v1.persistent_volume_claim import PersistentVolumeClai
 from kubex.k8s.v1_33.core.v1.pod_template_spec import PodTemplateSpec
 from kubex.k8s.v1_33.meta.v1.label_selector import LabelSelector
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class StatefulSetSpec(BaseK8sModel):

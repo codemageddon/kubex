@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from typing import ClassVar, Literal
 
+from pydantic import Field
+
 from kubex.k8s.v1_35.networking.v1beta1.service_cidr_spec import ServiceCIDRSpec
 from kubex.k8s.v1_35.networking.v1beta1.service_cidr_status import ServiceCIDRStatus
 from kubex_core.models.interfaces import ClusterScopedEntity, HasStatusSubresource
 from kubex_core.models.resource_config import ResourceConfig, Scope
-from pydantic import Field
 
 
 class ServiceCIDR(ClusterScopedEntity, HasStatusSubresource):

@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from kubex.k8s.v1_32.flowcontrol.v1.exempt_priority_level_configuration import (
     ExemptPriorityLevelConfiguration,
 )
@@ -5,7 +7,6 @@ from kubex.k8s.v1_32.flowcontrol.v1.limited_priority_level_configuration import 
     LimitedPriorityLevelConfiguration,
 )
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class PriorityLevelConfigurationSpec(BaseK8sModel):

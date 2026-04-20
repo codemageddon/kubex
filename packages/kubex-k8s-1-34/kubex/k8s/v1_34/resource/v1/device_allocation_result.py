@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from kubex.k8s.v1_34.resource.v1.device_allocation_configuration import (
     DeviceAllocationConfiguration,
 )
@@ -5,7 +7,6 @@ from kubex.k8s.v1_34.resource.v1.device_request_allocation_result import (
     DeviceRequestAllocationResult,
 )
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class DeviceAllocationResult(BaseK8sModel):

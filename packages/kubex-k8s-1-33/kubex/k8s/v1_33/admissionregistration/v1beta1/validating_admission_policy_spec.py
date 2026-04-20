@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from kubex.k8s.v1_33.admissionregistration.v1beta1.audit_annotation import (
     AuditAnnotation,
 )
@@ -7,7 +9,6 @@ from kubex.k8s.v1_33.admissionregistration.v1beta1.param_kind import ParamKind
 from kubex.k8s.v1_33.admissionregistration.v1beta1.validation import Validation
 from kubex.k8s.v1_33.admissionregistration.v1beta1.variable import Variable
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class ValidatingAdmissionPolicySpec(BaseK8sModel):

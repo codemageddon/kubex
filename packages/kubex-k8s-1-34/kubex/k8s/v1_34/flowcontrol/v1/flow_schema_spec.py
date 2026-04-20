@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from kubex.k8s.v1_34.flowcontrol.v1.flow_distinguisher_method import (
     FlowDistinguisherMethod,
 )
@@ -8,7 +10,6 @@ from kubex.k8s.v1_34.flowcontrol.v1.priority_level_configuration_reference impor
     PriorityLevelConfigurationReference,
 )
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class FlowSchemaSpec(BaseK8sModel):

@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from kubex.k8s.v1_32.meta.v1.label_selector import LabelSelector
 from kubex.k8s.v1_32.networking.v1.network_policy_egress_rule import (
     NetworkPolicyEgressRule,
@@ -6,7 +8,6 @@ from kubex.k8s.v1_32.networking.v1.network_policy_ingress_rule import (
     NetworkPolicyIngressRule,
 )
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class NetworkPolicySpec(BaseK8sModel):

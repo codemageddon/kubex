@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from typing import ClassVar, Literal
 
+from pydantic import Field
+
 from kubex.k8s.v1_35.apiregistration.v1.api_service_spec import APIServiceSpec
 from kubex.k8s.v1_35.apiregistration.v1.api_service_status import APIServiceStatus
 from kubex_core.models.interfaces import ClusterScopedEntity, HasStatusSubresource
 from kubex_core.models.resource_config import ResourceConfig, Scope
-from pydantic import Field
 
 
 class APIService(ClusterScopedEntity, HasStatusSubresource):

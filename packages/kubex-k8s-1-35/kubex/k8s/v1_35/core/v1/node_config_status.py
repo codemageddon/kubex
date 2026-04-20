@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_35.core.v1.node_config_source import NodeConfigSource
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class NodeConfigStatus(BaseK8sModel):

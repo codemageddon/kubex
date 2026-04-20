@@ -1,7 +1,8 @@
+from pydantic import Field
+
 from kubex.k8s.v1_36.core.v1.config_map_env_source import ConfigMapEnvSource
 from kubex.k8s.v1_36.core.v1.secret_env_source import SecretEnvSource
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class EnvFromSource(BaseK8sModel):

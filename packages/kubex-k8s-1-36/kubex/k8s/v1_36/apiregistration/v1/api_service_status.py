@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_36.apiregistration.v1.api_service_condition import APIServiceCondition
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class APIServiceStatus(BaseK8sModel):

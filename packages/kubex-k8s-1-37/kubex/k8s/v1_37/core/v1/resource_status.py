@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_37.core.v1.resource_health import ResourceHealth
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class ResourceStatus(BaseK8sModel):

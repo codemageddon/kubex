@@ -1,7 +1,8 @@
+from pydantic import Field
+
 from kubex.k8s.v1_33.autoscaling.v2.metric_identifier import MetricIdentifier
 from kubex.k8s.v1_33.autoscaling.v2.metric_target import MetricTarget
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class ExternalMetricSource(BaseK8sModel):

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import ssl
 import warnings
-from http import HTTPStatus
 from typing import AsyncGenerator
 
 import httpx
@@ -64,9 +63,9 @@ class HttpxClient(BaseClient):
             content=request.body,
             headers=headers,
         )
-        http_status = HTTPStatus(_response.status_code)
+        status = _response.status_code
         response = Response(
-            status_code=http_status,
+            status_code=status,
             headers=HeadersWrapper(_response.headers),
             content=_response.content,
         )
@@ -75,7 +74,7 @@ class HttpxClient(BaseClient):
         ):
             for warning in api_warnings.split(","):
                 warnings.warn(f"API Warning: {warning}")
-        if http_status.is_client_error or http_status.is_server_error:
+        if 400 <= status < 600:
             handle_request_error(response)
         return response
 
@@ -90,10 +89,10 @@ class HttpxClient(BaseClient):
             content=request.body,
             headers=headers,
         ) as _response:
-            http_status = HTTPStatus(_response.status_code)
-            if http_status.is_client_error or http_status.is_server_error:
+            status = _response.status_code
+            if 400 <= status < 600:
                 response = Response(
-                    status_code=_response.status_code,
+                    status_code=status,
                     headers=HeadersWrapper(_response.headers),
                     content=await _response.aread(),
                 )

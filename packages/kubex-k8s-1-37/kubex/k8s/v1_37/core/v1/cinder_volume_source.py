@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_37.core.v1.local_object_reference import LocalObjectReference
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class CinderVolumeSource(BaseK8sModel):

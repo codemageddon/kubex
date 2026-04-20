@@ -1,8 +1,9 @@
+from pydantic import Field
+
 from kubex.k8s.v1_33.storagemigration.v1alpha1.group_version_resource import (
     GroupVersionResource,
 )
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class StorageVersionMigrationSpec(BaseK8sModel):

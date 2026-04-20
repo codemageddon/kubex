@@ -1,7 +1,8 @@
+from pydantic import Field
+
 from kubex.k8s.v1_37.resource.v1.resource_claim_spec import ResourceClaimSpec
 from kubex_core.models.base import BaseK8sModel
 from kubex_core.models.metadata import ObjectMetadata
-from pydantic import Field
 
 
 class ResourceClaimTemplateSpec(BaseK8sModel):

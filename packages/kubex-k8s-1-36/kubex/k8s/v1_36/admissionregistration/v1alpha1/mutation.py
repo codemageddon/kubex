@@ -1,9 +1,10 @@
+from pydantic import Field
+
 from kubex.k8s.v1_36.admissionregistration.v1alpha1.apply_configuration import (
     ApplyConfiguration,
 )
 from kubex.k8s.v1_36.admissionregistration.v1alpha1.json_patch import JSONPatch
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class Mutation(BaseK8sModel):

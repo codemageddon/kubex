@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_35.core.v1.resource_claim import ResourceClaim
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class ResourceRequirements(BaseK8sModel):

@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from typing import Literal
 
+from pydantic import Field
+
 from kubex.k8s.v1_32.core.v1.persistent_volume_claim import PersistentVolumeClaim
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.metadata import ListMetadata
-from pydantic import Field
 
 
 class PersistentVolumeClaimList(ListEntity[PersistentVolumeClaim]):

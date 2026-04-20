@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_35.autoscaling.v2.hpa_scaling_policy import HPAScalingPolicy
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class HPAScalingRules(BaseK8sModel):

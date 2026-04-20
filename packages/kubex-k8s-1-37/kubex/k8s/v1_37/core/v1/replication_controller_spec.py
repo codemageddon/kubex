@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_37.core.v1.pod_template_spec import PodTemplateSpec
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class ReplicationControllerSpec(BaseK8sModel):

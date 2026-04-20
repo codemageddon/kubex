@@ -1,8 +1,9 @@
+from pydantic import Field
+
 from kubex.k8s.v1_37.networking.v1.ingress_backend import IngressBackend
 from kubex.k8s.v1_37.networking.v1.ingress_rule import IngressRule
 from kubex.k8s.v1_37.networking.v1.ingress_tls import IngressTLS
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class IngressSpec(BaseK8sModel):

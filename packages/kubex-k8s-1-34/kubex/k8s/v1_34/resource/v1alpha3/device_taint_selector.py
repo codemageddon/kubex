@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_34.resource.v1alpha3.device_selector import DeviceSelector
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class DeviceTaintSelector(BaseK8sModel):

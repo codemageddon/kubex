@@ -4,7 +4,10 @@ import logging
 from abc import ABC, abstractmethod
 from enum import Enum
 from http import HTTPStatus
-from typing import Any, AsyncGenerator, NoReturn, Self
+from typing import TYPE_CHECKING, Any, AsyncGenerator, NoReturn
+
+if TYPE_CHECKING:
+    from typing_extensions import Self
 
 from pydantic import ValidationError
 
@@ -100,15 +103,13 @@ async def create_client(
 
 def handle_request_error(response: Response) -> NoReturn:
     status_code = response.status_code
-    content: Status | str
+    content: Status | str = response.text
     if content_types := response.headers.get_all(CONTENT_TYPE_HEADER):
         if APPLICATION_JSON_MIME_TYPE in content_types:
             try:
                 content = Status.model_validate_json(response.content)
             except ValidationError:
                 content = response.text
-        else:
-            content = response.text
     match status_code:
         case HTTPStatus.BAD_REQUEST:
             raise exceptions.BadRequest(content=content)
@@ -127,5 +128,8 @@ def handle_request_error(response: Response) -> NoReturn:
         case HTTPStatus.UNPROCESSABLE_ENTITY:
             raise exceptions.UnprocessableEntity(content=content)
         case status:
-            raise exceptions.KubexApiError(content=content, status=HTTPStatus(status))
-    raise exceptions.KubernetesError(content=content)
+            try:
+                http_status = HTTPStatus(status)
+            except ValueError:
+                http_status = HTTPStatus.INTERNAL_SERVER_ERROR
+            raise exceptions.KubexApiError(content=content, status=http_status)

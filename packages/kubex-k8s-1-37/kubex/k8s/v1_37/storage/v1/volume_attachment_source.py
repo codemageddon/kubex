@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_37.core.v1.persistent_volume_spec import PersistentVolumeSpec
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class VolumeAttachmentSource(BaseK8sModel):

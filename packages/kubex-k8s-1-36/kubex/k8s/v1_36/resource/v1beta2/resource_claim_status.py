@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from kubex.k8s.v1_36.resource.v1beta2.allocated_device_status import (
     AllocatedDeviceStatus,
 )
@@ -6,7 +8,6 @@ from kubex.k8s.v1_36.resource.v1beta2.resource_claim_consumer_reference import (
     ResourceClaimConsumerReference,
 )
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class ResourceClaimStatus(BaseK8sModel):

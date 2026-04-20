@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from typing import Literal
 
+from pydantic import Field
+
 from kubex.k8s.v1_37.resource.v1alpha3.resource_pool_status_request import (
     ResourcePoolStatusRequest,
 )
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.metadata import ListMetadata
-from pydantic import Field
 
 
 class ResourcePoolStatusRequestList(ListEntity[ResourcePoolStatusRequest]):

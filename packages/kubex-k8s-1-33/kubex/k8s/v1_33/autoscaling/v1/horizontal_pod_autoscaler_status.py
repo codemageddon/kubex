@@ -1,7 +1,8 @@
 import datetime
 
-from kubex_core.models.base import BaseK8sModel
 from pydantic import Field
+
+from kubex_core.models.base import BaseK8sModel
 
 
 class HorizontalPodAutoscalerStatus(BaseK8sModel):

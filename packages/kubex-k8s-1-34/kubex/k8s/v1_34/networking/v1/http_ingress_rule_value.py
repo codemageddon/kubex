@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_34.networking.v1.http_ingress_path import HTTPIngressPath
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class HTTPIngressRuleValue(BaseK8sModel):

@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from kubex.k8s.v1_36.apiextensions_k8s_io.v1.custom_resource_subresource_scale import (
     CustomResourceSubresourceScale,
 )
@@ -5,7 +7,6 @@ from kubex.k8s.v1_36.apiextensions_k8s_io.v1.custom_resource_subresource_status 
     CustomResourceSubresourceStatus,
 )
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class CustomResourceSubresources(BaseK8sModel):

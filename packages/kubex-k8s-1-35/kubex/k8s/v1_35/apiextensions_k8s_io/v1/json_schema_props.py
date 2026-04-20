@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pydantic import Field
+
 from kubex.k8s.v1_35.apiextensions_k8s_io.v1.external_documentation import (
     ExternalDocumentation,
 )
@@ -15,7 +17,6 @@ from kubex.k8s.v1_35.apiextensions_k8s_io.v1.json_schema_props_or_string_array i
 )
 from kubex.k8s.v1_35.apiextensions_k8s_io.v1.validation_rule import ValidationRule
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class JSONSchemaProps(BaseK8sModel):

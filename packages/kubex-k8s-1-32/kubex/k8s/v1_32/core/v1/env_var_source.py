@@ -1,9 +1,10 @@
+from pydantic import Field
+
 from kubex.k8s.v1_32.core.v1.config_map_key_selector import ConfigMapKeySelector
 from kubex.k8s.v1_32.core.v1.object_field_selector import ObjectFieldSelector
 from kubex.k8s.v1_32.core.v1.resource_field_selector import ResourceFieldSelector
 from kubex.k8s.v1_32.core.v1.secret_key_selector import SecretKeySelector
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class EnvVarSource(BaseK8sModel):

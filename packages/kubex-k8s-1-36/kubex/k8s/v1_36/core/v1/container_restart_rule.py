@@ -1,8 +1,9 @@
+from pydantic import Field
+
 from kubex.k8s.v1_36.core.v1.container_restart_rule_on_exit_codes import (
     ContainerRestartRuleOnExitCodes,
 )
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class ContainerRestartRule(BaseK8sModel):

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import ClassVar, Literal
 
+from pydantic import Field
+
 from kubex.k8s.v1_36.certificates.v1.certificate_signing_request_spec import (
     CertificateSigningRequestSpec,
 )
@@ -10,7 +12,6 @@ from kubex.k8s.v1_36.certificates.v1.certificate_signing_request_status import (
 )
 from kubex_core.models.interfaces import ClusterScopedEntity, HasStatusSubresource
 from kubex_core.models.resource_config import ResourceConfig, Scope
-from pydantic import Field
 
 
 class CertificateSigningRequest(ClusterScopedEntity, HasStatusSubresource):

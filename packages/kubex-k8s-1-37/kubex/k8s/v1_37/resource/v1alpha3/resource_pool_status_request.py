@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import ClassVar, Literal
 
+from pydantic import Field
+
 from kubex.k8s.v1_37.resource.v1alpha3.resource_pool_status_request_spec import (
     ResourcePoolStatusRequestSpec,
 )
@@ -10,7 +12,6 @@ from kubex.k8s.v1_37.resource.v1alpha3.resource_pool_status_request_status impor
 )
 from kubex_core.models.interfaces import ClusterScopedEntity, HasStatusSubresource
 from kubex_core.models.resource_config import ResourceConfig, Scope
-from pydantic import Field
 
 
 class ResourcePoolStatusRequest(ClusterScopedEntity, HasStatusSubresource):

@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from kubex.k8s.v1_32.apiextensions_k8s_io.v1.custom_resource_column_definition import (
     CustomResourceColumnDefinition,
 )
@@ -9,7 +11,6 @@ from kubex.k8s.v1_32.apiextensions_k8s_io.v1.custom_resource_validation import (
 )
 from kubex.k8s.v1_32.apiextensions_k8s_io.v1.selectable_field import SelectableField
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class CustomResourceDefinitionVersion(BaseK8sModel):

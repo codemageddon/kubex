@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_34.core.v1.toleration import Toleration
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class Scheduling(BaseK8sModel):

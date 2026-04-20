@@ -64,7 +64,6 @@ class ScaleMixin(ApiProtocol[ResourceType]):
         patch: Patch,
         *,
         namespace: ApiNamespaceTypes = Ellipsis,
-        options: PatchOptions | None = None,
         dry_run: DryRunTypes = None,
         field_manager: str | None = None,
         force: bool | None = None,

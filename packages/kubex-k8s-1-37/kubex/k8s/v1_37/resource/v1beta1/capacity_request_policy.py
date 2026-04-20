@@ -1,8 +1,9 @@
+from pydantic import Field
+
 from kubex.k8s.v1_37.resource.v1beta1.capacity_request_policy_range import (
     CapacityRequestPolicyRange,
 )
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class CapacityRequestPolicy(BaseK8sModel):

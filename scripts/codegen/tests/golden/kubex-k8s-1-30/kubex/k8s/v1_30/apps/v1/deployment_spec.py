@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_30._common import IntOrString
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class DeploymentSpec(BaseK8sModel):

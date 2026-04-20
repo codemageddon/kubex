@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import ClassVar, Literal
 
+from pydantic import Field
+
 from kubex.k8s.v1_33.flowcontrol.v1.priority_level_configuration_spec import (
     PriorityLevelConfigurationSpec,
 )
@@ -10,7 +12,6 @@ from kubex.k8s.v1_33.flowcontrol.v1.priority_level_configuration_status import (
 )
 from kubex_core.models.interfaces import ClusterScopedEntity, HasStatusSubresource
 from kubex_core.models.resource_config import ResourceConfig, Scope
-from pydantic import Field
 
 
 class PriorityLevelConfiguration(ClusterScopedEntity, HasStatusSubresource):

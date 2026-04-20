@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_33.core.v1.local_object_reference import LocalObjectReference
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class CSIVolumeSource(BaseK8sModel):

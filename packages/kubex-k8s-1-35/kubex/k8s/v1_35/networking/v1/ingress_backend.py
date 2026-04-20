@@ -1,9 +1,10 @@
+from pydantic import Field
+
 from kubex.k8s.v1_35.core.v1.typed_local_object_reference import (
     TypedLocalObjectReference,
 )
 from kubex.k8s.v1_35.networking.v1.ingress_service_backend import IngressServiceBackend
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class IngressBackend(BaseK8sModel):

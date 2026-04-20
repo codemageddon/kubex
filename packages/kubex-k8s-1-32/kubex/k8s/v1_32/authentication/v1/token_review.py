@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from typing import ClassVar, Literal
 
+from pydantic import Field
+
 from kubex.k8s.v1_32.authentication.v1.token_review_spec import TokenReviewSpec
 from kubex.k8s.v1_32.authentication.v1.token_review_status import TokenReviewStatus
 from kubex_core.models.interfaces import ClusterScopedEntity
 from kubex_core.models.resource_config import ResourceConfig, Scope
-from pydantic import Field
 
 
 class TokenReview(ClusterScopedEntity):

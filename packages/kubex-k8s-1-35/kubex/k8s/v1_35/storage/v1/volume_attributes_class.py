@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from typing import ClassVar, Literal
 
+from pydantic import Field
+
 from kubex_core.models.interfaces import ClusterScopedEntity
 from kubex_core.models.resource_config import ResourceConfig, Scope
-from pydantic import Field
 
 
 class VolumeAttributesClass(ClusterScopedEntity):

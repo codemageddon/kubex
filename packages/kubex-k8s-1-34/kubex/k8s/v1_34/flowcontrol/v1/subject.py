@@ -1,8 +1,9 @@
+from pydantic import Field
+
 from kubex.k8s.v1_34.flowcontrol.v1.group_subject import GroupSubject
 from kubex.k8s.v1_34.flowcontrol.v1.service_account_subject import ServiceAccountSubject
 from kubex.k8s.v1_34.flowcontrol.v1.user_subject import UserSubject
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class Subject(BaseK8sModel):

@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from kubex.k8s.v1_35.core.v1.node_selector import NodeSelector
 from kubex.k8s.v1_35.resource.v1.device_attribute import DeviceAttribute
 from kubex.k8s.v1_35.resource.v1.device_capacity import DeviceCapacity
@@ -6,7 +8,6 @@ from kubex.k8s.v1_35.resource.v1.device_counter_consumption import (
 )
 from kubex.k8s.v1_35.resource.v1.device_taint import DeviceTaint
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class Device(BaseK8sModel):

@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from typing import ClassVar, Literal
 
+from pydantic import Field
+
 from kubex.k8s.v1_34.resource.v1beta1.resource_claim_spec import ResourceClaimSpec
 from kubex.k8s.v1_34.resource.v1beta1.resource_claim_status import ResourceClaimStatus
 from kubex_core.models.interfaces import HasStatusSubresource, NamespaceScopedEntity
 from kubex_core.models.resource_config import ResourceConfig, Scope
-from pydantic import Field
 
 
 class ResourceClaim(NamespaceScopedEntity, HasStatusSubresource):

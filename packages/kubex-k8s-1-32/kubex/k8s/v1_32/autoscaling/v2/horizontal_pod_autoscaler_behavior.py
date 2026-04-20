@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_32.autoscaling.v2.hpa_scaling_rules import HPAScalingRules
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class HorizontalPodAutoscalerBehavior(BaseK8sModel):

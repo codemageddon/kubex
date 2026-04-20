@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from typing import Literal
 
+from pydantic import Field
+
 from kubex.k8s.v1_33.flowcontrol.v1.flow_schema import FlowSchema
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.metadata import ListMetadata
-from pydantic import Field
 
 
 class FlowSchemaList(ListEntity[FlowSchema]):

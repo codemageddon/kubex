@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import ClassVar, Literal
 
+from pydantic import Field
+
 from kubex.k8s.v1_37.certificates.v1beta1.pod_certificate_request_spec import (
     PodCertificateRequestSpec,
 )
@@ -10,7 +12,6 @@ from kubex.k8s.v1_37.certificates.v1beta1.pod_certificate_request_status import 
 )
 from kubex_core.models.interfaces import HasStatusSubresource, NamespaceScopedEntity
 from kubex_core.models.resource_config import ResourceConfig, Scope
-from pydantic import Field
 
 
 class PodCertificateRequest(NamespaceScopedEntity, HasStatusSubresource):

@@ -1,8 +1,9 @@
+from pydantic import Field
+
 from kubex.k8s.v1_32.core.v1.object_reference import ObjectReference
 from kubex.k8s.v1_32.discovery.v1.endpoint_conditions import EndpointConditions
 from kubex.k8s.v1_32.discovery.v1.endpoint_hints import EndpointHints
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class Endpoint(BaseK8sModel):

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import ClassVar, Literal
 
+from pydantic import Field
+
 from kubex.k8s.v1_32.core.v1.persistent_volume_claim_spec import (
     PersistentVolumeClaimSpec,
 )
@@ -10,7 +12,6 @@ from kubex.k8s.v1_32.core.v1.persistent_volume_claim_status import (
 )
 from kubex_core.models.interfaces import HasStatusSubresource, NamespaceScopedEntity
 from kubex_core.models.resource_config import ResourceConfig, Scope
-from pydantic import Field
 
 
 class PersistentVolumeClaim(NamespaceScopedEntity, HasStatusSubresource):

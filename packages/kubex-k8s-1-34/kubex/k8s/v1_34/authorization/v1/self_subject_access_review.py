@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import ClassVar, Literal
 
+from pydantic import Field
+
 from kubex.k8s.v1_34.authorization.v1.self_subject_access_review_spec import (
     SelfSubjectAccessReviewSpec,
 )
@@ -10,7 +12,6 @@ from kubex.k8s.v1_34.authorization.v1.subject_access_review_status import (
 )
 from kubex_core.models.interfaces import ClusterScopedEntity
 from kubex_core.models.resource_config import ResourceConfig, Scope
-from pydantic import Field
 
 
 class SelfSubjectAccessReview(ClusterScopedEntity):

@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_32.admissionregistration.v1.service_reference import ServiceReference
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class WebhookClientConfig(BaseK8sModel):

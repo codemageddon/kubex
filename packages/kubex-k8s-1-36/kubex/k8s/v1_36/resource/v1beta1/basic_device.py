@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from kubex.k8s.v1_36.core.v1.node_selector import NodeSelector
 from kubex.k8s.v1_36.resource.v1beta1.device_attribute import DeviceAttribute
 from kubex.k8s.v1_36.resource.v1beta1.device_capacity import DeviceCapacity
@@ -9,7 +11,6 @@ from kubex.k8s.v1_36.resource.v1beta1.node_allocatable_resource_mapping import (
     NodeAllocatableResourceMapping,
 )
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class BasicDevice(BaseK8sModel):
