@@ -122,7 +122,9 @@ examples/                       # Usage examples
 
 .github/workflows/
 ├── lint.yaml                   # Pre-commit, ruff check, ruff format --check, mypy, codegen verify
-└── test.yaml                   # pytest with all extras on Python 3.13
+├── test.yaml                   # pytest with all extras on Python 3.13
+├── publish-test.yaml           # Build + publish to Test PyPI on PRs (OIDC trusted publishing)
+└── publish.yaml                # Build + publish to production PyPI on v* tag push (OIDC trusted publishing)
 ```
 
 ## Build System & Dependencies
@@ -204,17 +206,41 @@ Resources declare capabilities via multiple inheritance from marker classes: `Na
 
 ## CI/CD
 
-Two GitHub Actions workflows run on push and pull_request:
+Four GitHub Actions workflows:
 
-**Lint** (`lint.yaml`):
+**Lint** (`lint.yaml`) — runs on push and pull_request:
 1. Pre-commit hooks (all files)
 2. `ruff check .`
 3. `ruff format --check .`
 4. `mypy .` (strict, with all extras installed)
 5. Verify generated packages — runs `python -m scripts.codegen verify` for each `packages/kubex-k8s-*`
 
-**Test** (`test.yaml`):
+**Test** (`test.yaml`) — runs on push and pull_request:
 1. `pytest .` on Python 3.13 with all extras
+
+**Publish Test** (`publish-test.yaml`) — runs on pull requests to `main`:
+1. Appends `.devN` version suffix to all 8 packages
+2. Builds all packages in dependency order
+3. Publishes to Test PyPI using OIDC trusted publishing
+4. Posts a PR comment with Test PyPI links
+- Uses GitHub environment `test-pypi`; skips publish for fork PRs
+
+**Publish** (`publish.yaml`) — runs on `v*` tag push:
+1. Verifies all 8 package versions match the tag
+2. Builds all packages in dependency order
+3. Publishes to production PyPI using OIDC trusted publishing
+- Uses GitHub environment `pypi`
+
+## Releasing
+
+To publish a new version to PyPI:
+
+1. Bump the version in `kubex/__version__.py` and in every `packages/*/pyproject.toml` — all 8 packages must have the same version string
+2. Commit and push to `main`
+3. Create and push a git tag matching the version: `git tag v<VERSION> && git push origin v<VERSION>`
+4. The `publish.yaml` workflow will verify version consistency, build all packages, and publish to production PyPI
+
+Both publish workflows use PyPI OIDC trusted publishing — no API tokens are stored in the repository. Each of the 8 packages must have a trusted publisher configured in its PyPI (and Test PyPI) project settings. See the comment block at the top of each workflow file for the exact configuration values.
 
 ## Coding Conventions
 
