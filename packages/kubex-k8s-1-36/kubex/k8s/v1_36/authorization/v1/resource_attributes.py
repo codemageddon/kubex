@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from kubex.k8s.v1_36.authorization.v1.field_selector_attributes import (
     FieldSelectorAttributes,
 )
@@ -5,7 +7,6 @@ from kubex.k8s.v1_36.authorization.v1.label_selector_attributes import (
     LabelSelectorAttributes,
 )
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class ResourceAttributes(BaseK8sModel):

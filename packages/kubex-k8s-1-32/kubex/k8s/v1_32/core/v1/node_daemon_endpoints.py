@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_32.core.v1.daemon_endpoint import DaemonEndpoint
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class NodeDaemonEndpoints(BaseK8sModel):

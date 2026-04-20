@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from kubex.k8s.v1_35.core.v1.container_port import ContainerPort
 from kubex.k8s.v1_35.core.v1.container_resize_policy import ContainerResizePolicy
 from kubex.k8s.v1_35.core.v1.container_restart_rule import ContainerRestartRule
@@ -10,7 +12,6 @@ from kubex.k8s.v1_35.core.v1.security_context import SecurityContext
 from kubex.k8s.v1_35.core.v1.volume_device import VolumeDevice
 from kubex.k8s.v1_35.core.v1.volume_mount import VolumeMount
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class EphemeralContainer(BaseK8sModel):

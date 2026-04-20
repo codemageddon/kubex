@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from kubex.k8s.v1_32.autoscaling.v2.cross_version_object_reference import (
     CrossVersionObjectReference,
 )
@@ -6,7 +8,6 @@ from kubex.k8s.v1_32.autoscaling.v2.horizontal_pod_autoscaler_behavior import (
 )
 from kubex.k8s.v1_32.autoscaling.v2.metric_spec import MetricSpec
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class HorizontalPodAutoscalerSpec(BaseK8sModel):

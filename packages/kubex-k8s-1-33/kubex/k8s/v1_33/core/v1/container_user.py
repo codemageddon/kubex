@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_33.core.v1.linux_container_user import LinuxContainerUser
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class ContainerUser(BaseK8sModel):

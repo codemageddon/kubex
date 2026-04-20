@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_37.networking.v1.parent_reference import ParentReference
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class IPAddressSpec(BaseK8sModel):

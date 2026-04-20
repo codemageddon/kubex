@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_32.apps.v1.daemon_set_condition import DaemonSetCondition
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class DaemonSetStatus(BaseK8sModel):

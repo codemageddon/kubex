@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_37.meta.v1.label_selector_requirement import LabelSelectorRequirement
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class LabelSelectorAttributes(BaseK8sModel):

@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_36.core.v1.object_reference import ObjectReference
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class StorageOSPersistentVolumeSource(BaseK8sModel):

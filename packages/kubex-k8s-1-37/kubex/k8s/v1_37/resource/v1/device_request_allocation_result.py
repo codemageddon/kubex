@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_37.resource.v1.device_toleration import DeviceToleration
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class DeviceRequestAllocationResult(BaseK8sModel):

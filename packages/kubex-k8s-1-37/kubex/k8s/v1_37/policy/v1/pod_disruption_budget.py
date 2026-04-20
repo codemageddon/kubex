@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from typing import ClassVar, Literal
 
+from pydantic import Field
+
 from kubex.k8s.v1_37.policy.v1.pod_disruption_budget_spec import PodDisruptionBudgetSpec
 from kubex.k8s.v1_37.policy.v1.pod_disruption_budget_status import (
     PodDisruptionBudgetStatus,
 )
 from kubex_core.models.interfaces import HasStatusSubresource, NamespaceScopedEntity
 from kubex_core.models.resource_config import ResourceConfig, Scope
-from pydantic import Field
 
 
 class PodDisruptionBudget(NamespaceScopedEntity, HasStatusSubresource):

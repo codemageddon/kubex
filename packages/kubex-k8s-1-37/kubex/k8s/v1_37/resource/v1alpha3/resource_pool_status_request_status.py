@@ -1,7 +1,8 @@
+from pydantic import Field
+
 from kubex.k8s.v1_37.meta.v1.condition import Condition
 from kubex.k8s.v1_37.resource.v1alpha3.pool_status import PoolStatus
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class ResourcePoolStatusRequestStatus(BaseK8sModel):

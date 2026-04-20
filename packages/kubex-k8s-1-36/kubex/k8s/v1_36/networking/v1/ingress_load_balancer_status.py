@@ -1,8 +1,9 @@
+from pydantic import Field
+
 from kubex.k8s.v1_36.networking.v1.ingress_load_balancer_ingress import (
     IngressLoadBalancerIngress,
 )
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class IngressLoadBalancerStatus(BaseK8sModel):

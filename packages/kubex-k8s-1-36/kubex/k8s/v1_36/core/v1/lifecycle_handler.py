@@ -1,9 +1,10 @@
+from pydantic import Field
+
 from kubex.k8s.v1_36.core.v1.exec_action import ExecAction
 from kubex.k8s.v1_36.core.v1.http_get_action import HTTPGetAction
 from kubex.k8s.v1_36.core.v1.sleep_action import SleepAction
 from kubex.k8s.v1_36.core.v1.tcp_socket_action import TCPSocketAction
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class LifecycleHandler(BaseK8sModel):

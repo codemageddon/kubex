@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_35.autoscaling.v2.metric_value_status import MetricValueStatus
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class ContainerResourceMetricStatus(BaseK8sModel):

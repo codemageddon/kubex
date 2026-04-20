@@ -1,8 +1,9 @@
+from pydantic import Field
+
 from kubex.k8s.v1_32.core.v1.topology_selector_label_requirement import (
     TopologySelectorLabelRequirement,
 )
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class TopologySelectorTerm(BaseK8sModel):

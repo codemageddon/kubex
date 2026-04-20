@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_35.core.v1.http_header import HTTPHeader
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class HTTPGetAction(BaseK8sModel):

@@ -1,9 +1,10 @@
+from pydantic import Field
+
 from kubex.k8s.v1_33.batch.v1.pod_failure_policy import PodFailurePolicy
 from kubex.k8s.v1_33.batch.v1.success_policy import SuccessPolicy
 from kubex.k8s.v1_33.core.v1.pod_template_spec import PodTemplateSpec
 from kubex.k8s.v1_33.meta.v1.label_selector import LabelSelector
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class JobSpec(BaseK8sModel):

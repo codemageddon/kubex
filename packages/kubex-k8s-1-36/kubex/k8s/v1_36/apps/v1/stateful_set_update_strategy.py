@@ -1,8 +1,9 @@
+from pydantic import Field
+
 from kubex.k8s.v1_36.apps.v1.rolling_update_stateful_set_strategy import (
     RollingUpdateStatefulSetStrategy,
 )
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class StatefulSetUpdateStrategy(BaseK8sModel):

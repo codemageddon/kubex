@@ -88,7 +88,7 @@ def _decode_and_put_to_file(data: str) -> Path:
     if data in _temp_files:
         return _temp_files[data]
     decoded = b64decode(data)
-    with NamedTemporaryFile(delete=False, delete_on_close=False) as f:
+    with NamedTemporaryFile(delete=False) as f:
         f.write(decoded)
         path = Path(f.name)
         _temp_files[data] = path

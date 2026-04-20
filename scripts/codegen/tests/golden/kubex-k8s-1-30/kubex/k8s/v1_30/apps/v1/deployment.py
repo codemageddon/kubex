@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import ClassVar, Literal
 
+from pydantic import Field
+
 from kubex.k8s.v1_30.apps.v1.deployment_spec import DeploymentSpec
 from kubex.k8s.v1_30.apps.v1.deployment_status import DeploymentStatus
 from kubex_core.models.interfaces import (
@@ -10,7 +12,6 @@ from kubex_core.models.interfaces import (
     NamespaceScopedEntity,
 )
 from kubex_core.models.resource_config import ResourceConfig, Scope
-from pydantic import Field
 
 
 class Deployment(NamespaceScopedEntity, HasScaleSubresource, HasStatusSubresource):

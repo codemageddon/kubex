@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from kubex.k8s.v1_37.batch.v1.pod_failure_policy_on_exit_codes_requirement import (
     PodFailurePolicyOnExitCodesRequirement,
 )
@@ -5,7 +7,6 @@ from kubex.k8s.v1_37.batch.v1.pod_failure_policy_on_pod_conditions_pattern impor
     PodFailurePolicyOnPodConditionsPattern,
 )
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class PodFailurePolicyRule(BaseK8sModel):

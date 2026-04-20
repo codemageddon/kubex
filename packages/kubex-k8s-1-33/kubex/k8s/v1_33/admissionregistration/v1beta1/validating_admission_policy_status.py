@@ -1,7 +1,8 @@
+from pydantic import Field
+
 from kubex.k8s.v1_33.admissionregistration.v1beta1.type_checking import TypeChecking
 from kubex.k8s.v1_33.meta.v1.condition import Condition
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class ValidatingAdmissionPolicyStatus(BaseK8sModel):

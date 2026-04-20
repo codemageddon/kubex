@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_34.core.v1.pod_dns_config_option import PodDNSConfigOption
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class PodDNSConfig(BaseK8sModel):

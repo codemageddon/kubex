@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from typing import ClassVar, Literal
 
+from pydantic import Field
+
 from kubex.k8s.v1_37.coordination.v1alpha2.lease_candidate_spec import (
     LeaseCandidateSpec,
 )
 from kubex_core.models.interfaces import NamespaceScopedEntity
 from kubex_core.models.resource_config import ResourceConfig, Scope
-from pydantic import Field
 
 
 class LeaseCandidate(NamespaceScopedEntity):

@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from kubex.k8s.v1_33.core.v1.attached_volume import AttachedVolume
 from kubex.k8s.v1_33.core.v1.container_image import ContainerImage
 from kubex.k8s.v1_33.core.v1.node_address import NodeAddress
@@ -8,7 +10,6 @@ from kubex.k8s.v1_33.core.v1.node_features import NodeFeatures
 from kubex.k8s.v1_33.core.v1.node_runtime_handler import NodeRuntimeHandler
 from kubex.k8s.v1_33.core.v1.node_system_info import NodeSystemInfo
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class NodeStatus(BaseK8sModel):

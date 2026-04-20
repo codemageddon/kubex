@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from typing import ClassVar, Literal
 
+from pydantic import Field
+
 from kubex.k8s.v1_33.resource.v1alpha3.device_class_spec import DeviceClassSpec
 from kubex_core.models.interfaces import ClusterScopedEntity
 from kubex_core.models.resource_config import ResourceConfig, Scope
-from pydantic import Field
 
 
 class DeviceClass(ClusterScopedEntity):

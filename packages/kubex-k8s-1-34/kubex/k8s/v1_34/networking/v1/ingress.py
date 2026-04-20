@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from typing import ClassVar, Literal
 
+from pydantic import Field
+
 from kubex.k8s.v1_34.networking.v1.ingress_spec import IngressSpec
 from kubex.k8s.v1_34.networking.v1.ingress_status import IngressStatus
 from kubex_core.models.interfaces import HasStatusSubresource, NamespaceScopedEntity
 from kubex_core.models.resource_config import ResourceConfig, Scope
-from pydantic import Field
 
 
 class Ingress(NamespaceScopedEntity, HasStatusSubresource):

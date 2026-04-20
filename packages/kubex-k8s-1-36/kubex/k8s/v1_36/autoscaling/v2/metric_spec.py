@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from kubex.k8s.v1_36.autoscaling.v2.container_resource_metric_source import (
     ContainerResourceMetricSource,
 )
@@ -6,7 +8,6 @@ from kubex.k8s.v1_36.autoscaling.v2.object_metric_source import ObjectMetricSour
 from kubex.k8s.v1_36.autoscaling.v2.pods_metric_source import PodsMetricSource
 from kubex.k8s.v1_36.autoscaling.v2.resource_metric_source import ResourceMetricSource
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class MetricSpec(BaseK8sModel):

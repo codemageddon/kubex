@@ -1,9 +1,10 @@
+from pydantic import Field
+
 from kubex.k8s.v1_36.meta.v1.condition import Condition
 from kubex.k8s.v1_36.scheduling.v1alpha2.pod_group_resource_claim_status import (
     PodGroupResourceClaimStatus,
 )
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class PodGroupStatus(BaseK8sModel):

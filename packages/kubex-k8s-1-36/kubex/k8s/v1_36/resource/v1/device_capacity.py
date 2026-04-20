@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_36.resource.v1.capacity_request_policy import CapacityRequestPolicy
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class DeviceCapacity(BaseK8sModel):

@@ -1,9 +1,10 @@
+from pydantic import Field
+
 from kubex.k8s.v1_36.core.v1.persistent_volume_claim_spec import (
     PersistentVolumeClaimSpec,
 )
 from kubex_core.models.base import BaseK8sModel
 from kubex_core.models.metadata import ObjectMetadata
-from pydantic import Field
 
 
 class PersistentVolumeClaimTemplate(BaseK8sModel):

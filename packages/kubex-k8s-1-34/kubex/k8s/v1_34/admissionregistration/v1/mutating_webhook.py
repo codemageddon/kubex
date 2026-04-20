@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from kubex.k8s.v1_34.admissionregistration.v1.match_condition import MatchCondition
 from kubex.k8s.v1_34.admissionregistration.v1.rule_with_operations import (
     RuleWithOperations,
@@ -7,7 +9,6 @@ from kubex.k8s.v1_34.admissionregistration.v1.webhook_client_config import (
 )
 from kubex.k8s.v1_34.meta.v1.label_selector import LabelSelector
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class MutatingWebhook(BaseK8sModel):

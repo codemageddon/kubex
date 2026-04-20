@@ -1,8 +1,9 @@
+from pydantic import Field
+
 from kubex.k8s.v1_32.apps.v1.deployment_strategy import DeploymentStrategy
 from kubex.k8s.v1_32.core.v1.pod_template_spec import PodTemplateSpec
 from kubex.k8s.v1_32.meta.v1.label_selector import LabelSelector
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class DeploymentSpec(BaseK8sModel):

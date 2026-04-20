@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_37.resource.v1beta1.counter import Counter
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class CounterSet(BaseK8sModel):

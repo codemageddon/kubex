@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from typing import ClassVar, Literal
 
+from pydantic import Field
+
 from kubex.k8s.v1_37.node.v1.overhead import Overhead
 from kubex.k8s.v1_37.node.v1.scheduling import Scheduling
 from kubex_core.models.interfaces import ClusterScopedEntity
 from kubex_core.models.resource_config import ResourceConfig, Scope
-from pydantic import Field
 
 
 class RuntimeClass(ClusterScopedEntity):

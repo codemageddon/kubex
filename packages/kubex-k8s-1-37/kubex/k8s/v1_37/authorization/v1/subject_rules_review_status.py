@@ -1,7 +1,8 @@
+from pydantic import Field
+
 from kubex.k8s.v1_37.authorization.v1.non_resource_rule import NonResourceRule
 from kubex.k8s.v1_37.authorization.v1.resource_rule import ResourceRule
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class SubjectRulesReviewStatus(BaseK8sModel):

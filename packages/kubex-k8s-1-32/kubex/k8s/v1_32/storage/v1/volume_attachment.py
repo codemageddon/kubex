@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from typing import ClassVar, Literal
 
+from pydantic import Field
+
 from kubex.k8s.v1_32.storage.v1.volume_attachment_spec import VolumeAttachmentSpec
 from kubex.k8s.v1_32.storage.v1.volume_attachment_status import VolumeAttachmentStatus
 from kubex_core.models.interfaces import ClusterScopedEntity, HasStatusSubresource
 from kubex_core.models.resource_config import ResourceConfig, Scope
-from pydantic import Field
 
 
 class VolumeAttachment(ClusterScopedEntity, HasStatusSubresource):

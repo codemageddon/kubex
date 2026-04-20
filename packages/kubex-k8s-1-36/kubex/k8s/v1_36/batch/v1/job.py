@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from typing import ClassVar, Literal
 
+from pydantic import Field
+
 from kubex.k8s.v1_36.batch.v1.job_spec import JobSpec
 from kubex.k8s.v1_36.batch.v1.job_status import JobStatus
 from kubex_core.models.interfaces import HasStatusSubresource, NamespaceScopedEntity
 from kubex_core.models.resource_config import ResourceConfig, Scope
-from pydantic import Field
 
 
 class Job(NamespaceScopedEntity, HasStatusSubresource):

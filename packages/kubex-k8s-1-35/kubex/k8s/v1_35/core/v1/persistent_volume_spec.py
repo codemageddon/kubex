@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from kubex.k8s.v1_35.core.v1.aws_elastic_block_store_volume_source import (
     AWSElasticBlockStoreVolumeSource,
 )
@@ -51,7 +53,6 @@ from kubex.k8s.v1_35.core.v1.vsphere_virtual_disk_volume_source import (
     VsphereVirtualDiskVolumeSource,
 )
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class PersistentVolumeSpec(BaseK8sModel):

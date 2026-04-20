@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_34.resource.v1.device_claim import DeviceClaim
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class ResourceClaimSpec(BaseK8sModel):

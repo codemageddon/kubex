@@ -1,7 +1,8 @@
+from pydantic import Field
+
 from kubex.k8s.v1_34.resource.v1.device_sub_request import DeviceSubRequest
 from kubex.k8s.v1_34.resource.v1.exact_device_request import ExactDeviceRequest
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class DeviceRequest(BaseK8sModel):

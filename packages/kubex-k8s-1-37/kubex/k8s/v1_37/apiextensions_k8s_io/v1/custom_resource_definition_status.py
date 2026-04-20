@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from kubex.k8s.v1_37.apiextensions_k8s_io.v1.custom_resource_definition_condition import (
     CustomResourceDefinitionCondition,
 )
@@ -5,7 +7,6 @@ from kubex.k8s.v1_37.apiextensions_k8s_io.v1.custom_resource_definition_names im
     CustomResourceDefinitionNames,
 )
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class CustomResourceDefinitionStatus(BaseK8sModel):

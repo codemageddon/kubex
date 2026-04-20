@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_35.scheduling.v1alpha1.pod_group_policy import PodGroupPolicy
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class PodGroup(BaseK8sModel):

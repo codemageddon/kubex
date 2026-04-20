@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from typing import ClassVar, Literal
 
+from pydantic import Field
+
 from kubex.k8s.v1_35.batch.v1.cron_job_spec import CronJobSpec
 from kubex.k8s.v1_35.batch.v1.cron_job_status import CronJobStatus
 from kubex_core.models.interfaces import HasStatusSubresource, NamespaceScopedEntity
 from kubex_core.models.resource_config import ResourceConfig, Scope
-from pydantic import Field
 
 
 class CronJob(NamespaceScopedEntity, HasStatusSubresource):

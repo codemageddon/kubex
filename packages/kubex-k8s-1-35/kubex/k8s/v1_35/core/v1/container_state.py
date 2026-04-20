@@ -1,8 +1,9 @@
+from pydantic import Field
+
 from kubex.k8s.v1_35.core.v1.container_state_running import ContainerStateRunning
 from kubex.k8s.v1_35.core.v1.container_state_terminated import ContainerStateTerminated
 from kubex.k8s.v1_35.core.v1.container_state_waiting import ContainerStateWaiting
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class ContainerState(BaseK8sModel):

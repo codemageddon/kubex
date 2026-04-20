@@ -1,9 +1,10 @@
+from pydantic import Field
+
 from kubex.k8s.v1_37.core.v1.node_selector import NodeSelector
 from kubex.k8s.v1_37.resource.v1beta2.counter_set import CounterSet
 from kubex.k8s.v1_37.resource.v1beta2.device import Device
 from kubex.k8s.v1_37.resource.v1beta2.resource_pool import ResourcePool
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class ResourceSliceSpec(BaseK8sModel):

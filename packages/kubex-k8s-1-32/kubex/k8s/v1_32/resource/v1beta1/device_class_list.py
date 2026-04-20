@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from typing import Literal
 
+from pydantic import Field
+
 from kubex.k8s.v1_32.resource.v1beta1.device_class import DeviceClass
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.metadata import ListMetadata
-from pydantic import Field
 
 
 class DeviceClassList(ListEntity[DeviceClass]):

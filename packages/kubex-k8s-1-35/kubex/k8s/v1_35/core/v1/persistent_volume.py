@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from typing import ClassVar, Literal
 
+from pydantic import Field
+
 from kubex.k8s.v1_35.core.v1.persistent_volume_spec import PersistentVolumeSpec
 from kubex.k8s.v1_35.core.v1.persistent_volume_status import PersistentVolumeStatus
 from kubex_core.models.interfaces import ClusterScopedEntity, HasStatusSubresource
 from kubex_core.models.resource_config import ResourceConfig, Scope
-from pydantic import Field
 
 
 class PersistentVolume(ClusterScopedEntity, HasStatusSubresource):

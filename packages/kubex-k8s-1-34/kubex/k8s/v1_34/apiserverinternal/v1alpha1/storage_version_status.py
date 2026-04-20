@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from kubex.k8s.v1_34.apiserverinternal.v1alpha1.server_storage_version import (
     ServerStorageVersion,
 )
@@ -5,7 +7,6 @@ from kubex.k8s.v1_34.apiserverinternal.v1alpha1.storage_version_condition import
     StorageVersionCondition,
 )
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class StorageVersionStatus(BaseK8sModel):

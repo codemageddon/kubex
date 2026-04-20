@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from kubex.k8s.v1_33.admissionregistration.v1alpha1.match_condition import (
     MatchCondition,
 )
@@ -8,7 +10,6 @@ from kubex.k8s.v1_33.admissionregistration.v1alpha1.mutation import Mutation
 from kubex.k8s.v1_33.admissionregistration.v1alpha1.param_kind import ParamKind
 from kubex.k8s.v1_33.admissionregistration.v1alpha1.variable import Variable
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class MutatingAdmissionPolicySpec(BaseK8sModel):

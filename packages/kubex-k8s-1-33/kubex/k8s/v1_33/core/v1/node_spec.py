@@ -1,7 +1,8 @@
+from pydantic import Field
+
 from kubex.k8s.v1_33.core.v1.node_config_source import NodeConfigSource
 from kubex.k8s.v1_33.core.v1.taint import Taint
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class NodeSpec(BaseK8sModel):

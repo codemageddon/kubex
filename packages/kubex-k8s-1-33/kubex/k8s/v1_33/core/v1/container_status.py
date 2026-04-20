@@ -1,10 +1,11 @@
+from pydantic import Field
+
 from kubex.k8s.v1_33.core.v1.container_state import ContainerState
 from kubex.k8s.v1_33.core.v1.container_user import ContainerUser
 from kubex.k8s.v1_33.core.v1.resource_requirements import ResourceRequirements
 from kubex.k8s.v1_33.core.v1.resource_status import ResourceStatus
 from kubex.k8s.v1_33.core.v1.volume_mount_status import VolumeMountStatus
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class ContainerStatus(BaseK8sModel):

@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_35.apps.v1.rolling_update_deployment import RollingUpdateDeployment
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class DeploymentStrategy(BaseK8sModel):

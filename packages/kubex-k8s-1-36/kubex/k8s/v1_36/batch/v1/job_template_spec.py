@@ -1,7 +1,8 @@
+from pydantic import Field
+
 from kubex.k8s.v1_36.batch.v1.job_spec import JobSpec
 from kubex_core.models.base import BaseK8sModel
 from kubex_core.models.metadata import ObjectMetadata
-from pydantic import Field
 
 
 class JobTemplateSpec(BaseK8sModel):

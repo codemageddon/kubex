@@ -1,8 +1,9 @@
+from pydantic import Field
+
 from kubex.k8s.v1_33.networking.v1.ingress_class_parameters_reference import (
     IngressClassParametersReference,
 )
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class IngressClassSpec(BaseK8sModel):

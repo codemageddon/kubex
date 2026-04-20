@@ -1,7 +1,8 @@
+from pydantic import Field
+
 from kubex.k8s.v1_34.core.v1.service_port import ServicePort
 from kubex.k8s.v1_34.core.v1.session_affinity_config import SessionAffinityConfig
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class ServiceSpec(BaseK8sModel):

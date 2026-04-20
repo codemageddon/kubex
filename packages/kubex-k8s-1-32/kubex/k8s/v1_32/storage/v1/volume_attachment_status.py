@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_32.storage.v1.volume_error import VolumeError
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class VolumeAttachmentStatus(BaseK8sModel):

@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from typing import ClassVar, Literal
 
+from pydantic import Field
+
 from kubex.k8s.v1_37.scheduling.v1alpha2.pod_group_spec import PodGroupSpec
 from kubex.k8s.v1_37.scheduling.v1alpha2.pod_group_status import PodGroupStatus
 from kubex_core.models.interfaces import HasStatusSubresource, NamespaceScopedEntity
 from kubex_core.models.resource_config import ResourceConfig, Scope
-from pydantic import Field
 
 
 class PodGroup(NamespaceScopedEntity, HasStatusSubresource):

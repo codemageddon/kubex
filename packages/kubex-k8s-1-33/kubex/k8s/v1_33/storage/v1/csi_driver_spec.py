@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_33.storage.v1.token_request import TokenRequest
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class CSIDriverSpec(BaseK8sModel):

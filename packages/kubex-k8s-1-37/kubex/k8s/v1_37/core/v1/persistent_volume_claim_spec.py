@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from kubex.k8s.v1_37.core.v1.typed_local_object_reference import (
     TypedLocalObjectReference,
 )
@@ -7,7 +9,6 @@ from kubex.k8s.v1_37.core.v1.volume_resource_requirements import (
 )
 from kubex.k8s.v1_37.meta.v1.label_selector import LabelSelector
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class PersistentVolumeClaimSpec(BaseK8sModel):

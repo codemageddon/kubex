@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import ClassVar, Literal
 
+from pydantic import Field
+
 from kubex.k8s.v1_33.apiextensions_k8s_io.v1.custom_resource_definition_spec import (
     CustomResourceDefinitionSpec,
 )
@@ -10,7 +12,6 @@ from kubex.k8s.v1_33.apiextensions_k8s_io.v1.custom_resource_definition_status i
 )
 from kubex_core.models.interfaces import ClusterScopedEntity, HasStatusSubresource
 from kubex_core.models.resource_config import ResourceConfig, Scope
-from pydantic import Field
 
 
 class CustomResourceDefinition(ClusterScopedEntity, HasStatusSubresource):

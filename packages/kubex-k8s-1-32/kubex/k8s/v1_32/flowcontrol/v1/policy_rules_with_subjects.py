@@ -1,10 +1,11 @@
+from pydantic import Field
+
 from kubex.k8s.v1_32.flowcontrol.v1.non_resource_policy_rule import (
     NonResourcePolicyRule,
 )
 from kubex.k8s.v1_32.flowcontrol.v1.resource_policy_rule import ResourcePolicyRule
 from kubex.k8s.v1_32.flowcontrol.v1.subject import Subject
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class PolicyRulesWithSubjects(BaseK8sModel):

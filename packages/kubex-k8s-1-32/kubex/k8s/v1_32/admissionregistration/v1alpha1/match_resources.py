@@ -1,9 +1,10 @@
+from pydantic import Field
+
 from kubex.k8s.v1_32.admissionregistration.v1alpha1.named_rule_with_operations import (
     NamedRuleWithOperations,
 )
 from kubex.k8s.v1_32.meta.v1.label_selector import LabelSelector
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class MatchResources(BaseK8sModel):

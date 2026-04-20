@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_36.batch.v1.job_template_spec import JobTemplateSpec
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class CronJobSpec(BaseK8sModel):

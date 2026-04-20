@@ -122,6 +122,18 @@ kubex-k8s-1-35 = { workspace = true }
 kubex-k8s-1-36 = { workspace = true }
 kubex-k8s-1-37 = { workspace = true }
 
+[tool.ruff.lint.isort]
+known-first-party = [
+	"kubex.k8s.v1_32",
+	"kubex.k8s.v1_33",
+	"kubex.k8s.v1_34",
+	"kubex.k8s.v1_35",
+	"kubex.k8s.v1_36",
+	"kubex.k8s.v1_37",
+	"kubex_core",
+	"kubex",
+]
+
 [tool.hatch.version]
 path = "kubex/__version__.py"
 

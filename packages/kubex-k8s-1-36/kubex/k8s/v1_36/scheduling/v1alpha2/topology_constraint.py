@@ -1,5 +1,6 @@
-from kubex_core.models.base import BaseK8sModel
 from pydantic import Field
+
+from kubex_core.models.base import BaseK8sModel
 
 
 class TopologyConstraint(BaseK8sModel):

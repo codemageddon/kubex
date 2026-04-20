@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_37.core.v1.secret_reference import SecretReference
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class FlexPersistentVolumeSource(BaseK8sModel):

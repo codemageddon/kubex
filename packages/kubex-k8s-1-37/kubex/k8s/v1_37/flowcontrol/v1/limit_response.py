@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_37.flowcontrol.v1.queuing_configuration import QueuingConfiguration
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class LimitResponse(BaseK8sModel):

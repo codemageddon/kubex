@@ -1,10 +1,11 @@
+from pydantic import Field
+
 from kubex.k8s.v1_34.resource.v1.device_claim_configuration import (
     DeviceClaimConfiguration,
 )
 from kubex.k8s.v1_34.resource.v1.device_constraint import DeviceConstraint
 from kubex.k8s.v1_34.resource.v1.device_request import DeviceRequest
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class DeviceClaim(BaseK8sModel):

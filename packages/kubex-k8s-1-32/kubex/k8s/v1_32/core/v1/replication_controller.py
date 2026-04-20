@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import ClassVar, Literal
 
+from pydantic import Field
+
 from kubex.k8s.v1_32.core.v1.replication_controller_spec import (
     ReplicationControllerSpec,
 )
@@ -14,7 +16,6 @@ from kubex_core.models.interfaces import (
     NamespaceScopedEntity,
 )
 from kubex_core.models.resource_config import ResourceConfig, Scope
-from pydantic import Field
 
 
 class ReplicationController(

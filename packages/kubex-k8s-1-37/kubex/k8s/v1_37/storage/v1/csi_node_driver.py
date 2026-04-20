@@ -1,6 +1,7 @@
+from pydantic import Field
+
 from kubex.k8s.v1_37.storage.v1.volume_node_resources import VolumeNodeResources
 from kubex_core.models.base import BaseK8sModel
-from pydantic import Field
 
 
 class CSINodeDriver(BaseK8sModel):
