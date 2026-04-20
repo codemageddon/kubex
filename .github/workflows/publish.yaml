@@ -1,0 +1,105 @@
+# Trusted Publisher Configuration (Production PyPI)
+#
+# For this workflow to publish via OIDC trusted publishing, each package must
+# have a trusted publisher configured in its PyPI project settings at:
+#   https://pypi.org/manage/project/<package-name>/settings/publishing/
+#
+# Configure the following trusted publisher for EACH of the 8 packages:
+#   - kubex
+#   - kubex-core
+#   - kubex-k8s-1-32
+#   - kubex-k8s-1-33
+#   - kubex-k8s-1-34
+#   - kubex-k8s-1-35
+#   - kubex-k8s-1-36
+#   - kubex-k8s-1-37
+#
+# Trusted publisher settings (same for all packages):
+#   Owner:         codemageddon
+#   Repository:    kubex
+#   Workflow name: publish.yaml
+#   Environment:   pypi
+
+name: Publish to PyPI
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  verify-versions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify all package versions match the tag
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          echo "Tag version: ${TAG_VERSION}"
+          ERRORS=0
+
+          # Check kubex root package (dynamic version from __version__.py)
+          KUBEX_VERSION=$(sed -n 's/^VERSION = "\(.*\)"/\1/p' kubex/__version__.py)
+          if [ "$KUBEX_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::kubex version mismatch: got '${KUBEX_VERSION}', expected '${TAG_VERSION}'"
+            ERRORS=$((ERRORS + 1))
+          fi
+
+          # Check workspace packages (version in pyproject.toml)
+          for pkg in packages/*/; do
+            PKG_NAME=$(basename "$pkg")
+            PKG_VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' "${pkg}pyproject.toml")
+            if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+              echo "::error::${PKG_NAME} version mismatch: got '${PKG_VERSION}', expected '${TAG_VERSION}'"
+              ERRORS=$((ERRORS + 1))
+            fi
+          done
+
+          if [ "$ERRORS" -gt 0 ]; then
+            echo "::error::${ERRORS} package(s) have version mismatches with tag ${GITHUB_REF_NAME}"
+            exit 1
+          fi
+
+          echo "All package versions match tag ${GITHUB_REF_NAME}"
+
+  build:
+    needs: verify-versions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+
+      - name: Build packages
+        run: |
+          # Build in dependency order: kubex-core first, then k8s packages, then kubex
+          uv build packages/kubex-core --out-dir dist/
+          for pkg in packages/kubex-k8s-*/; do
+            uv build "$pkg" --out-dir dist/
+          done
+          uv build --out-dir dist/
+
+      - name: List built distributions
+        run: ls -la dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - uses: pypa/gh-action-pypi-publish@release/v1.14
+        with:
+          attestations: true
