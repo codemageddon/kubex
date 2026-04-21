@@ -37,7 +37,7 @@ from kubex_core.models.watch_event import WatchEvent
 
 from ._logs import LogsMixin
 from ._metadata import MetadataMixin
-from ._protocol import ApiNamespaceTypes, ApiRequestTimeoutTypes, apply_request_timeout
+from ._protocol import ApiNamespaceTypes, ApiRequestTimeoutTypes
 
 
 class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[ResourceType]):
@@ -123,8 +123,8 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
         """
         _namespace = self._ensure_required_namespace(namespace)
         options = GetOptions(resource_version=resource_version)
-        request = apply_request_timeout(
-            self._request_builder.get(name, _namespace, options), request_timeout
+        request = self._request_builder.get(
+            name, _namespace, options, request_timeout=request_timeout
         )
         response = await self._client.request(request)
         return self._resource.model_validate_json(response.content)
@@ -177,8 +177,8 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
             version_match=version_match,
             resource_version=resource_version,
         )
-        request = apply_request_timeout(
-            self._request_builder.list(_namespace, options), request_timeout
+        request = self._request_builder.list(
+            _namespace, options, request_timeout=request_timeout
         )
         response = await self._client.request(request)
         list_model = self._resource.__RESOURCE_CONFIG__.list_model
@@ -211,15 +211,11 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
         """
         _namespace = self._ensure_required_namespace(namespace)
         options = PostOptions(dry_run=dry_run, field_manager=field_manager)
-        request = apply_request_timeout(
-            self._request_builder.create(
-                _namespace,
-                options,
-                data.model_dump_json(
-                    by_alias=True, exclude_unset=True, exclude_none=True
-                ),
-            ),
-            request_timeout,
+        request = self._request_builder.create(
+            _namespace,
+            options,
+            data.model_dump_json(by_alias=True, exclude_unset=True, exclude_none=True),
+            request_timeout=request_timeout,
         )
         response = await self._client.request(request)
         return self._resource.model_validate_json(response.content)
@@ -264,8 +260,8 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
             propagation_policy=propagation_policy,
             preconditions=preconditions,
         )
-        request = apply_request_timeout(
-            self._request_builder.delete(name, _namespace, options), request_timeout
+        request = self._request_builder.delete(
+            name, _namespace, options, request_timeout=request_timeout
         )
         response = await self._client.request(request)
         try:
@@ -313,11 +309,11 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
             propagation_policy=propagation_policy,
             preconditions=preconditions,
         )
-        request = apply_request_timeout(
-            self._request_builder.delete_collection(
-                _namespace, list_options, delete_options
-            ),
-            request_timeout,
+        request = self._request_builder.delete_collection(
+            _namespace,
+            list_options,
+            delete_options,
+            request_timeout=request_timeout,
         )
         response = await self._client.request(request)
         list_model = self._resource.__RESOURCE_CONFIG__.list_model
@@ -352,9 +348,8 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
             force=force,
             field_validation=field_validation,
         )
-        request = apply_request_timeout(
-            self._request_builder.patch(name, _namespace, options, patch),
-            request_timeout,
+        request = self._request_builder.patch(
+            name, _namespace, options, patch, request_timeout=request_timeout
         )
         response = await self._client.request(request)
         return self._resource.model_validate_json(response.content)
@@ -378,16 +373,12 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
         """
         _namespace = self._ensure_required_namespace(namespace)
         options = PostOptions(dry_run=dry_run, field_manager=field_manager)
-        request = apply_request_timeout(
-            self._request_builder.replace(
-                name,
-                _namespace,
-                options,
-                data.model_dump_json(
-                    by_alias=True, exclude_unset=True, exclude_none=True
-                ),
-            ),
-            request_timeout,
+        request = self._request_builder.replace(
+            name,
+            _namespace,
+            options,
+            data.model_dump_json(by_alias=True, exclude_unset=True, exclude_none=True),
+            request_timeout=request_timeout,
         )
         response = await self._client.request(request)
         return self._resource.model_validate_json(response.content)
@@ -421,11 +412,11 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
             send_initial_events=send_initial_events,
             timeout_seconds=timeout_seconds,
         )
-        request = apply_request_timeout(
-            self._request_builder.watch(
-                _namespace, options, resource_version=resource_version
-            ),
-            request_timeout,
+        request = self._request_builder.watch(
+            _namespace,
+            options,
+            resource_version=resource_version,
+            request_timeout=request_timeout,
         )
         async for line in self._client.stream_lines(request):
             yield WatchEvent(self._resource, json.loads(line))

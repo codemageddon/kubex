@@ -8,7 +8,6 @@ from ._protocol import (
     ApiNamespaceTypes,
     ApiProtocol,
     ApiRequestTimeoutTypes,
-    apply_request_timeout,
 )
 
 
@@ -57,9 +56,8 @@ class LogsMixin(ApiProtocol[ResourceType]):
             tail_lines=tail_lines,
             timestamps=timestamps,
         )
-        request = apply_request_timeout(
-            self._request_builder.logs(name, _namespace, options=options),
-            request_timeout,
+        request = self._request_builder.logs(
+            name, _namespace, options=options, request_timeout=request_timeout
         )
         response = await self._client.request(request)
         return response.text
@@ -111,9 +109,8 @@ class LogsMixin(ApiProtocol[ResourceType]):
             tail_lines=tail_lines,
             timestamps=timestamps,
         )
-        request = apply_request_timeout(
-            self._request_builder.stream_logs(name, _namespace, options=options),
-            request_timeout,
+        request = self._request_builder.stream_logs(
+            name, _namespace, options=options, request_timeout=request_timeout
         )
         async for line in self._client.stream_lines(request):
             yield line

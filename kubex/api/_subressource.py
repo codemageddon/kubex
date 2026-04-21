@@ -15,7 +15,6 @@ from ._protocol import (
     ApiNamespaceTypes,
     ApiProtocol,
     ApiRequestTimeoutTypes,
-    apply_request_timeout,
 )
 
 SCALE_SUBRESOURCE = "scale"
@@ -37,9 +36,8 @@ class ScaleMixin(ApiProtocol[ResourceType]):
     ) -> Scale:
         self._check_implemented()
         _namespace = self._ensure_required_namespace(namespace)
-        request = apply_request_timeout(
-            self._request_builder.get_subresource(SCALE_SUBRESOURCE, name, _namespace),
-            request_timeout,
+        request = self._request_builder.get_subresource(
+            SCALE_SUBRESOURCE, name, _namespace, request_timeout=request_timeout
         )
         response = await self._client.request(request)
         return Scale.model_validate_json(response.content)
@@ -57,17 +55,15 @@ class ScaleMixin(ApiProtocol[ResourceType]):
         self._check_implemented()
         _namespace = self._ensure_required_namespace(namespace)
         options = PostOptions(dry_run=dry_run, field_manager=field_manager)
-        request = apply_request_timeout(
-            self._request_builder.replace_subresource(
-                SCALE_SUBRESOURCE,
-                name,
-                _namespace,
-                data=scale.model_dump_json(
-                    by_alias=True, exclude_unset=True, exclude_none=True
-                ),
-                options=options,
+        request = self._request_builder.replace_subresource(
+            SCALE_SUBRESOURCE,
+            name,
+            _namespace,
+            data=scale.model_dump_json(
+                by_alias=True, exclude_unset=True, exclude_none=True
             ),
-            request_timeout,
+            options=options,
+            request_timeout=request_timeout,
         )
         response = await self._client.request(request)
         return Scale.model_validate_json(response.content)
@@ -92,15 +88,13 @@ class ScaleMixin(ApiProtocol[ResourceType]):
             force=force,
             field_validation=field_validation,
         )
-        request = apply_request_timeout(
-            self._request_builder.patch_subresource(
-                SCALE_SUBRESOURCE,
-                name,
-                _namespace,
-                options=options,
-                patch=patch,
-            ),
-            request_timeout,
+        request = self._request_builder.patch_subresource(
+            SCALE_SUBRESOURCE,
+            name,
+            _namespace,
+            options=options,
+            patch=patch,
+            request_timeout=request_timeout,
         )
         response = await self._client.request(request)
         return Scale.model_validate_json(response.content)

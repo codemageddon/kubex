@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from types import EllipsisType
 
-from kubex.core.params import Timeout
+from kubex.core.params import Timeout, TimeoutTypes
 
 
 class Request:
@@ -13,14 +13,16 @@ class Request:
         query_params: dict[str, str] | None = None,
         body: str | bytes | None = None,
         headers: dict[str, str] | None = None,
-        timeout: Timeout | None | EllipsisType = ...,
+        timeout: TimeoutTypes | EllipsisType = ...,
     ) -> None:
         self.url = url
         self.query_params = query_params
         self.method = method
         self.body = body
         self.headers = headers
-        self.timeout: Timeout | None | EllipsisType = timeout
+        self.timeout: Timeout | None | EllipsisType = (
+            timeout if timeout is Ellipsis else Timeout.coerce(timeout)
+        )
 
     def __repr__(self) -> str:
         return (

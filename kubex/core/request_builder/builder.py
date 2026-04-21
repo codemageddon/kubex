@@ -1,3 +1,4 @@
+from types import EllipsisType
 from typing import Any
 
 from kubex.core.params import (
@@ -6,6 +7,7 @@ from kubex.core.params import (
     ListOptions,
     PatchOptions,
     PostOptions,
+    TimeoutTypes,
     WatchOptions,
 )
 from kubex.core.patch import Patch
@@ -24,24 +26,44 @@ class RequestBuilder(
     def __init__(self, resource_config: ResourceConfig[Any]) -> None:
         self.resource_config = resource_config
 
-    def get(self, name: str, namespace: str | None, options: GetOptions) -> Request:
+    def get(
+        self,
+        name: str,
+        namespace: str | None,
+        options: GetOptions,
+        *,
+        request_timeout: TimeoutTypes | EllipsisType = ...,
+    ) -> Request:
         query_params = options.as_query_params()
         return Request(
             method="GET",
             url=self.resource_config.url(namespace, name),
             query_params=query_params,
+            timeout=request_timeout,
         )
 
-    def list(self, namespace: str | None, options: ListOptions) -> Request:
+    def list(
+        self,
+        namespace: str | None,
+        options: ListOptions,
+        *,
+        request_timeout: TimeoutTypes | EllipsisType = ...,
+    ) -> Request:
         query_params = options.as_query_params()
         return Request(
             method="GET",
             url=self.resource_config.url(namespace),
             query_params=query_params,
+            timeout=request_timeout,
         )
 
     def create(
-        self, namespace: str | None, options: PostOptions, data: str | bytes
+        self,
+        namespace: str | None,
+        options: PostOptions,
+        data: str | bytes,
+        *,
+        request_timeout: TimeoutTypes | EllipsisType = ...,
     ) -> Request:
         query_params = options.as_query_params()
         return Request(
@@ -49,20 +71,32 @@ class RequestBuilder(
             url=self.resource_config.url(namespace),
             query_params=query_params,
             body=data,
+            timeout=request_timeout,
         )
 
     def delete(
-        self, name: str, namespace: str | None, options: DeleteOptions
+        self,
+        name: str,
+        namespace: str | None,
+        options: DeleteOptions,
+        *,
+        request_timeout: TimeoutTypes | EllipsisType = ...,
     ) -> Request:
         body = options.as_request_body()
         return Request(
             method="DELETE",
             url=self.resource_config.url(namespace, name),
             body=body,
+            timeout=request_timeout,
         )
 
     def delete_collection(
-        self, namespace: str | None, options: ListOptions, delete_options: DeleteOptions
+        self,
+        namespace: str | None,
+        options: ListOptions,
+        delete_options: DeleteOptions,
+        *,
+        request_timeout: TimeoutTypes | EllipsisType = ...,
     ) -> Request:
         query_params = options.as_query_params()
         body = delete_options.as_request_body()
@@ -71,10 +105,17 @@ class RequestBuilder(
             url=self.resource_config.url(namespace),
             query_params=query_params,
             body=body,
+            timeout=request_timeout,
         )
 
     def patch(
-        self, name: str, namespace: str | None, options: PatchOptions, patch: Patch
+        self,
+        name: str,
+        namespace: str | None,
+        options: PatchOptions,
+        patch: Patch,
+        *,
+        request_timeout: TimeoutTypes | EllipsisType = ...,
     ) -> Request:
         return Request(
             method="PATCH",
@@ -85,10 +126,17 @@ class RequestBuilder(
                 ACCEPT_HEADER: APPLICATION_JSON_MIME_TYPE,
                 CONTENT_TYPE_HEADER: patch.content_type_header,
             },
+            timeout=request_timeout,
         )
 
     def replace(
-        self, name: str, namespace: str | None, options: PostOptions, data: str | bytes
+        self,
+        name: str,
+        namespace: str | None,
+        options: PostOptions,
+        data: str | bytes,
+        *,
+        request_timeout: TimeoutTypes | EllipsisType = ...,
     ) -> Request:
         query_params = options.as_query_params()
         return Request(
@@ -96,6 +144,7 @@ class RequestBuilder(
             url=self.resource_config.url(namespace, name),
             query_params=query_params,
             body=data,
+            timeout=request_timeout,
         )
 
     def watch(
@@ -103,6 +152,8 @@ class RequestBuilder(
         namespace: str | None,
         options: WatchOptions,
         resource_version: str | None = None,
+        *,
+        request_timeout: TimeoutTypes | EllipsisType = ...,
     ) -> Request:
         query_params = options.as_query_params()
         if resource_version is not None:
@@ -111,4 +162,5 @@ class RequestBuilder(
             method="GET",
             url=self.resource_config.url(namespace),
             query_params=query_params,
+            timeout=request_timeout,
         )
