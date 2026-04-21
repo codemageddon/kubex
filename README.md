@@ -62,6 +62,6 @@ Kubex works with both **asyncio** and **trio** (via httpx), with no framework lo
 * [ ] Dynamic API object creation to exclude unsupported methods for resources (requires research for mypy compatibility).
 * [ ] Potential synchronous version of the client.
 * [ ] Additional tests and examples.
-* [ ] JsonPatch models.
+* [x] JsonPatch models.
 * [ ] Enhanced support for subresources (status, ephemeral containers).
 * [ ] Support for Pod.attach.
