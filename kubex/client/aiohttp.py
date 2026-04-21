@@ -1,11 +1,12 @@
 import ssl
 import warnings
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator
 
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientTimeout
 from aiohttp.connector import TCPConnector
 
 from kubex.configuration import ClientConfiguration
+from kubex.core.params import Timeout
 from kubex.core.request import Request
 from kubex.core.request_builder import constants
 from kubex.core.response import HeadersWrapper, Response
@@ -14,6 +15,20 @@ from .client import (
     BaseClient,
     handle_request_error,
 )
+
+
+def _to_aiohttp_timeout(timeout: Timeout | None) -> ClientTimeout:
+    """Translate a ``Timeout`` (or explicit ``None``) to ``ClientTimeout``.
+
+    ``write`` and ``pool`` are ignored: aiohttp does not support them.
+    """
+    if timeout is None:
+        return ClientTimeout(total=None)
+    return ClientTimeout(
+        total=timeout.total,
+        connect=timeout.connect,
+        sock_read=timeout.read,
+    )
 
 
 class AioHttpClient(BaseClient):
@@ -54,23 +69,31 @@ class AioHttpClient(BaseClient):
             verify_ssl=not bool(self.configuration.insecure_skip_tls_verify),
             ssl=ssl_context,
         )
-        return ClientSession(
-            base_url=str(self.configuration.base_url),
-            connector=connector,
-            read_bufsize=2**21,
-            headers=self._default_headers,
-        )
+        kwargs: dict[str, Any] = {
+            "base_url": str(self.configuration.base_url),
+            "connector": connector,
+            "read_bufsize": 2**21,
+            "headers": self._default_headers,
+        }
+        configured_timeout = self.configuration.timeout
+        if configured_timeout is not Ellipsis:
+            kwargs["timeout"] = _to_aiohttp_timeout(configured_timeout)
+        return ClientSession(**kwargs)
 
     async def request(self, request: Request) -> Response:
         headers = self._get_headers()
         if request.headers:
             headers.update(request.headers)
+        extra: dict[str, Any] = {}
+        if request.timeout is not Ellipsis:
+            extra["timeout"] = _to_aiohttp_timeout(request.timeout)
         _response = await self._inner_client.request(
             method=request.method,
             url=request.url,
             params=request.query_params,
             data=request.body,
             headers=headers,
+            **extra,
         )
         status = _response.status
         response = Response(
@@ -91,12 +114,16 @@ class AioHttpClient(BaseClient):
         headers = self._get_headers()
         if request.headers:
             headers.update(request.headers)
+        extra: dict[str, Any] = {}
+        if request.timeout is not Ellipsis:
+            extra["timeout"] = _to_aiohttp_timeout(request.timeout)
         _response = await self._inner_client.request(
             method=request.method,
             url=request.url,
             params=request.query_params,
             data=request.body,
             headers=request.headers,
+            **extra,
         )
         status = _response.status
         if 400 <= status < 600:

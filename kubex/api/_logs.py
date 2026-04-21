@@ -4,7 +4,12 @@ from kubex.core.params import LogOptions
 from kubex_core.models.interfaces import HasLogs
 from kubex_core.models.typing import ResourceType
 
-from ._protocol import ApiNamespaceTypes, ApiProtocol
+from ._protocol import (
+    ApiNamespaceTypes,
+    ApiProtocol,
+    ApiRequestTimeoutTypes,
+    apply_request_timeout,
+)
 
 
 class LogsMixin(ApiProtocol[ResourceType]):
@@ -39,6 +44,7 @@ class LogsMixin(ApiProtocol[ResourceType]):
         since_seconds: int | None = None,
         tail_lines: int | None = None,
         timestamps: bool | None = None,
+        request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> str:
         self._check_implemented()
         _namespace = self._ensure_required_namespace(namespace)
@@ -51,7 +57,10 @@ class LogsMixin(ApiProtocol[ResourceType]):
             tail_lines=tail_lines,
             timestamps=timestamps,
         )
-        request = self._request_builder.logs(name, _namespace, options=options)
+        request = apply_request_timeout(
+            self._request_builder.logs(name, _namespace, options=options),
+            request_timeout,
+        )
         response = await self._client.request(request)
         return response.text
 
@@ -82,7 +91,15 @@ class LogsMixin(ApiProtocol[ResourceType]):
         since_seconds: int | None = None,
         tail_lines: int | None = None,
         timestamps: bool | None = None,
+        request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> AsyncGenerator[str, None]:
+        """Stream container logs.
+
+        Args:
+            request_timeout: HTTP-level timeout override for this call. A short
+                read/total timeout will terminate the long-lived log stream;
+                disable the read timeout or leave this unset.
+        """
         self._check_implemented()
         _namespace = self._ensure_required_namespace(namespace)
         options = LogOptions(
@@ -94,7 +111,9 @@ class LogsMixin(ApiProtocol[ResourceType]):
             tail_lines=tail_lines,
             timestamps=timestamps,
         )
-        request = self._request_builder.stream_logs(name, _namespace, options=options)
-        # TODO: ReadTimeout
+        request = apply_request_timeout(
+            self._request_builder.stream_logs(name, _namespace, options=options),
+            request_timeout,
+        )
         async for line in self._client.stream_lines(request):
             yield line

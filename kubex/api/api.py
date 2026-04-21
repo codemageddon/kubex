@@ -37,7 +37,7 @@ from kubex_core.models.watch_event import WatchEvent
 
 from ._logs import LogsMixin
 from ._metadata import MetadataMixin
-from ._protocol import ApiNamespaceTypes
+from ._protocol import ApiNamespaceTypes, ApiRequestTimeoutTypes, apply_request_timeout
 
 
 class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[ResourceType]):
@@ -102,6 +102,7 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
         *,
         namespace: ApiNamespaceTypes = Ellipsis,
         resource_version: ResourceVersionTypes = None,
+        request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> ResourceType:
         """Read the specified resource.
 
@@ -114,12 +115,17 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
             resource_version: The resource version to read. If not provided,
                 the current resource version will be read. For details look at
                 [Resource Version Semantics documentation](https://kubernetes.io/docs/reference/using-api/api-concepts/#semantics-for-get-and-list),
+            request_timeout: HTTP-level timeout override for this call. A number is
+                interpreted as the total timeout in seconds. Pass ``None`` to disable
+                timeouts entirely for this call. Omit to use the client default.
         Returns:
             ResourceType: the resource instance.
         """
         _namespace = self._ensure_required_namespace(namespace)
         options = GetOptions(resource_version=resource_version)
-        request = self._request_builder.get(name, _namespace, options)
+        request = apply_request_timeout(
+            self._request_builder.get(name, _namespace, options), request_timeout
+        )
         response = await self._client.request(request)
         return self._resource.model_validate_json(response.content)
 
@@ -134,6 +140,7 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
         continue_token: str | None = None,
         version_match: VersionMatch | None = None,
         resource_version: ResourceVersionTypes = None,
+        request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> ListEntity[ResourceType]:
         """List objects of kind.
 
@@ -145,13 +152,18 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
                 For details look at [Label Selectors documentation](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors).
             field_selector: A selector to restrict the list of returned objects by their fields.
                 For details look at [Field Selectors documentation](https://kubernetes.io/docs/concepts/overview/working-with-objects/field-selectors/).
-            timeout: Timeout for the list/watch call.
+            timeout: Server-side timeout (in seconds) for the list/watch call;
+                sent as the Kubernetes ``timeoutSeconds`` query parameter. For an
+                HTTP client-side timeout, use ``request_timeout``.
             limit: The maximum number of items to return.
             continue_token: The continue token for the list call.
             version_match: Whether to watch for changes to a resource.
             resource_version: The resource version to list. If not provided,
                 the current resource version will be listed. For details look at
                 [Resource Version Semantics documentation](https://kubernetes.io/docs/reference/using-api/api-concepts/#semantics-for-get-and-list),
+            request_timeout: HTTP-level timeout override for this call. A number is
+                interpreted as the total timeout in seconds. Pass ``None`` to disable
+                timeouts entirely for this call. Omit to use the client default.
         Returns:
             ListEntity[ResourceType]: the list of resource.
         """
@@ -165,7 +177,9 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
             version_match=version_match,
             resource_version=resource_version,
         )
-        request = self._request_builder.list(_namespace, options)
+        request = apply_request_timeout(
+            self._request_builder.list(_namespace, options), request_timeout
+        )
         response = await self._client.request(request)
         list_model = self._resource.__RESOURCE_CONFIG__.list_model
         return list_model.model_validate_json(response.content)
@@ -177,6 +191,7 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
         namespace: ApiNamespaceTypes = Ellipsis,
         dry_run: DryRunTypes = None,
         field_manager: str | None = None,
+        request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> ResourceType:
         """Create a resource.
 
@@ -188,15 +203,23 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
                 If namespace is provided for cluster-scoped resources, an error will be raised.
             dry_run: Whether to perform a dry run of the operation.
             field_manager (str): The value to use for the fieldManager attribute of the created resource.
+            request_timeout: HTTP-level timeout override for this call. A number is
+                interpreted as the total timeout in seconds. Pass ``None`` to disable
+                timeouts entirely for this call. Omit to use the client default.
         Returns:
             ResourceType: the created resource instance.
         """
         _namespace = self._ensure_required_namespace(namespace)
         options = PostOptions(dry_run=dry_run, field_manager=field_manager)
-        request = self._request_builder.create(
-            _namespace,
-            options,
-            data.model_dump_json(by_alias=True, exclude_unset=True, exclude_none=True),
+        request = apply_request_timeout(
+            self._request_builder.create(
+                _namespace,
+                options,
+                data.model_dump_json(
+                    by_alias=True, exclude_unset=True, exclude_none=True
+                ),
+            ),
+            request_timeout,
         )
         response = await self._client.request(request)
         return self._resource.model_validate_json(response.content)
@@ -210,6 +233,7 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
         grace_period_seconds: int | None = None,
         propagation_policy: PropagationPolicyTypes = None,
         preconditions: Precondition | None = None,
+        request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> Status | ResourceType:
         """Delete the specified resource.
 
@@ -223,6 +247,9 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
             grace_period_seconds: The duration in seconds before the object should be deleted.
             propagation_policy: Whether and how garbage collection will be performed.
             preconditions: Preconditions for the operation.
+            request_timeout: HTTP-level timeout override for this call. A number is
+                interpreted as the total timeout in seconds. Pass ``None`` to disable
+                timeouts entirely for this call. Omit to use the client default.
         Returns:
             Status: the resource has been fully deleted.
             ResourceType: the resource instance deletion process has started,
@@ -237,7 +264,9 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
             propagation_policy=propagation_policy,
             preconditions=preconditions,
         )
-        request = self._request_builder.delete(name, _namespace, options)
+        request = apply_request_timeout(
+            self._request_builder.delete(name, _namespace, options), request_timeout
+        )
         response = await self._client.request(request)
         try:
             return Status.model_validate_json(response.content)
@@ -259,8 +288,15 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
         grace_period_seconds: int | None = None,
         propagation_policy: PropagationPolicyTypes = None,
         preconditions: Precondition | None = None,
+        request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> Status | ListEntity[ResourceType]:
-        """Delete collection of resources."""
+        """Delete collection of resources.
+
+        Args:
+            request_timeout: HTTP-level timeout override for this call. A number is
+                interpreted as the total timeout in seconds. Pass ``None`` to disable
+                timeouts entirely for this call. Omit to use the client default.
+        """
         _namespace = self._ensure_optional_namespace(namespace)
         list_options = ListOptions(
             label_selector=label_selector,
@@ -277,8 +313,11 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
             propagation_policy=propagation_policy,
             preconditions=preconditions,
         )
-        request = self._request_builder.delete_collection(
-            _namespace, list_options, delete_options
+        request = apply_request_timeout(
+            self._request_builder.delete_collection(
+                _namespace, list_options, delete_options
+            ),
+            request_timeout,
         )
         response = await self._client.request(request)
         list_model = self._resource.__RESOURCE_CONFIG__.list_model
@@ -297,8 +336,15 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
         field_manager: str | None = None,
         force: bool | None = None,
         field_validation: FieldValidation | None = None,
+        request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> ResourceType:
-        """Patch the specified resource."""
+        """Patch the specified resource.
+
+        Args:
+            request_timeout: HTTP-level timeout override for this call. A number is
+                interpreted as the total timeout in seconds. Pass ``None`` to disable
+                timeouts entirely for this call. Omit to use the client default.
+        """
         _namespace = self._ensure_required_namespace(namespace)
         options = PatchOptions(
             dry_run=dry_run,
@@ -306,7 +352,10 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
             force=force,
             field_validation=field_validation,
         )
-        request = self._request_builder.patch(name, _namespace, options, patch)
+        request = apply_request_timeout(
+            self._request_builder.patch(name, _namespace, options, patch),
+            request_timeout,
+        )
         response = await self._client.request(request)
         return self._resource.model_validate_json(response.content)
 
@@ -318,15 +367,27 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
         namespace: ApiNamespaceTypes = Ellipsis,
         dry_run: DryRunTypes = None,
         field_manager: str | None = None,
+        request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> ResourceType:
-        """Replace the specified resource."""
+        """Replace the specified resource.
+
+        Args:
+            request_timeout: HTTP-level timeout override for this call. A number is
+                interpreted as the total timeout in seconds. Pass ``None`` to disable
+                timeouts entirely for this call. Omit to use the client default.
+        """
         _namespace = self._ensure_required_namespace(namespace)
         options = PostOptions(dry_run=dry_run, field_manager=field_manager)
-        request = self._request_builder.replace(
-            name,
-            _namespace,
-            options,
-            data.model_dump_json(by_alias=True, exclude_unset=True, exclude_none=True),
+        request = apply_request_timeout(
+            self._request_builder.replace(
+                name,
+                _namespace,
+                options,
+                data.model_dump_json(
+                    by_alias=True, exclude_unset=True, exclude_none=True
+                ),
+            ),
+            request_timeout,
         )
         response = await self._client.request(request)
         return self._resource.model_validate_json(response.content)
@@ -341,8 +402,17 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
         send_initial_events: bool | None = None,
         timeout_seconds: int | None = None,
         resource_version: ResourceVersionTypes = None,
+        request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> AsyncGenerator[WatchEvent[ResourceType], None]:
-        """Watch for changes to the specified resource."""
+        """Watch for changes to the specified resource.
+
+        Args:
+            request_timeout: HTTP-level timeout override for this call. A number is
+                interpreted as the total timeout in seconds. Pass ``None`` to disable
+                timeouts entirely for this call. Omit to use the client default. For
+                long-lived watches a short read/total timeout will terminate the
+                stream; disable the read timeout or leave this unset.
+        """
         _namespace = self._ensure_optional_namespace(namespace)
         options = WatchOptions(
             label_selector=label_selector,
@@ -351,8 +421,11 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
             send_initial_events=send_initial_events,
             timeout_seconds=timeout_seconds,
         )
-        request = self._request_builder.watch(
-            _namespace, options, resource_version=resource_version
+        request = apply_request_timeout(
+            self._request_builder.watch(
+                _namespace, options, resource_version=resource_version
+            ),
+            request_timeout,
         )
         async for line in self._client.stream_lines(request):
             yield WatchEvent(self._resource, json.loads(line))

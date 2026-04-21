@@ -11,7 +11,12 @@ from kubex_core.models.interfaces import HasScaleSubresource
 from kubex_core.models.scale import Scale
 from kubex_core.models.typing import ResourceType
 
-from ._protocol import ApiNamespaceTypes, ApiProtocol
+from ._protocol import (
+    ApiNamespaceTypes,
+    ApiProtocol,
+    ApiRequestTimeoutTypes,
+    apply_request_timeout,
+)
 
 SCALE_SUBRESOURCE = "scale"
 
@@ -24,12 +29,17 @@ class ScaleMixin(ApiProtocol[ResourceType]):
             )
 
     async def get_scale(
-        self, name: str, *, namespace: ApiNamespaceTypes = Ellipsis
+        self,
+        name: str,
+        *,
+        namespace: ApiNamespaceTypes = Ellipsis,
+        request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> Scale:
         self._check_implemented()
         _namespace = self._ensure_required_namespace(namespace)
-        request = self._request_builder.get_subresource(
-            SCALE_SUBRESOURCE, name, _namespace
+        request = apply_request_timeout(
+            self._request_builder.get_subresource(SCALE_SUBRESOURCE, name, _namespace),
+            request_timeout,
         )
         response = await self._client.request(request)
         return Scale.model_validate_json(response.content)
@@ -42,18 +52,22 @@ class ScaleMixin(ApiProtocol[ResourceType]):
         namespace: ApiNamespaceTypes = Ellipsis,
         dry_run: DryRunTypes = None,
         field_manager: str | None = None,
+        request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> Scale:
         self._check_implemented()
         _namespace = self._ensure_required_namespace(namespace)
         options = PostOptions(dry_run=dry_run, field_manager=field_manager)
-        request = self._request_builder.replace_subresource(
-            SCALE_SUBRESOURCE,
-            name,
-            _namespace,
-            data=scale.model_dump_json(
-                by_alias=True, exclude_unset=True, exclude_none=True
+        request = apply_request_timeout(
+            self._request_builder.replace_subresource(
+                SCALE_SUBRESOURCE,
+                name,
+                _namespace,
+                data=scale.model_dump_json(
+                    by_alias=True, exclude_unset=True, exclude_none=True
+                ),
+                options=options,
             ),
-            options=options,
+            request_timeout,
         )
         response = await self._client.request(request)
         return Scale.model_validate_json(response.content)
@@ -68,6 +82,7 @@ class ScaleMixin(ApiProtocol[ResourceType]):
         field_manager: str | None = None,
         force: bool | None = None,
         field_validation: FieldValidation | None = None,
+        request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> Scale:
         self._check_implemented()
         _namespace = self._ensure_required_namespace(namespace)
@@ -77,12 +92,15 @@ class ScaleMixin(ApiProtocol[ResourceType]):
             force=force,
             field_validation=field_validation,
         )
-        request = self._request_builder.patch_subresource(
-            SCALE_SUBRESOURCE,
-            name,
-            _namespace,
-            options=options,
-            patch=patch,
+        request = apply_request_timeout(
+            self._request_builder.patch_subresource(
+                SCALE_SUBRESOURCE,
+                name,
+                _namespace,
+                options=options,
+                patch=patch,
+            ),
+            request_timeout,
         )
         response = await self._client.request(request)
         return Scale.model_validate_json(response.content)
