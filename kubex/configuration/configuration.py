@@ -2,9 +2,11 @@ import typing
 from enum import Enum
 from pathlib import Path
 from time import time
+from types import EllipsisType
 
 from pydantic import Field, FilePath, HttpUrl, SecretStr
 
+from kubex.core.params import Timeout, TimeoutTypes
 from kubex_core.models.base import BaseK8sModel
 
 
@@ -205,6 +207,7 @@ class ClientConfiguration:
         namespace: str | None = None,
         try_refresh_token: bool = False,
         log_api_warnings: bool = True,
+        timeout: TimeoutTypes | EllipsisType = ...,
     ) -> None:
         if try_refresh_token and token_file is None:
             raise ValueError("Token file must be provided to refresh token")
@@ -233,6 +236,19 @@ class ClientConfiguration:
         self._last_token_read: float | None = None
         self._current_token: str | None = None
         self._token = token
+        self._timeout: Timeout | None | EllipsisType = (
+            timeout if timeout is Ellipsis else Timeout.coerce(timeout)
+        )
+
+    @property
+    def timeout(self) -> Timeout | None | EllipsisType:
+        """Default HTTP timeout for this client.
+
+        ``Ellipsis`` means no timeout was configured (backend library default
+        applies). ``None`` means timeouts are explicitly disabled. A
+        :class:`Timeout` instance is used as-is.
+        """
+        return self._timeout
 
     @property
     def verify(self) -> bool | str | None:

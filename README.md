@@ -58,7 +58,7 @@ Kubex works with both **asyncio** and **trio** (via httpx), with no framework lo
 # Planned Features:
 
 * [ ] Support for OIDC and other authentication extensions.
-* [ ] Fine-tuning of timeouts.
+* [x] Fine-tuning of timeouts.
 * [ ] Dynamic API object creation to exclude unsupported methods for resources (requires research for mypy compatibility).
 * [ ] Potential synchronous version of the client.
 * [ ] Additional tests and examples.

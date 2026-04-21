@@ -2,8 +2,76 @@ from __future__ import annotations
 
 import json
 from enum import Enum
-from typing import Any, Literal
+from typing import Any, Literal, Union
 from uuid import UUID
+
+
+class Timeout:
+    """Timeout settings for HTTP requests.
+
+    Provides a client-agnostic way to configure timeout settings for the
+    underlying HTTP client. Individual fields may be ignored by a given
+    implementation if the client library does not support them.
+
+    Args:
+        total: Total timeout in seconds for the whole request. Used as the
+            default for unset granular fields.
+        connect: Timeout in seconds for establishing a connection.
+        read: Timeout in seconds for reading the response.
+        write: Timeout in seconds for writing the request body.
+            Only honored by the httpx backend.
+        pool: Timeout in seconds for acquiring a connection from the pool.
+            Only honored by the httpx backend.
+    """
+
+    __slots__ = ("total", "connect", "read", "write", "pool")
+
+    def __init__(
+        self,
+        total: float | None = None,
+        *,
+        connect: float | None = None,
+        read: float | None = None,
+        write: float | None = None,
+        pool: float | None = None,
+    ) -> None:
+        self.total = total
+        self.connect = connect
+        self.read = read
+        self.write = write
+        self.pool = pool
+
+    @classmethod
+    def coerce(cls, value: TimeoutTypes) -> Timeout | None:
+        """Normalize a ``TimeoutTypes`` value to ``Timeout`` or ``None``."""
+        if value is None:
+            return None
+        if isinstance(value, Timeout):
+            return value
+        return cls(total=float(value))
+
+    def __repr__(self) -> str:
+        return (
+            f"Timeout(total={self.total}, connect={self.connect}, "
+            f"read={self.read}, write={self.write}, pool={self.pool})"
+        )
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Timeout):
+            return NotImplemented
+        return (
+            self.total == other.total
+            and self.connect == other.connect
+            and self.read == other.read
+            and self.write == other.write
+            and self.pool == other.pool
+        )
+
+    def __hash__(self) -> int:
+        return hash((self.total, self.connect, self.read, self.write, self.pool))
+
+
+TimeoutTypes = Union[Timeout, float, int, None]
 
 
 class VersionMatch(str, Enum):
