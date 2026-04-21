@@ -43,7 +43,7 @@ def test_to_aiohttp_timeout_maps_read_to_sock_read() -> None:
         Timeout(total=5, connect=1, read=2, write=3, pool=4)
     )
     assert translated.total == 5
-    assert translated.connect == 1
+    assert translated.sock_connect == 1
     assert translated.sock_read == 2
 
 

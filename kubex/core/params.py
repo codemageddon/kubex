@@ -71,7 +71,7 @@ class Timeout:
         return hash((self.total, self.connect, self.read, self.write, self.pool))
 
 
-TimeoutTypes = Union["Timeout", float, int, None]
+TimeoutTypes = Union[Timeout, float, int, None]
 
 
 class VersionMatch(str, Enum):

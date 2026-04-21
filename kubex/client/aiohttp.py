@@ -26,7 +26,7 @@ def _to_aiohttp_timeout(timeout: Timeout | None) -> ClientTimeout:
         return ClientTimeout(total=None)
     return ClientTimeout(
         total=timeout.total,
-        connect=timeout.connect,
+        sock_connect=timeout.connect,
         sock_read=timeout.read,
     )
 
@@ -122,7 +122,7 @@ class AioHttpClient(BaseClient):
             url=request.url,
             params=request.query_params,
             data=request.body,
-            headers=request.headers,
+            headers=headers,
             **extra,
         )
         status = _response.status
