@@ -60,7 +60,10 @@ kubex/                          # Main package
     ├── response.py             # Response dataclass + HeadersWrapper
     ├── params.py               # API option classes (ListOptions, GetOptions, DeleteOptions, etc.)
                                 #   + Timeout, TimeoutTypes — HTTP timeout configuration
-    ├── patch.py                # Patch protocols (ApplyPatch, MergePatch, StrategicMergePatch, JsonPatch)
+    ├── json_patch.py           # JSON Patch RFC 6902 operation models (JsonPatchAdd, etc.) + JsonPatch RootModel
+    ├── json_pointer.py         # JSON Pointer RFC 6901 implementation (JsonPointer custom str type)
+    ├── patch.py                # Patch protocol + ApplyPatch, MergePatch, StrategicMergePatch
+                                #   Re-exports JsonPatch models and JsonPointer from json_patch/json_pointer
     ├── subresource.py          # Subresource definitions
     └── request_builder/        # Constructs HTTP requests from API calls
         ├── builder.py          # RequestBuilder (main builder composing mixins)
@@ -114,6 +117,9 @@ test/                           # Test suite
 ├── test_configuration/         # Unit tests
 │   └── auth/
 │       └── test_exec_provider.py # Exec provider unit tests
+├── test_patch/                 # Unit tests for patch models
+│   ├── test_json_patch.py      # JSON Patch operation model tests
+│   └── test_json_pointer.py    # JSON Pointer (RFC 6901) tests
 └── test_timeout/               # Unit tests for HTTP timeout settings
 
 examples/                       # Usage examples
@@ -202,7 +208,7 @@ Resources declare capabilities via multiple inheritance from marker classes: `Na
 
 - **Framework**: pytest with `pytest-cov` and `anyio` for async support
 - **E2E tests** use `testcontainers` with a K3S container (requires Docker); located in `test/e2e/`
-- **Unit tests** for configuration/auth in `test/test_configuration/`, timeout settings in `test/test_timeout/`
+- **Unit tests** for configuration/auth in `test/test_configuration/`, timeout settings in `test/test_timeout/`, patch models in `test/test_patch/`
 - **Codegen tests** with golden snapshots in `scripts/codegen/tests/`
 - E2E tests are parameterized over both HTTP clients (`httpx`, `aiohttp`) and async backends (`asyncio`, `trio` — trio only with httpx)
 - Mark async tests with `@pytest.mark.anyio`
