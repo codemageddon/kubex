@@ -232,7 +232,7 @@ _BUILDER_CASES: list[tuple[str, JsonPatch, list[dict[str, Any]]]] = [
 
 
 @pytest.mark.parametrize(
-    ("label", "patch", "expected"),
+    ("_", "patch", "expected"),
     _BUILDER_CASES,
     ids=[c[0] for c in _BUILDER_CASES],
 )
