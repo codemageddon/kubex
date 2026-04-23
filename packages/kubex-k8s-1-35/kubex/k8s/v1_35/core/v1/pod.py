@@ -8,14 +8,29 @@ from kubex.k8s.v1_35.core.v1.pod_spec import PodSpec
 from kubex.k8s.v1_35.core.v1.pod_status import PodStatus
 from kubex_core.models.interfaces import (
     Evictable,
+    HasAttach,
+    HasEphemeralContainers,
+    HasExec,
     HasLogs,
+    HasPortForward,
+    HasResize,
     HasStatusSubresource,
     NamespaceScopedEntity,
 )
 from kubex_core.models.resource_config import ResourceConfig, Scope
 
 
-class Pod(NamespaceScopedEntity, HasLogs, Evictable, HasStatusSubresource):
+class Pod(
+    NamespaceScopedEntity,
+    HasLogs,
+    Evictable,
+    HasStatusSubresource,
+    HasEphemeralContainers,
+    HasResize,
+    HasAttach,
+    HasExec,
+    HasPortForward,
+):
     """Pod is a collection of containers that can run on a host. This resource is created by clients and scheduled onto hosts."""
 
     __RESOURCE_CONFIG__: ClassVar[ResourceConfig["Pod"]] = ResourceConfig["Pod"](

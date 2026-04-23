@@ -5,7 +5,8 @@ a collection path is classified as a Kubernetes resource. Walking the path
 strings tells us:
 
 - scope (namespace vs cluster) from the presence of `/namespaces/{namespace}/`
-- subresources (`/status`, `/scale`, `/log`, `/eviction`) from path suffixes
+- subresources (`/status`, `/scale`, `/log`, `/eviction`, `/ephemeralcontainers`,
+  `/resize`, `/attach`, `/exec`, `/portforward`) from path suffixes
 - plural name from the terminal path segment
 """
 
@@ -30,6 +31,11 @@ class ResourceInfo:
     has_scale: bool = False
     has_logs: bool = False
     is_evictable: bool = False
+    has_ephemeral_containers: bool = False
+    has_resize: bool = False
+    has_attach: bool = False
+    has_exec: bool = False
+    has_port_forward: bool = False
     list_definition: str | None = (
         None  # swagger definition name of the paired *List, if any
     )
@@ -47,6 +53,11 @@ _SUBRESOURCE_FLAGS: dict[str, str] = {
     "/scale": "has_scale",
     "/log": "has_logs",
     "/eviction": "is_evictable",
+    "/ephemeralcontainers": "has_ephemeral_containers",
+    "/resize": "has_resize",
+    "/attach": "has_attach",
+    "/exec": "has_exec",
+    "/portforward": "has_port_forward",
 }
 
 
@@ -92,6 +103,15 @@ def detect_resources(
             existing.has_scale = existing.has_scale or info.has_scale
             existing.has_logs = existing.has_logs or info.has_logs
             existing.is_evictable = existing.is_evictable or info.is_evictable
+            existing.has_ephemeral_containers = (
+                existing.has_ephemeral_containers or info.has_ephemeral_containers
+            )
+            existing.has_resize = existing.has_resize or info.has_resize
+            existing.has_attach = existing.has_attach or info.has_attach
+            existing.has_exec = existing.has_exec or info.has_exec
+            existing.has_port_forward = (
+                existing.has_port_forward or info.has_port_forward
+            )
 
     # Apply subresource flags detected from path structure to parent resources.
     # This handles cases where the subresource endpoint's GVK refers to a
@@ -182,6 +202,11 @@ def _scan_path(
         has_scale=subresource_flags["has_scale"],
         has_logs=subresource_flags["has_logs"],
         is_evictable=subresource_flags["is_evictable"],
+        has_ephemeral_containers=subresource_flags["has_ephemeral_containers"],
+        has_resize=subresource_flags["has_resize"],
+        has_attach=subresource_flags["has_attach"],
+        has_exec=subresource_flags["has_exec"],
+        has_port_forward=subresource_flags["has_port_forward"],
     )
 
 

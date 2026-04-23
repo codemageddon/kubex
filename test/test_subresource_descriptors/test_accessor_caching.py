@@ -4,8 +4,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from kubex.api._ephemeral_containers import EphemeralContainersAccessor
 from kubex.api._eviction import EvictionAccessor
 from kubex.api._logs import LogsAccessor
+from kubex.api._resize import ResizeAccessor
 from kubex.api._scale import ScaleAccessor
 from kubex.api._status import StatusAccessor
 from kubex.api.api import Api
@@ -24,6 +26,8 @@ def _make_api(resource_type: type, **kwargs: object) -> Api:  # type: ignore[typ
         (Pod, "logs", LogsAccessor),
         (Pod, "status", StatusAccessor),
         (Pod, "eviction", EvictionAccessor),
+        (Pod, "ephemeral_containers", EphemeralContainersAccessor),
+        (Pod, "resize", ResizeAccessor),
         (Deployment, "scale", ScaleAccessor),
     ],
 )
@@ -43,6 +47,8 @@ def test_accessor_is_cached_after_first_access(
         (Pod, "logs"),
         (Pod, "status"),
         (Pod, "eviction"),
+        (Pod, "ephemeral_containers"),
+        (Pod, "resize"),
         (Deployment, "scale"),
     ],
 )
@@ -60,6 +66,8 @@ def test_cached_accessor_stored_in_instance_dict(
         (Pod, "logs"),
         (Pod, "status"),
         (Pod, "eviction"),
+        (Pod, "ephemeral_containers"),
+        (Pod, "resize"),
         (Deployment, "scale"),
     ],
 )
@@ -69,3 +77,21 @@ def test_each_api_instance_gets_own_cached_accessor(
     api1 = _make_api(resource_type)
     api2 = _make_api(resource_type)
     assert getattr(api1, attr) is not getattr(api2, attr)
+
+
+@pytest.mark.parametrize(
+    ("resource_type", "attr"),
+    [
+        (Pod, "logs"),
+        (Pod, "status"),
+        (Pod, "eviction"),
+        (Pod, "ephemeral_containers"),
+        (Pod, "resize"),
+        (Deployment, "scale"),
+        (Pod, "metadata"),
+    ],
+)
+def test_accessor_receives_resource_type(resource_type: type, attr: str) -> None:
+    api = _make_api(resource_type)
+    accessor = getattr(api, attr)
+    assert accessor._resource_type is resource_type

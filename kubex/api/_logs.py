@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, AsyncGenerator, Generic, TypeVar, overload
+from typing import Any, AsyncGenerator, Generic, Type, TypeVar, overload
 
 from kubex.client.client import BaseClient
 from kubex.core.params import LogOptions, NamespaceTypes
@@ -30,11 +30,13 @@ class LogsAccessor(Generic[ResourceType]):
         request_builder: RequestBuilder,
         namespace: NamespaceTypes,
         scope: Scope,
+        resource_type: Type[ResourceType],
     ) -> None:
         self._client = client
         self._request_builder = request_builder
         self._namespace = namespace
         self._scope = scope
+        self._resource_type = resource_type
 
     async def get(
         self,

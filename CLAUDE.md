@@ -40,8 +40,10 @@ kubex/                          # Main package
 │   ├── api.py                  # Api[ResourceType] generic class + create_api() factory
 │   ├── _logs.py                # LogsAccessor + _LogsDescriptor — api.logs.get() and api.logs.stream()
 │   ├── _scale.py               # ScaleAccessor + _ScaleDescriptor — api.scale.get(), replace(), patch()
-│   ├── _status.py              # StatusAccessor + _StatusDescriptor (stub)
-│   ├── _eviction.py            # EvictionAccessor + _EvictionDescriptor (stub)
+│   ├── _status.py              # StatusAccessor + _StatusDescriptor — api.status.get(), replace(), patch()
+│   ├── _eviction.py            # EvictionAccessor + _EvictionDescriptor — api.eviction.create()
+│   ├── _ephemeral_containers.py # EphemeralContainersAccessor + _EphemeralContainersDescriptor — api.ephemeral_containers.get(), replace(), patch()
+│   ├── _resize.py              # ResizeAccessor + _ResizeDescriptor — api.resize.get(), replace(), patch()
 │   ├── _metadata.py            # MetadataAccessor — api.metadata.get(), list(), patch(), watch()
 │   └── _protocol.py            # ApiProtocol[ResourceType], type aliases, SubresourceNotAvailable, namespace helpers
 ├── client/                     # HTTP client implementations
@@ -79,7 +81,7 @@ packages/                       # Workspace packages
 │   └── kubex_core/models/
 │       ├── base.py             # BaseK8sModel — Pydantic base with camelCase alias
 │       ├── base_entity.py      # BaseEntity — base for all K8s resources (__RESOURCE_CONFIG__)
-│       ├── interfaces.py       # Marker classes: ClusterScopedEntity, NamespaceScopedEntity, HasLogs, etc.
+│       ├── interfaces.py       # Marker classes: ClusterScopedEntity, NamespaceScopedEntity, HasLogs, Evictable, HasEphemeralContainers, HasResize, etc.
 │       ├── resource_config.py  # ResourceConfig[T] descriptor — kind, version, scope, URL generation
 │       ├── metadata.py         # ObjectMetadata, ListMetadata, OwnerReference
 │       ├── typing.py           # ResourceType TypeVar
@@ -87,6 +89,7 @@ packages/                       # Workspace packages
 │       ├── watch_event.py      # WatchEvent[ResourceType] and EventType enum
 │       ├── status.py           # Status response model
 │       ├── scale.py            # Scale subresource model
+│       ├── eviction.py         # Eviction subresource model (policy/v1)
 │       └── partial_object_meta.py # Partial metadata variant
 └── kubex-k8s-{1-32..1-37}/     # Generated Kubernetes resource models (one package per K8s version)
     └── kubex/k8s/v1_NN/        # ~666 generated model files across ~30 API groups
@@ -115,13 +118,18 @@ test/                           # Test suite
 ├── e2e/                        # End-to-end tests (testcontainers + K3S)
 │   ├── conftest.py             # Fixtures: K3S container, client fixtures, temp namespace
 │   ├── test_core_api_pod.py    # Pod CRUD tests
-│   └── test_core_api_namespaces.py  # Namespace listing tests
+│   ├── test_core_api_namespaces.py  # Namespace listing tests
+│   └── test_subresource_apis.py # E2E tests for Status, Eviction, EphemeralContainers, Resize subresources
 ├── test_configuration/         # Unit tests
 │   └── auth/
 │       └── test_exec_provider.py # Exec provider unit tests
+├── test_models/                # Unit tests for kubex-core models
+│   └── test_eviction.py        # Eviction model tests
 ├── test_patch/                 # Unit tests for patch models
 │   ├── test_json_patch.py      # JSON Patch operation model tests
 │   └── test_json_pointer.py    # JSON Pointer (RFC 6901) tests
+├── test_request_builder/       # Unit tests for request builder methods
+│   └── test_create_subresource.py # create_subresource() method tests
 ├── test_subresource_descriptors/ # Unit tests for descriptor-based subresource APIs
 └── test_timeout/               # Unit tests for HTTP timeout settings
 
@@ -205,7 +213,7 @@ KubexException
 ```
 
 ### Descriptor-based subresource APIs
-Subresource capabilities (logs, scale, status, eviction) use Python non-data descriptors with `__get__` overloads to provide type-safe access. Each capability is a class variable on `Api` (e.g., `logs = _LogsDescriptor()`) that returns a typed accessor (`LogsAccessor[T]`) when `T` has the matching marker interface, or raises `NotImplementedError` at runtime (and resolves to `SubresourceNotAvailable` for type checkers) when it does not. Accessors are cached on the instance after first access via `instance.__dict__` (the standard non-data descriptor caching pattern), so repeated attribute access returns the same object without re-invoking the descriptor. Accessor objects receive individual components (client, request_builder, namespace, scope) rather than a back-reference to `Api`. Metadata uses the same accessor pattern (`MetadataAccessor`) but is always available (no descriptor guard needed) and is created eagerly in `Api.__init__`.
+Subresource capabilities (logs, scale, status, eviction, ephemeral_containers, resize) use Python non-data descriptors with `__get__` overloads to provide type-safe access. Each capability is a class variable on `Api` (e.g., `logs = _LogsDescriptor()`) that returns a typed accessor (`LogsAccessor[T]`) when `T` has the matching marker interface, or raises `NotImplementedError` at runtime (and resolves to `SubresourceNotAvailable` for type checkers) when it does not. Accessors are cached on the instance after first access via `instance.__dict__` (the standard non-data descriptor caching pattern), so repeated attribute access returns the same object without re-invoking the descriptor. Accessor objects receive individual components (client, request_builder, namespace, scope, resource_type) rather than a back-reference to `Api`. Metadata uses the same accessor pattern (`MetadataAccessor`) but is always available (no descriptor guard needed) and is created eagerly in `Api.__init__`.
 ```python
 pod_api: Api[Pod] = Api(Pod, client=client, namespace="default")
 await pod_api.logs.get("my-pod")        # OK: Pod has HasLogs
@@ -216,7 +224,7 @@ await deploy_api.scale.get("my-deploy") # OK: Deployment has HasScaleSubresource
 ```
 
 ### Marker interfaces for resource capabilities
-Resources declare capabilities via multiple inheritance from marker classes: `NamespaceScopedEntity`, `ClusterScopedEntity`, `HasLogs`, `HasStatusSubresource`, `HasScaleSubresource`, `Evictable`.
+Resources declare capabilities via multiple inheritance from marker classes: `NamespaceScopedEntity`, `ClusterScopedEntity`, `HasLogs`, `HasStatusSubresource`, `HasScaleSubresource`, `Evictable`, `HasEphemeralContainers`, `HasResize`, `HasAttach`, `HasExec`, `HasPortForward`.
 
 ## Testing
 

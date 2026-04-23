@@ -57,6 +57,24 @@ class SubresourceRequestBuilder(RequestBuilderProtocol):
             timeout=request_timeout,
         )
 
+    def create_subresource(
+        self,
+        subresource: str,
+        name: str,
+        namespace: NamespaceTypes,
+        data: bytes | str,
+        options: PostOptions,
+        *,
+        request_timeout: TimeoutTypes | EllipsisType = ...,
+    ) -> Request:
+        return Request(
+            method="POST",
+            url=self.resource_config.url(namespace, name) + f"/{subresource}",
+            body=data,
+            query_params=options.as_query_params(),
+            timeout=request_timeout,
+        )
+
     def patch_subresource(
         self,
         subresource: str,

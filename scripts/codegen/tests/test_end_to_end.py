@@ -184,3 +184,67 @@ def test_init_has_all(generated_package: Path) -> None:
     # No INDEX, no re-export imports
     assert "INDEX" not in init
     assert "from kubex" not in init
+
+
+def test_new_marker_bases_emitted() -> None:
+    """Verify model_emitter produces correct bases for resources with new subresource flags."""
+    from typing import Any
+
+    definitions: dict[str, Any] = {
+        "io.k8s.api.core.v1.Pod": {
+            "type": "object",
+            "properties": {
+                "apiVersion": {"type": "string"},
+                "kind": {"type": "string"},
+            },
+            "x-kubernetes-group-version-kind": [
+                {"group": "", "kind": "Pod", "version": "v1"}
+            ],
+        },
+    }
+    pod_gvk = {
+        "x-kubernetes-group-version-kind": {
+            "group": "",
+            "kind": "Pod",
+            "version": "v1",
+        }
+    }
+    eviction_gvk = {
+        "x-kubernetes-group-version-kind": {
+            "group": "policy",
+            "kind": "Eviction",
+            "version": "v1",
+        }
+    }
+    paths: dict[str, Any] = {
+        "/api/v1/namespaces/{namespace}/pods": {"get": pod_gvk},
+        "/api/v1/namespaces/{namespace}/pods/{name}": {"get": pod_gvk},
+        "/api/v1/namespaces/{namespace}/pods/{name}/status": {"put": pod_gvk},
+        "/api/v1/namespaces/{namespace}/pods/{name}/log": {"get": pod_gvk},
+        "/api/v1/namespaces/{namespace}/pods/{name}/eviction": {"post": eviction_gvk},
+        "/api/v1/namespaces/{namespace}/pods/{name}/ephemeralcontainers": {
+            "get": pod_gvk
+        },
+        "/api/v1/namespaces/{namespace}/pods/{name}/resize": {"get": pod_gvk},
+        "/api/v1/namespaces/{namespace}/pods/{name}/attach": {"post": pod_gvk},
+        "/api/v1/namespaces/{namespace}/pods/{name}/exec": {"post": pod_gvk},
+        "/api/v1/namespaces/{namespace}/pods/{name}/portforward": {"post": pod_gvk},
+    }
+    resources = resource_detector.detect_resources(definitions, paths)
+    build = model_emitter.build_modules(
+        k8s_version_tag="v1_30",
+        definitions=definitions,
+        resources=resources,
+    )
+    pod_module = build.modules["kubex.k8s.v1_30.core.v1.pod"]
+    pod_class = pod_module.classes[0]
+    assert pod_class.class_name == "Pod"
+    assert "NamespaceScopedEntity" in pod_class.bases
+    assert "HasLogs" in pod_class.bases
+    assert "Evictable" in pod_class.bases
+    assert "HasStatusSubresource" in pod_class.bases
+    assert "HasEphemeralContainers" in pod_class.bases
+    assert "HasResize" in pod_class.bases
+    assert "HasAttach" in pod_class.bases
+    assert "HasExec" in pod_class.bases
+    assert "HasPortForward" in pod_class.bases
