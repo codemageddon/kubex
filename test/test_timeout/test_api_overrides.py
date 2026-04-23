@@ -1,41 +1,16 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Type
 
 import pytest
 
 from kubex.api import Api
-from kubex.api._subressource import ScaleMixin
-from kubex.core.params import NamespaceTypes, Timeout
+from kubex.core.params import Timeout
 from kubex.core.patch import MergePatch
-from kubex.core.request_builder.builder import RequestBuilder
 from kubex.k8s.v1_35.apps.v1.deployment import Deployment
 from kubex.k8s.v1_35.core.v1.pod import Pod
 
 from .conftest import StubClient
-
-
-class _ScaleOnly(ScaleMixin[Deployment]):
-    """Minimal ScaleMixin host used only for timeout-flow testing.
-
-    Avoids the ``_check_implemented`` name collision between ``LogsMixin`` and
-    ``ScaleMixin`` that would otherwise bite us if we composed with ``Api``.
-    """
-
-    def __init__(self, client: StubClient) -> None:
-        self._resource: Type[Deployment] = Deployment
-        self._client = client
-        self._request_builder = RequestBuilder(
-            resource_config=Deployment.__RESOURCE_CONFIG__,
-        )
-        self._namespace: NamespaceTypes = "default"
-
-    def _ensure_required_namespace(self, namespace: Any) -> NamespaceTypes:
-        return "default"
-
-    def _ensure_optional_namespace(self, namespace: Any) -> NamespaceTypes:
-        return "default"
 
 
 def _pod_api(client: StubClient) -> Api[Pod]:
@@ -150,7 +125,7 @@ async def test_patch_override_flows_through() -> None:
 async def test_logs_override_flows_through() -> None:
     client = StubClient(response_content=b"log-line\n")
     api = _pod_api(client)
-    await api.logs("x", request_timeout=5.0)
+    await api.logs.get("x", request_timeout=5.0)
     assert client.last_request.timeout == Timeout(total=5.0)
 
 
@@ -158,7 +133,7 @@ async def test_logs_override_flows_through() -> None:
 async def test_stream_logs_override_flows_through() -> None:
     client = StubClient(stream_lines=["hello"])
     api = _pod_api(client)
-    lines = [line async for line in api.stream_logs("x", request_timeout=6.0)]
+    lines = [line async for line in api.logs.stream("x", request_timeout=6.0)]
     assert lines == ["hello"]
     assert client.last_request.timeout == Timeout(total=6.0)
 
@@ -171,7 +146,7 @@ async def test_list_metadata_override_flows_through() -> None:
             b' "metadata": {}, "items": []}'
         )
     )
-    await _pod_api(client).list_metadata(request_timeout=8.0)
+    await _pod_api(client).metadata.list(request_timeout=8.0)
     assert client.last_request.timeout == Timeout(total=8.0)
 
 
@@ -183,8 +158,12 @@ async def test_get_metadata_override_flows_through() -> None:
             b' "metadata": {"name": "x"}}'
         )
     )
-    await _pod_api(client).get_metadata("x", request_timeout=9.0)
+    await _pod_api(client).metadata.get("x", request_timeout=9.0)
     assert client.last_request.timeout == Timeout(total=9.0)
+
+
+def _deploy_api(client: StubClient) -> Api[Deployment]:
+    return Api(Deployment, client=client, namespace="default")
 
 
 @pytest.mark.anyio
@@ -195,5 +174,5 @@ async def test_get_scale_override_flows_through() -> None:
             b' "metadata": {"name": "x"}, "spec": {"replicas": 1}}'
         )
     )
-    await _ScaleOnly(client).get_scale("x", request_timeout=10.0)
+    await _deploy_api(client).scale.get("x", request_timeout=10.0)
     assert client.last_request.timeout == Timeout(total=10.0)

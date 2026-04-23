@@ -38,10 +38,12 @@ kubex/                          # Main package
 ├── py.typed                    # PEP 561 type hint marker
 ├── api/                        # High-level API layer
 │   ├── api.py                  # Api[ResourceType] generic class + create_api() factory
-│   ├── _logs.py                # LogsMixin — logs() and stream_logs()
-│   ├── _metadata.py            # MetadataMixin — get_metadata() and list_metadata()
-│   ├── _subressource.py        # Subresource operations
-│   └── _protocol.py            # ApiProtocol[ResourceType] and type aliases
+│   ├── _logs.py                # LogsAccessor + _LogsDescriptor — api.logs.get() and api.logs.stream()
+│   ├── _scale.py               # ScaleAccessor + _ScaleDescriptor — api.scale.get(), replace(), patch()
+│   ├── _status.py              # StatusAccessor + _StatusDescriptor (stub)
+│   ├── _eviction.py            # EvictionAccessor + _EvictionDescriptor (stub)
+│   ├── _metadata.py            # MetadataAccessor — api.metadata.get(), list(), patch(), watch()
+│   └── _protocol.py            # ApiProtocol[ResourceType], type aliases, SubresourceNotAvailable, namespace helpers
 ├── client/                     # HTTP client implementations
 │   ├── client.py               # BaseClient ABC, create_client() factory, ClientChoise enum
 │   ├── httpx.py                # HttpxClient implementation
@@ -120,6 +122,7 @@ test/                           # Test suite
 ├── test_patch/                 # Unit tests for patch models
 │   ├── test_json_patch.py      # JSON Patch operation model tests
 │   └── test_json_pointer.py    # JSON Pointer (RFC 6901) tests
+├── test_subresource_descriptors/ # Unit tests for descriptor-based subresource APIs
 └── test_timeout/               # Unit tests for HTTP timeout settings
 
 examples/                       # Usage examples
@@ -201,6 +204,17 @@ KubexException
         └── UnprocessableEntity
 ```
 
+### Descriptor-based subresource APIs
+Subresource capabilities (logs, scale, status, eviction) use Python non-data descriptors with `__get__` overloads to provide type-safe access. Each capability is a class variable on `Api` (e.g., `logs = _LogsDescriptor()`) that returns a typed accessor (`LogsAccessor[T]`) when `T` has the matching marker interface, or raises `NotImplementedError` at runtime (and resolves to `SubresourceNotAvailable` for type checkers) when it does not. Accessors are cached on the instance after first access via `instance.__dict__` (the standard non-data descriptor caching pattern), so repeated attribute access returns the same object without re-invoking the descriptor. Accessor objects receive individual components (client, request_builder, namespace, scope) rather than a back-reference to `Api`. Metadata uses the same accessor pattern (`MetadataAccessor`) but is always available (no descriptor guard needed) and is created eagerly in `Api.__init__`.
+```python
+pod_api: Api[Pod] = Api(Pod, client=client, namespace="default")
+await pod_api.logs.get("my-pod")        # OK: Pod has HasLogs
+await pod_api.scale.get("my-pod")       # type error + runtime NotImplementedError
+
+deploy_api: Api[Deployment] = Api(Deployment, client=client, namespace="default")
+await deploy_api.scale.get("my-deploy") # OK: Deployment has HasScaleSubresource
+```
+
 ### Marker interfaces for resource capabilities
 Resources declare capabilities via multiple inheritance from marker classes: `NamespaceScopedEntity`, `ClusterScopedEntity`, `HasLogs`, `HasStatusSubresource`, `HasScaleSubresource`, `Evictable`.
 
@@ -208,7 +222,7 @@ Resources declare capabilities via multiple inheritance from marker classes: `Na
 
 - **Framework**: pytest with `pytest-cov` and `anyio` for async support
 - **E2E tests** use `testcontainers` with a K3S container (requires Docker); located in `test/e2e/`
-- **Unit tests** for configuration/auth in `test/test_configuration/`, timeout settings in `test/test_timeout/`, patch models in `test/test_patch/`
+- **Unit tests** for configuration/auth in `test/test_configuration/`, timeout settings in `test/test_timeout/`, patch models in `test/test_patch/`, subresource descriptors in `test/test_subresource_descriptors/`
 - **Codegen tests** with golden snapshots in `scripts/codegen/tests/`
 - E2E tests are parameterized over both HTTP clients (`httpx`, `aiohttp`) and async backends (`asyncio`, `trio` — trio only with httpx)
 - Mark async tests with `@pytest.mark.anyio`
@@ -295,6 +309,5 @@ from kubex.k8s.v1_35.apps.v1.deployment import Deployment
 
 - `ConfgiurationError` has a typo in the class name (in `core/exceptions.py`)
 - `ClientChoise` has a typo (in `client/client.py`)
-- `_subressource.py` has a typo in the filename
 - `get_version_and_froup_from_api_version` has a typo in the function name (in `resource_config.py`)
 - These are existing in the codebase — do not "fix" them without explicit request, as they are part of the public API

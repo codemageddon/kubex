@@ -28,20 +28,33 @@ from kubex.core.params import (
 from kubex.core.patch import Patch
 from kubex.core.request_builder.builder import RequestBuilder
 from kubex_core.models.list_entity import ListEntity
-from kubex_core.models.resource_config import Scope
 from kubex_core.models.status import Status
 from kubex_core.models.typing import (
     ResourceType,
 )
 from kubex_core.models.watch_event import WatchEvent
 
-from ._logs import LogsMixin
-from ._metadata import MetadataMixin
-from ._protocol import ApiNamespaceTypes, ApiRequestTimeoutTypes
+from ._eviction import _EvictionDescriptor
+from ._logs import _LogsDescriptor
+from ._metadata import MetadataAccessor
+from ._scale import _ScaleDescriptor
+from ._status import _StatusDescriptor
+from ._protocol import (
+    ApiNamespaceTypes,
+    ApiRequestTimeoutTypes,
+    ensure_optional_namespace,
+    ensure_required_namespace,
+)
 
 
-class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[ResourceType]):
+class Api(Generic[ResourceType]):
     """API for interacting with Kubernetes resource."""
+
+    logs = _LogsDescriptor()
+    scale = _ScaleDescriptor()
+    status = _StatusDescriptor()
+    eviction = _EvictionDescriptor()
+    metadata: MetadataAccessor[ResourceType]
 
     def __init__(
         self,
@@ -56,45 +69,15 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
             resource_config=resource_type.__RESOURCE_CONFIG__,
         )
         self._namespace = namespace
-        self._ensure_optional_namespace(namespace)
-
-    def _get_namespace(self, namespace: ApiNamespaceTypes) -> NamespaceTypes:
-        """Get the namespace to use for the API request.
-
-        If the namespace is not provided, the namespace provided when creating
-        the API will be used. If the namespace is provided, the namespace
-        provided when creating the API will be overridden.
-        """
-        if namespace is Ellipsis:
-            return self._namespace
-        return namespace
-
-    def _ensure_required_namespace(
-        self, namespace: ApiNamespaceTypes
-    ) -> NamespaceTypes:
-        _namespace = self._get_namespace(namespace)
-        if (
-            _namespace is None
-            and self._resource.__RESOURCE_CONFIG__.scope == Scope.NAMESPACE
-        ):
-            raise ValueError("Namespace is required")
-        if (
-            _namespace is not None
-            and self._resource.__RESOURCE_CONFIG__.scope == Scope.CLUSTER
-        ):
-            raise ValueError("Namespace is not supported for cluster-scoped resources")
-        return _namespace
-
-    def _ensure_optional_namespace(
-        self, namespace: ApiNamespaceTypes
-    ) -> NamespaceTypes:
-        _namespace = self._get_namespace(namespace)
-        if (
-            self._resource.__RESOURCE_CONFIG__.scope == Scope.CLUSTER
-            and _namespace is not None
-        ):
-            raise ValueError("Namespace is not supported for cluster-scoped resources")
-        return _namespace
+        ensure_optional_namespace(
+            namespace, self._namespace, self._resource.__RESOURCE_CONFIG__.scope
+        )
+        self.metadata = MetadataAccessor(
+            client=self._client,
+            request_builder=self._request_builder,
+            namespace=self._namespace,
+            scope=self._resource.__RESOURCE_CONFIG__.scope,
+        )
 
     async def get(
         self,
@@ -121,7 +104,9 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
         Returns:
             ResourceType: the resource instance.
         """
-        _namespace = self._ensure_required_namespace(namespace)
+        _namespace = ensure_required_namespace(
+            namespace, self._namespace, self._resource.__RESOURCE_CONFIG__.scope
+        )
         options = GetOptions(resource_version=resource_version)
         request = self._request_builder.get(
             name, _namespace, options, request_timeout=request_timeout
@@ -167,7 +152,9 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
         Returns:
             ListEntity[ResourceType]: the list of resource.
         """
-        _namespace = self._ensure_optional_namespace(namespace)
+        _namespace = ensure_optional_namespace(
+            namespace, self._namespace, self._resource.__RESOURCE_CONFIG__.scope
+        )
         options = ListOptions(
             label_selector=label_selector,
             field_selector=field_selector,
@@ -209,7 +196,9 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
         Returns:
             ResourceType: the created resource instance.
         """
-        _namespace = self._ensure_required_namespace(namespace)
+        _namespace = ensure_required_namespace(
+            namespace, self._namespace, self._resource.__RESOURCE_CONFIG__.scope
+        )
         options = PostOptions(dry_run=dry_run, field_manager=field_manager)
         request = self._request_builder.create(
             _namespace,
@@ -253,7 +242,9 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
                 For details see
                 [Resource deletion documentation](https://kubernetes.io/docs/reference/using-api/api-concepts/#resource-deletion).
         """
-        _namespace = self._ensure_required_namespace(namespace)
+        _namespace = ensure_required_namespace(
+            namespace, self._namespace, self._resource.__RESOURCE_CONFIG__.scope
+        )
         options = DeleteOptions(
             dry_run=dry_run,
             grace_period_seconds=grace_period_seconds,
@@ -293,7 +284,9 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
                 interpreted as the total timeout in seconds. Pass ``None`` to disable
                 timeouts entirely for this call. Omit to use the client default.
         """
-        _namespace = self._ensure_optional_namespace(namespace)
+        _namespace = ensure_optional_namespace(
+            namespace, self._namespace, self._resource.__RESOURCE_CONFIG__.scope
+        )
         list_options = ListOptions(
             label_selector=label_selector,
             field_selector=field_selector,
@@ -341,7 +334,9 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
                 interpreted as the total timeout in seconds. Pass ``None`` to disable
                 timeouts entirely for this call. Omit to use the client default.
         """
-        _namespace = self._ensure_required_namespace(namespace)
+        _namespace = ensure_required_namespace(
+            namespace, self._namespace, self._resource.__RESOURCE_CONFIG__.scope
+        )
         options = PatchOptions(
             dry_run=dry_run,
             field_manager=field_manager,
@@ -371,7 +366,9 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
                 interpreted as the total timeout in seconds. Pass ``None`` to disable
                 timeouts entirely for this call. Omit to use the client default.
         """
-        _namespace = self._ensure_required_namespace(namespace)
+        _namespace = ensure_required_namespace(
+            namespace, self._namespace, self._resource.__RESOURCE_CONFIG__.scope
+        )
         options = PostOptions(dry_run=dry_run, field_manager=field_manager)
         request = self._request_builder.replace(
             name,
@@ -404,7 +401,9 @@ class Api(Generic[ResourceType], MetadataMixin[ResourceType], LogsMixin[Resource
                 long-lived watches a short read/total timeout will terminate the
                 stream; disable the read timeout or leave this unset.
         """
-        _namespace = self._ensure_optional_namespace(namespace)
+        _namespace = ensure_optional_namespace(
+            namespace, self._namespace, self._resource.__RESOURCE_CONFIG__.scope
+        )
         options = WatchOptions(
             label_selector=label_selector,
             field_selector=field_selector,

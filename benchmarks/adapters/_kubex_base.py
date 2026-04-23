@@ -128,7 +128,7 @@ class KubexAdapterBase:
         intervals: list[int] = []
         count = 0
         prev: int | None = None
-        async for _line in self._pod_api.stream_logs(name, namespace=namespace):
+        async for _line in self._pod_api.logs.stream(name, namespace=namespace):
             now = time.perf_counter_ns()
             if prev is not None:
                 intervals.append(now - prev)

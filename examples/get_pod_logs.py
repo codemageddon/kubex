@@ -21,9 +21,9 @@ async def main() -> None:
     pod_name = cast(str, pod.metadata.name)
     await asyncio.sleep(5)
     try:
-        logs = await api.logs(pod_name)
+        logs = await api.logs.get(pod_name)
         print(logs)
-        async for line in api.stream_logs(pod_name):
+        async for line in api.logs.stream(pod_name):
             print(line)
     finally:
         await api.delete(pod_name)

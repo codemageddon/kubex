@@ -118,7 +118,7 @@ async def _main_async(args: argparse.Namespace) -> Metrics:
 
         profiler = None
         if args.cpu_profile:
-            import pyinstrument  # type: ignore[import-not-found]
+            import pyinstrument
 
             profiler = pyinstrument.Profiler(async_mode="enabled")
             profiler.start()
@@ -167,7 +167,7 @@ async def _main_async(args: argparse.Namespace) -> Metrics:
 
 
 def _speedscope_renderer() -> Any:
-    from pyinstrument.renderers.speedscope import (  # type: ignore[import-not-found]
+    from pyinstrument.renderers.speedscope import (
         SpeedscopeRenderer,
     )
 
@@ -191,7 +191,7 @@ def _run_with_memory(args: argparse.Namespace) -> Metrics:
     memray_path = Path(tempfile.mkstemp(prefix="memray-", suffix=".bin")[1])
     memray_path.unlink(missing_ok=True)  # memray refuses to overwrite
 
-    import memray  # type: ignore[import-not-found]
+    import memray
 
     with memray.Tracker(str(memray_path), native_traces=False):
         metrics = _run_anyio(lambda: _main_async(args), args.runtime)
