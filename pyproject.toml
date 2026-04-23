@@ -77,6 +77,10 @@ exclude = [
     "packages/",
 ]
 
+[[tool.mypy.overrides]]
+module = ["kubernetes_asyncio.*", "pyinstrument.*", "memray"]
+ignore_missing_imports = true
+
 [dependency-groups]
 dev = [
     "kubex-k8s-1-35",

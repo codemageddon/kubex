@@ -35,11 +35,11 @@ class KubexMetadataAdapter(KubexAdapterBase):
         return HttpxClient(config)
 
     async def list_pods(self, namespace: str, *, limit: int | None = None) -> int:
-        result = await self._pods().list_metadata(namespace=namespace, limit=limit)
+        result = await self._pods().metadata.list(namespace=namespace, limit=limit)
         return len(result.items or [])
 
     async def get_pod(self, namespace: str, name: str) -> None:
-        await self._pods().get_metadata(name, namespace=namespace)
+        await self._pods().metadata.get(name, namespace=namespace)
 
     async def create_pod(self, namespace: str, spec: PodSpecLite) -> None:
         raise NotImplementedError(

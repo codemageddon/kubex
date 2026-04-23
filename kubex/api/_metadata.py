@@ -1,34 +1,52 @@
 from __future__ import annotations
 
 import json
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Generic
 
-from kubex.api._protocol import (
-    ApiNamespaceTypes,
-    ApiProtocol,
-    ApiRequestTimeoutTypes,
-)
+from kubex.client.client import BaseClient
 from kubex.core.params import (
     DryRunTypes,
     FieldValidation,
     GetOptions,
     ListOptions,
+    NamespaceTypes,
     PatchOptions,
     ResourceVersionTypes,
     VersionMatch,
     WatchOptions,
 )
 from kubex.core.patch import Patch
+from kubex.core.request_builder.builder import RequestBuilder
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.partial_object_meta import PartialObjectMetadata
-from kubex_core.models.typing import (
-    ResourceType,
-)
+from kubex_core.models.resource_config import Scope
+from kubex_core.models.typing import ResourceType
 from kubex_core.models.watch_event import WatchEvent
 
+from ._protocol import (
+    ApiNamespaceTypes,
+    ApiRequestTimeoutTypes,
+    ensure_optional_namespace,
+    ensure_required_namespace,
+)
 
-class MetadataMixin(ApiProtocol[ResourceType]):
-    async def get_metadata(
+
+class MetadataAccessor(Generic[ResourceType]):
+    """Accessor for metadata subresource operations."""
+
+    def __init__(
+        self,
+        client: BaseClient,
+        request_builder: RequestBuilder,
+        namespace: NamespaceTypes,
+        scope: Scope,
+    ) -> None:
+        self._client = client
+        self._request_builder = request_builder
+        self._namespace = namespace
+        self._scope = scope
+
+    async def get(
         self,
         name: str,
         *,
@@ -36,7 +54,8 @@ class MetadataMixin(ApiProtocol[ResourceType]):
         resource_version: ResourceVersionTypes = None,
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> PartialObjectMetadata:
-        _namespace = self._ensure_required_namespace(namespace)
+        """Read metadata of the specified resource."""
+        _namespace = ensure_required_namespace(namespace, self._namespace, self._scope)
         options = GetOptions(resource_version=resource_version)
         request = self._request_builder.get_metadata(
             name, _namespace, options=options, request_timeout=request_timeout
@@ -44,7 +63,7 @@ class MetadataMixin(ApiProtocol[ResourceType]):
         response = await self._client.request(request)
         return PartialObjectMetadata.model_validate_json(response.content)
 
-    async def list_metadata(
+    async def list(
         self,
         *,
         namespace: ApiNamespaceTypes = Ellipsis,
@@ -57,7 +76,8 @@ class MetadataMixin(ApiProtocol[ResourceType]):
         resource_version: ResourceVersionTypes = None,
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> ListEntity[PartialObjectMetadata]:
-        _namespace = self._ensure_optional_namespace(namespace)
+        """List metadata of resources."""
+        _namespace = ensure_optional_namespace(namespace, self._namespace, self._scope)
         options = ListOptions(
             label_selector=label_selector,
             field_selector=field_selector,
@@ -74,7 +94,7 @@ class MetadataMixin(ApiProtocol[ResourceType]):
         model = PartialObjectMetadata.__RESOURCE_CONFIG__.list_model
         return model.model_validate_json(response.content)
 
-    async def patch_metadata(
+    async def patch(
         self,
         name: str,
         patch: Patch,
@@ -86,7 +106,8 @@ class MetadataMixin(ApiProtocol[ResourceType]):
         field_validation: FieldValidation | None = None,
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> PartialObjectMetadata:
-        _namespace = self._ensure_required_namespace(namespace)
+        """Patch metadata of the specified resource."""
+        _namespace = ensure_required_namespace(namespace, self._namespace, self._scope)
         options = PatchOptions(
             dry_run=dry_run,
             field_manager=field_manager,
@@ -99,7 +120,7 @@ class MetadataMixin(ApiProtocol[ResourceType]):
         response = await self._client.request(request)
         return PartialObjectMetadata.model_validate_json(response.content)
 
-    async def watch_metadata(
+    async def watch(
         self,
         *,
         namespace: ApiNamespaceTypes = Ellipsis,
@@ -114,7 +135,8 @@ class MetadataMixin(ApiProtocol[ResourceType]):
         WatchEvent[PartialObjectMetadata],
         None,
     ]:
-        _namespace = self._ensure_optional_namespace(namespace)
+        """Watch for metadata changes of resources."""
+        _namespace = ensure_optional_namespace(namespace, self._namespace, self._scope)
         options = WatchOptions(
             label_selector=label_selector,
             field_selector=field_selector,

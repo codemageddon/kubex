@@ -1,37 +1,42 @@
-from typing import AsyncGenerator
+from __future__ import annotations
 
-from kubex.core.params import LogOptions
+from typing import Any, AsyncGenerator, Generic, TypeVar, overload
+
+from kubex.client.client import BaseClient
+from kubex.core.params import LogOptions, NamespaceTypes
+from kubex.core.request_builder.builder import RequestBuilder
 from kubex_core.models.interfaces import HasLogs
+from kubex_core.models.resource_config import Scope
 from kubex_core.models.typing import ResourceType
 
 from ._protocol import (
     ApiNamespaceTypes,
     ApiProtocol,
     ApiRequestTimeoutTypes,
+    CachedSubresourceDescriptor,
+    SubresourceNotAvailable,
+    ensure_required_namespace,
 )
 
+_L = TypeVar("_L", bound=HasLogs)
 
-class LogsMixin(ApiProtocol[ResourceType]):
-    def _check_implemented(self) -> None:
-        if not issubclass(self._resource, HasLogs):
-            raise NotImplementedError("Logs are only supported for Pods")
 
-    # TODO: Investigate how to force mypy to complain on logs calling with non-Pod resources
-    # @overload
-    # def logs(
-    #     self: Type[ApiProtocol[Any]],
-    #     name: str,
-    #     options: LogOptions | None = None,
-    # ) -> NoReturn: ...
+class LogsAccessor(Generic[ResourceType]):
+    """Accessor for logs subresource operations."""
 
-    # @overload
-    # def logs(
-    #     self: Type[ApiProtocol[PodProtocol]],
-    #     name: str,
-    #     options: LogOptions | None = None,
-    # ) -> Awaitable[str]: ...
+    def __init__(
+        self,
+        client: BaseClient,
+        request_builder: RequestBuilder,
+        namespace: NamespaceTypes,
+        scope: Scope,
+    ) -> None:
+        self._client = client
+        self._request_builder = request_builder
+        self._namespace = namespace
+        self._scope = scope
 
-    async def logs(
+    async def get(
         self,
         name: str,
         *,
@@ -45,8 +50,8 @@ class LogsMixin(ApiProtocol[ResourceType]):
         timestamps: bool | None = None,
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> str:
-        self._check_implemented()
-        _namespace = self._ensure_required_namespace(namespace)
+        """Read logs of the specified resource."""
+        _namespace = ensure_required_namespace(namespace, self._namespace, self._scope)
         options = LogOptions(
             container=container,
             limit_bytes=limit_bytes,
@@ -62,22 +67,7 @@ class LogsMixin(ApiProtocol[ResourceType]):
         response = await self._client.request(request)
         return response.text
 
-    # TODO: Investigate how to force mypy to complain on stream_logs calling with non-Pod resources
-    # @overload
-    # def stream_logs(
-    #     self: Type[ApiProtocol[ResourceType]],
-    #     name: str,
-    #     options: LogOptions | None = None,
-    # ) -> NoReturn: ...
-
-    # @overload
-    # def stream_logs(
-    #     self: Type[ApiProtocol[PodProtocol]],
-    #     name: str,
-    #     options: LogOptions | None = None,
-    # ) -> AsyncGenerator[str, None]: ...
-
-    async def stream_logs(
+    async def stream(
         self,
         name: str,
         *,
@@ -91,15 +81,8 @@ class LogsMixin(ApiProtocol[ResourceType]):
         timestamps: bool | None = None,
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> AsyncGenerator[str, None]:
-        """Stream container logs.
-
-        Args:
-            request_timeout: HTTP-level timeout override for this call. A short
-                read/total timeout will terminate the long-lived log stream;
-                disable the read timeout or leave this unset.
-        """
-        self._check_implemented()
-        _namespace = self._ensure_required_namespace(namespace)
+        """Stream logs of the specified resource."""
+        _namespace = ensure_required_namespace(namespace, self._namespace, self._scope)
         options = LogOptions(
             container=container,
             limit_bytes=limit_bytes,
@@ -114,3 +97,23 @@ class LogsMixin(ApiProtocol[ResourceType]):
         )
         async for line in self._client.stream_lines(request):
             yield line
+
+
+class _LogsDescriptor(CachedSubresourceDescriptor):
+    _marker = HasLogs
+    _accessor_cls = LogsAccessor
+    _error_message = "Logs are only supported for resources with HasLogs marker"
+
+    @overload
+    def __get__(self, instance: None, owner: type) -> _LogsDescriptor: ...
+
+    @overload
+    def __get__(self, instance: ApiProtocol[_L], owner: type) -> LogsAccessor[_L]: ...
+
+    @overload
+    def __get__(
+        self, instance: ApiProtocol[Any], owner: type
+    ) -> SubresourceNotAvailable: ...
+
+    def __get__(self, instance: Any, owner: type | None = None) -> Any:
+        return self._resolve(instance)

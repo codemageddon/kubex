@@ -57,11 +57,11 @@ Kubex works with both **asyncio** and **trio** (via httpx), with no framework lo
 
 # Planned Features:
 
-* [ ] Support for OIDC and other authentication extensions.
 * [x] Fine-tuning of timeouts.
-* [ ] Dynamic API object creation to exclude unsupported methods for resources (requires research for mypy compatibility).
-* [ ] Potential synchronous version of the client.
-* [ ] Additional tests and examples.
+* [x] Dynamic API object creation to exclude unsupported methods for resources (requires research for mypy compatibility).
 * [x] JsonPatch models.
-* [ ] Enhanced support for subresources (status, ephemeral containers).
+* [x] Type-safe subresource APIs (logs, scale, status, eviction).
+* [ ] Additional tests and examples.
 * [ ] Support for Pod.attach.
+* [ ] All subresources implementation
+* [ ] Support for OIDC and other authentication extensions.

@@ -32,7 +32,7 @@ class K8sAsyncioAdapter:
         self._core: Any = None
 
     async def setup(self, kubeconfig_path: str) -> None:
-        from kubernetes_asyncio import client, config  # type: ignore[import-not-found]
+        from kubernetes_asyncio import client, config
 
         await config.load_kube_config(config_file=kubeconfig_path)
         self._api_client = client.ApiClient()
@@ -55,7 +55,7 @@ class K8sAsyncioAdapter:
         await self._core.read_namespaced_pod(name=name, namespace=namespace)
 
     async def create_pod(self, namespace: str, spec: PodSpecLite) -> None:
-        from kubernetes_asyncio.client.models import (  # type: ignore[import-not-found]
+        from kubernetes_asyncio.client.models import (
             V1Container,
             V1ObjectMeta,
             V1Pod,
@@ -88,7 +88,7 @@ class K8sAsyncioAdapter:
         return len(result.items)
 
     async def watch_pods(self, namespace: str, n_events: int) -> StreamSample:
-        from kubernetes_asyncio.watch import Watch  # type: ignore[import-not-found]
+        from kubernetes_asyncio.watch import Watch
 
         watcher = Watch()
         intervals: list[int] = []

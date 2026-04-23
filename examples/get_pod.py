@@ -17,8 +17,8 @@ async def main() -> None:
     )
     assert pod.metadata.name is not None
     print(pod)
-    print(await api.get_metadata(pod.metadata.name))
-    print(await api.list_metadata())
+    print(await api.metadata.get(pod.metadata.name))
+    print(await api.metadata.list())
     await api.delete(pod.metadata.name)
 
 
