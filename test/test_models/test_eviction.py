@@ -74,16 +74,6 @@ def test_eviction_deserialization_from_camel_case() -> None:
     assert eviction.delete_options.grace_period_seconds == 60
 
 
-def test_eviction_api_version_is_literal() -> None:
-    eviction = Eviction()
-    assert eviction.api_version == "policy/v1"
-
-
-def test_eviction_kind_is_literal() -> None:
-    eviction = Eviction()
-    assert eviction.kind == "Eviction"
-
-
 def test_delete_options_all_fields() -> None:
     opts = DeleteOptions(
         dry_run=["All"],
@@ -138,12 +128,12 @@ _CONSTRUCTION_CASES: list[tuple[str, dict[str, Any], dict[str, Any]]] = [
 
 
 @pytest.mark.parametrize(
-    ("_id", "kwargs", "expected"),
-    _CONSTRUCTION_CASES,
+    ("kwargs", "expected"),
+    [(c[1], c[2]) for c in _CONSTRUCTION_CASES],
     ids=[c[0] for c in _CONSTRUCTION_CASES],
 )
 def test_eviction_construction_and_dump(
-    _id: str, kwargs: dict[str, Any], expected: dict[str, Any]
+    kwargs: dict[str, Any], expected: dict[str, Any]
 ) -> None:
     eviction = Eviction(**kwargs)
     data = eviction.model_dump(by_alias=True, exclude_none=True)

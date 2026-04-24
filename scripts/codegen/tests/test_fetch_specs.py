@@ -151,6 +151,7 @@ def test_download_specs_cache_hit(
     tag_dir.mkdir(parents=True)
     (tag_dir / "swagger.json").write_text("{}")
     (tag_dir / "v3").mkdir()
+    (tag_dir / ".complete").touch()
 
     result = download_specs("v1.35.4", tmp_path)
     assert result.swagger_path == tag_dir / "swagger.json"

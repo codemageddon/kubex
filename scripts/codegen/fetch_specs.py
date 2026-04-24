@@ -48,7 +48,7 @@ def _semver_sort_key(tag: str) -> tuple[int, int, int, int, int]:
 def _github_get(url: str, *, max_retries: int = 3) -> Any:
     """GET a GitHub API URL and return parsed JSON.
 
-    Retries on 403 (rate limit) and 5xx with exponential backoff.
+    Retries on 403 (rate limit), 5xx, and network errors with exponential backoff.
     """
     for attempt in range(max_retries):
         req = urllib.request.Request(
@@ -63,6 +63,18 @@ def _github_get(url: str, *, max_retries: int = 3) -> Any:
                 delay = 2 ** (attempt + 1)
                 logger.warning(
                     "GitHub API %s returned %s, retrying in %ss", url, exc.code, delay
+                )
+                time.sleep(delay)
+                continue
+            raise
+        except urllib.error.URLError as exc:
+            if attempt < max_retries - 1:
+                delay = 2 ** (attempt + 1)
+                logger.warning(
+                    "GitHub API %s network error: %s, retrying in %ss",
+                    url,
+                    exc.reason,
+                    delay,
                 )
                 time.sleep(delay)
                 continue
@@ -86,6 +98,18 @@ def _download_file(url: str, dest: Path, *, max_retries: int = 3) -> None:
                 delay = 2 ** (attempt + 1)
                 logger.warning(
                     "Download %s returned %s, retrying in %ss", url, exc.code, delay
+                )
+                time.sleep(delay)
+                continue
+            raise
+        except urllib.error.URLError as exc:
+            if attempt < max_retries - 1:
+                delay = 2 ** (attempt + 1)
+                logger.warning(
+                    "Download %s network error: %s, retrying in %ss",
+                    url,
+                    exc.reason,
+                    delay,
                 )
                 time.sleep(delay)
                 continue
@@ -124,19 +148,27 @@ def resolve_latest_release(minor_version: str) -> str:
     raise ValueError(msg)
 
 
-def _search_releases(prefix: str) -> str | None:
-    """Search paginated GitHub releases for tags matching prefix."""
+def _search_releases(prefix: str, *, max_pages: int = 10) -> str | None:
+    """Search paginated GitHub releases for tags matching prefix.
+
+    Stops early when candidates have been found and a subsequent page
+    contains no new matches, or after *max_pages* to bound API usage.
+    """
     page = 1
     candidates: list[str] = []
-    while True:
+    while page <= max_pages:
         url = f"{GITHUB_API}/repos/{REPO}/releases?per_page=100&page={page}"
         releases = _github_get(url)
         if not releases:
             break
+        found_match = False
         for rel in releases:
             tag = rel.get("tag_name", "")
             if tag.startswith(prefix):
                 candidates.append(tag)
+                found_match = True
+        if candidates and not found_match:
+            break
         page += 1
     if not candidates:
         return None
@@ -191,12 +223,14 @@ def download_specs(tag: str, cache_dir: Path) -> DownloadedSpecs:
     tag_dir = cache_dir / tag
     swagger_path = tag_dir / "swagger.json"
     v3_dir = tag_dir / "v3"
+    sentinel = tag_dir / ".complete"
 
-    if swagger_path.exists():
+    if sentinel.exists():
         logger.info("Cache hit for %s, skipping download", tag)
         return DownloadedSpecs(swagger_path=swagger_path, v3_dir=v3_dir)
 
     logger.info("Downloading specs for %s", tag)
+    tag_dir.mkdir(parents=True, exist_ok=True)
 
     swagger_url = f"{GITHUB_RAW}/{REPO}/{tag}/api/openapi-spec/swagger.json"
     _download_file(swagger_url, swagger_path)
@@ -209,6 +243,7 @@ def download_specs(tag: str, cache_dir: Path) -> DownloadedSpecs:
             file_url = f"{GITHUB_RAW}/{REPO}/{tag}/api/openapi-spec/v3/{name}"
             _download_file(file_url, v3_dir / name)
 
+    sentinel.touch()
     return DownloadedSpecs(swagger_path=swagger_path, v3_dir=v3_dir)
 
 

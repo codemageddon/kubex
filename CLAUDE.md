@@ -104,8 +104,9 @@ packages/                       # Workspace packages
         └── ...                 # All other API groups for that K8s version
 
 scripts/codegen/                # OpenAPI → Pydantic v2 code generator
-├── __main__.py                 # Typer CLI: generate, verify commands
+├── __main__.py                 # Typer CLI: generate, verify, regenerate commands
 ├── spec_loader.py              # OpenAPI/Swagger JSON parsing
+├── fetch_specs.py              # GitHub API client for resolving K8s releases and downloading OpenAPI specs
 ├── resource_detector.py        # Identifies K8s resources from spec
 ├── type_mapper.py              # OpenAPI type → Python type mapping
 ├── model_emitter.py            # Generates Pydantic model code
@@ -115,7 +116,7 @@ scripts/codegen/                # OpenAPI → Pydantic v2 code generator
 ├── package_builder.py          # Writes generated package to disk
 ├── ref_resolver.py             # Resolves $ref links in OpenAPI spec
 ├── templates/                  # Jinja2 templates for code generation
-└── tests/                      # Codegen tests with golden snapshots
+└── tests/                      # Codegen tests: golden snapshots, resource detection, spec fetching, regenerate CLI
 
 test/                           # Test suite
 ├── e2e/                        # End-to-end tests (testcontainers + K3S)
