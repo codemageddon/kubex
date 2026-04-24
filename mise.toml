@@ -7,4 +7,4 @@ K8S_VERSIONS = "1.32,1.33,1.34,1.35,1.36,1.37"
 
 [tasks.regenerate-models]
 description = "Download latest K8s OpenAPI specs and regenerate all model packages"
-run = "uv run python -m scripts.codegen regenerate --versions $K8S_VERSIONS"
+run = "uv run python -m scripts.codegen regenerate --versions {{env.K8S_VERSIONS}}"

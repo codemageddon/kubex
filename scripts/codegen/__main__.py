@@ -189,19 +189,28 @@ def regenerate(
     ] = True,
 ) -> None:
     """Download latest K8s OpenAPI specs and regenerate all model packages."""
-    from scripts.codegen.fetch_specs import fetch_all_specs
+    from scripts.codegen.fetch_specs import download_specs, resolve_latest_release
 
     minor_versions = [v.strip() for v in versions.split(",") if v.strip()]
     if not minor_versions:
         typer.echo("No versions specified.", err=True)
         raise typer.Exit(code=1)
 
-    typer.echo(f"Fetching specs for versions: {', '.join(minor_versions)}")
-    all_specs = fetch_all_specs(minor_versions, cache_dir)
+    typer.echo(f"Regenerating models for versions: {', '.join(minor_versions)}")
 
     results: dict[str, str] = {}
-    for version, specs in all_specs.items():
-        typer.echo(f"\n--- Generating models for K8s {version} ---")
+    for version in minor_versions:
+        typer.echo(f"\n--- Processing K8s {version} ---")
+        try:
+            typer.echo(f"Resolving latest release for {version}...")
+            tag = resolve_latest_release(version)
+            typer.echo(f"Resolved {version} -> {tag}")
+            specs = download_specs(tag, cache_dir)
+        except Exception as exc:
+            typer.echo(f"Fetch failed for {version}: {exc}", err=True)
+            results[version] = f"fetch failed: {exc}"
+            continue
+
         try:
             pkg_root = run_generate(
                 specs.swagger_path,
