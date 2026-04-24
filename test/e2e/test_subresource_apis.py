@@ -5,7 +5,7 @@ import pytest
 
 from kubex.api import Api
 from kubex.client import BaseClient
-from kubex.core.exceptions import MethodNotAllowed, NotFound
+from kubex.core.exceptions import Conflict, MethodNotAllowed, NotFound
 from kubex.core.patch import MergePatch, StrategicMergePatch
 from kubex.k8s.v1_35.core.v1.container import Container
 from kubex.k8s.v1_35.core.v1.ephemeral_container import EphemeralContainer
@@ -34,20 +34,29 @@ async def _wait_for_phase(
     name: str,
     namespace: str,
     phase: str,
-    timeout: float = 60.0,
+    timeout: int = 300,
 ) -> Pod:
-    deadline = anyio.current_time() + timeout
-    while True:
-        pod = await api.get(name, namespace=namespace)
-        if pod.status is not None and pod.status.phase == phase:
-            return pod
-        if anyio.current_time() >= deadline:
-            actual = pod.status.phase if pod.status else None
-            raise TimeoutError(
-                f"Pod {name} did not reach phase {phase} within {timeout}s "
-                f"(current: {actual})"
-            )
-        await anyio.sleep(1)
+    pod = await api.get(name, namespace=namespace)
+    if pod.status is not None and pod.status.phase == phase:
+        return pod
+
+    resource_version = pod.metadata.resource_version if pod.metadata else None
+    async for event in api.watch(
+        field_selector=f"metadata.name={name}",
+        namespace=namespace,
+        resource_version=resource_version,
+        timeout_seconds=timeout,
+        request_timeout=timeout,
+    ):
+        obj = event.object
+        if (
+            isinstance(obj, Pod)
+            and obj.status is not None
+            and obj.status.phase == phase
+        ):
+            return obj
+
+    raise TimeoutError(f"Pod {name} did not reach phase {phase} within {timeout}s")
 
 
 @pytest.mark.anyio
@@ -68,8 +77,17 @@ async def test_status_replace(client: BaseClient, tmp_namespace_name: str) -> No
     api: Api[Pod] = Api(Pod, client=client, namespace=tmp_namespace_name)
     await _create_pod(api, "status-replace", tmp_namespace_name)
 
-    pod = await api.status.get("status-replace")
-    result = await api.status.replace("status-replace", pod)
+    for _ in range(5):
+        pod = await api.status.get("status-replace")
+        try:
+            result = await api.status.replace("status-replace", pod)
+            break
+        except Conflict:
+            continue
+    else:
+        raise AssertionError(
+            "status.replace kept returning 409 Conflict after 5 retries"
+        )
     assert isinstance(result, Pod)
     assert result.metadata is not None
     assert result.metadata.name == "status-replace"
