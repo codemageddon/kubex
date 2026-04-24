@@ -93,7 +93,7 @@ async def test_eviction_create_requires_namespace_for_namespaced_resource() -> N
 @pytest.mark.anyio
 async def test_eviction_create_returns_status_object() -> None:
     response_json = (
-        b'{"apiVersion": "meta/v1", "kind": "Status",'
+        b'{"apiVersion": "v1", "kind": "Status",'
         b' "metadata": {}, "status": "Success", "code": 200,'
         b' "message": "pod my-pod evicted"}'
     )
