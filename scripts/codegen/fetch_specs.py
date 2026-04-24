@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 import time
 import urllib.error
@@ -21,6 +22,26 @@ logger = logging.getLogger(__name__)
 GITHUB_API = "https://api.github.com"
 GITHUB_RAW = "https://raw.githubusercontent.com"
 REPO = "kubernetes/kubernetes"
+
+
+def _get_github_token() -> str | None:
+    """Return a GitHub token from GITHUB_TOKEN env var or ``gh auth token``."""
+    token = os.environ.get("GITHUB_TOKEN")
+    if token:
+        return token
+    import subprocess  # noqa: PLC0415
+
+    try:
+        result = subprocess.run(  # noqa: S603, S607
+            ["gh", "auth", "token"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return result.stdout.strip() or None
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        return None
+
 
 _SEMVER_RE = re.compile(
     r"^v?(\d+)\.(\d+)\.(\d+)"
@@ -51,9 +72,11 @@ def _github_get(url: str, *, max_retries: int = 3) -> Any:
     Retries on 403 (rate limit), 5xx, and network errors with exponential backoff.
     """
     for attempt in range(max_retries):
-        req = urllib.request.Request(
-            url, headers={"Accept": "application/vnd.github+json"}
-        )
+        headers: dict[str, str] = {"Accept": "application/vnd.github+json"}
+        token = _get_github_token()
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        req = urllib.request.Request(url, headers=headers)
         try:
             with urllib.request.urlopen(req, timeout=30) as resp:
                 return json.loads(resp.read().decode())
@@ -87,7 +110,11 @@ def _download_file(url: str, dest: Path, *, max_retries: int = 3) -> None:
     """Download a file from a URL into dest, creating parent dirs as needed."""
     dest.parent.mkdir(parents=True, exist_ok=True)
     for attempt in range(max_retries):
-        req = urllib.request.Request(url)
+        headers: dict[str, str] = {}
+        token = _get_github_token()
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        req = urllib.request.Request(url, headers=headers)
         try:
             with urllib.request.urlopen(req, timeout=60) as resp:
                 dest.write_bytes(resp.read())
