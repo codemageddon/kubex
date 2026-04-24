@@ -105,7 +105,7 @@ def handle_request_error(response: Response) -> NoReturn:
     status_code = response.status_code
     content: Status | str = response.text
     if content_types := response.headers.get_all(CONTENT_TYPE_HEADER):
-        if APPLICATION_JSON_MIME_TYPE in content_types:
+        if any(ct.startswith(APPLICATION_JSON_MIME_TYPE) for ct in content_types):
             try:
                 content = Status.model_validate_json(response.content)
             except ValidationError:

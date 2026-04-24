@@ -30,10 +30,10 @@ class KubexApiError(Generic[C], KubexClientException):
         status: HTTPStatus | None = None,
     ) -> None:
         super().__init__(*args)
-        if status is None:
-            self.status = HTTPStatus.BAD_REQUEST
-        else:
+        if status is not None:
             self.status = status
+        elif not hasattr(type(self), "status"):
+            self.status = HTTPStatus.BAD_REQUEST
         self.content = content
 
 

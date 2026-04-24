@@ -150,7 +150,7 @@ class ListOptions:
         if self.continue_token is not None:
             query_params["continue"] = self.continue_token
         if self.version_match is not None:
-            query_params["resourceVersion"] = self.version_match.value
+            query_params["resourceVersionMatch"] = self.version_match.value
         if self.resource_version is not None:
             query_params["resourceVersion"] = self.resource_version
         return query_params or None
@@ -303,12 +303,15 @@ class DeleteOptions:
             else:
                 body["propagationPolicy"] = self.propagation_policy
         if self.preconditions is not None:
+            preconditions_dict: dict[str, str] = {}
             if self.preconditions.resource_version is not None:
-                body["preconditions"] = {
-                    "resourceVersion": self.preconditions.resource_version
-                }
+                preconditions_dict["resourceVersion"] = (
+                    self.preconditions.resource_version
+                )
             if self.preconditions.uid is not None:
-                body["preconditions"] = {"uid": str(self.preconditions.uid)}
+                preconditions_dict["uid"] = str(self.preconditions.uid)
+            if preconditions_dict:
+                body["preconditions"] = preconditions_dict
         if body:
             return json.dumps(body)
         return None

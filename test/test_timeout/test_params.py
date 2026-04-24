@@ -1,23 +1,24 @@
+import pytest
+
 from kubex.core.params import Timeout
 
+_ORIGINAL = Timeout(connect=2)
 
-def test_coerce_none_returns_none() -> None:
-    assert Timeout.coerce(None) is None
-
-
-def test_coerce_int_becomes_total() -> None:
-    result = Timeout.coerce(5)
-    assert result == Timeout(total=5.0)
-
-
-def test_coerce_float_becomes_total() -> None:
-    result = Timeout.coerce(1.5)
-    assert result == Timeout(total=1.5)
+_COERCE_CASES = [
+    pytest.param(None, None, id="none_returns_none"),
+    pytest.param(5, Timeout(total=5.0), id="int_becomes_total"),
+    pytest.param(1.5, Timeout(total=1.5), id="float_becomes_total"),
+    pytest.param(_ORIGINAL, _ORIGINAL, id="timeout_returns_same_instance"),
+]
 
 
-def test_coerce_timeout_returns_same_instance() -> None:
-    original = Timeout(connect=2)
-    assert Timeout.coerce(original) is original
+@pytest.mark.parametrize("input_val,expected", _COERCE_CASES)
+def test_coerce(input_val: object, expected: Timeout | None) -> None:
+    result = Timeout.coerce(input_val)  # type: ignore[arg-type]
+    if isinstance(input_val, Timeout):
+        assert result is input_val
+    else:
+        assert result == expected
 
 
 def test_timeout_repr_includes_all_fields() -> None:
