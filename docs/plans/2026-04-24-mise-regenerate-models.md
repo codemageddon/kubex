@@ -100,8 +100,8 @@
 - [x] Run linter — all issues must be fixed
 
 ### Task 5: [Final] Update documentation
-- [ ] Update CLAUDE.md — add `mise run regenerate-models` to Quick Reference section
-- [ ] Add brief docs in the Code Generation section about the new regeneration workflow
+- [x] Update CLAUDE.md — add `mise run regenerate-models` to Quick Reference section
+- [x] Add brief docs in the Code Generation section about the new regeneration workflow
 
 ## Technical Details
 

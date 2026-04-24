@@ -27,6 +27,9 @@ uv run mypy .
 
 # Run pre-commit hooks
 pre-commit run --all-files
+
+# Regenerate all K8s model packages (downloads specs + runs codegen + verifies)
+mise run regenerate-models
 ```
 
 ## Repository Structure
@@ -304,6 +307,18 @@ Generated models are fully typed with proper spec/status fields (not generic dic
 from kubex.k8s.v1_35.core.v1.pod import Pod
 from kubex.k8s.v1_35.core.v1.namespace import Namespace
 from kubex.k8s.v1_35.apps.v1.deployment import Deployment
+```
+
+### Regenerating all model packages
+
+Use `mise run regenerate-models` to automatically resolve the latest patch/pre-release tag for each configured Kubernetes minor version, download both v2 and v3 OpenAPI specs from the Kubernetes GitHub repo, regenerate all `kubex-k8s-*` packages, and verify them with mypy. Downloaded specs are cached in `.cache/schemas/<tag>/` and reused on subsequent runs. The list of minor versions is configured via `K8S_VERSIONS` in `mise.toml`.
+
+```bash
+# Regenerate all packages (uses versions from mise.toml)
+mise run regenerate-models
+
+# Or invoke the CLI directly with custom versions
+uv run python -m scripts.codegen regenerate --versions 1.35,1.36
 ```
 
 ### Adding support for a new Kubernetes version
