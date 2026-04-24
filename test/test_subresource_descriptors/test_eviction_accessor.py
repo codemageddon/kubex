@@ -9,7 +9,7 @@ from kubex_core.models.metadata import ObjectMetadata
 
 from .conftest import StubClient
 
-STATUS_JSON = b'{"apiVersion": "meta/v1", "kind": "Status", "metadata": {}, "status": "Success", "code": 200}'
+STATUS_JSON = b'{"apiVersion": "v1", "kind": "Status", "metadata": {}, "status": "Success", "code": 200}'
 
 
 @pytest.mark.anyio
