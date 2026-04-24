@@ -92,12 +92,12 @@
 - [x] Run existing tests — must still pass
 
 ### Task 4: Verify acceptance criteria
-- [ ] Verify the task resolves latest patch releases correctly (e.g. 1.32 -> v1.32.13, 1.37 -> v1.37.0-alpha.0)
-- [ ] Verify swagger.json and v3/ directory are cached in `.cache/schemas/<full-tag>/` (e.g. `.cache/schemas/v1.35.4/swagger.json` and `.cache/schemas/v1.35.4/v3/`)
-- [ ] Verify all 6 packages regenerate successfully
-- [ ] Verify the verify step runs and passes for each package
-- [ ] Run full test suite (unit tests)
-- [ ] Run linter — all issues must be fixed
+- [x] Verify the task resolves latest patch releases correctly (e.g. 1.32 -> v1.32.13, 1.37 -> v1.37.0-alpha.0)
+- [x] Verify swagger.json and v3/ directory are cached in `.cache/schemas/<full-tag>/` (e.g. `.cache/schemas/v1.35.4/swagger.json` and `.cache/schemas/v1.35.4/v3/`)
+- [x] Verify all 6 packages regenerate successfully
+- [x] Verify the verify step runs and passes for each package
+- [x] Run full test suite (unit tests)
+- [x] Run linter — all issues must be fixed
 
 ### Task 5: [Final] Update documentation
 - [ ] Update CLAUDE.md — add `mise run regenerate-models` to Quick Reference section
