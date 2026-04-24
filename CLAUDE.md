@@ -27,6 +27,9 @@ uv run mypy .
 
 # Run pre-commit hooks
 pre-commit run --all-files
+
+# Regenerate all K8s model packages (downloads specs + runs codegen + verifies)
+mise run regenerate-models
 ```
 
 ## Repository Structure
@@ -40,8 +43,10 @@ kubex/                          # Main package
 │   ├── api.py                  # Api[ResourceType] generic class + create_api() factory
 │   ├── _logs.py                # LogsAccessor + _LogsDescriptor — api.logs.get() and api.logs.stream()
 │   ├── _scale.py               # ScaleAccessor + _ScaleDescriptor — api.scale.get(), replace(), patch()
-│   ├── _status.py              # StatusAccessor + _StatusDescriptor (stub)
-│   ├── _eviction.py            # EvictionAccessor + _EvictionDescriptor (stub)
+│   ├── _status.py              # StatusAccessor + _StatusDescriptor — api.status.get(), replace(), patch()
+│   ├── _eviction.py            # EvictionAccessor + _EvictionDescriptor — api.eviction.create()
+│   ├── _ephemeral_containers.py # EphemeralContainersAccessor + _EphemeralContainersDescriptor — api.ephemeral_containers.get(), replace(), patch()
+│   ├── _resize.py              # ResizeAccessor + _ResizeDescriptor — api.resize.get(), replace(), patch()
 │   ├── _metadata.py            # MetadataAccessor — api.metadata.get(), list(), patch(), watch()
 │   └── _protocol.py            # ApiProtocol[ResourceType], type aliases, SubresourceNotAvailable, namespace helpers
 ├── client/                     # HTTP client implementations
@@ -79,7 +84,7 @@ packages/                       # Workspace packages
 │   └── kubex_core/models/
 │       ├── base.py             # BaseK8sModel — Pydantic base with camelCase alias
 │       ├── base_entity.py      # BaseEntity — base for all K8s resources (__RESOURCE_CONFIG__)
-│       ├── interfaces.py       # Marker classes: ClusterScopedEntity, NamespaceScopedEntity, HasLogs, etc.
+│       ├── interfaces.py       # Marker classes: ClusterScopedEntity, NamespaceScopedEntity, HasLogs, Evictable, HasEphemeralContainers, HasResize, etc.
 │       ├── resource_config.py  # ResourceConfig[T] descriptor — kind, version, scope, URL generation
 │       ├── metadata.py         # ObjectMetadata, ListMetadata, OwnerReference
 │       ├── typing.py           # ResourceType TypeVar
@@ -87,6 +92,7 @@ packages/                       # Workspace packages
 │       ├── watch_event.py      # WatchEvent[ResourceType] and EventType enum
 │       ├── status.py           # Status response model
 │       ├── scale.py            # Scale subresource model
+│       ├── eviction.py         # Eviction subresource model (policy/v1)
 │       └── partial_object_meta.py # Partial metadata variant
 └── kubex-k8s-{1-32..1-37}/     # Generated Kubernetes resource models (one package per K8s version)
     └── kubex/k8s/v1_NN/        # ~666 generated model files across ~30 API groups
@@ -98,8 +104,9 @@ packages/                       # Workspace packages
         └── ...                 # All other API groups for that K8s version
 
 scripts/codegen/                # OpenAPI → Pydantic v2 code generator
-├── __main__.py                 # Typer CLI: generate, verify commands
+├── __main__.py                 # Typer CLI: generate, verify, regenerate commands
 ├── spec_loader.py              # OpenAPI/Swagger JSON parsing
+├── fetch_specs.py              # GitHub API client for resolving K8s releases and downloading OpenAPI specs
 ├── resource_detector.py        # Identifies K8s resources from spec
 ├── type_mapper.py              # OpenAPI type → Python type mapping
 ├── model_emitter.py            # Generates Pydantic model code
@@ -109,19 +116,24 @@ scripts/codegen/                # OpenAPI → Pydantic v2 code generator
 ├── package_builder.py          # Writes generated package to disk
 ├── ref_resolver.py             # Resolves $ref links in OpenAPI spec
 ├── templates/                  # Jinja2 templates for code generation
-└── tests/                      # Codegen tests with golden snapshots
+└── tests/                      # Codegen tests: golden snapshots, resource detection, spec fetching, regenerate CLI
 
 test/                           # Test suite
 ├── e2e/                        # End-to-end tests (testcontainers + K3S)
 │   ├── conftest.py             # Fixtures: K3S container, client fixtures, temp namespace
 │   ├── test_core_api_pod.py    # Pod CRUD tests
-│   └── test_core_api_namespaces.py  # Namespace listing tests
+│   ├── test_core_api_namespaces.py  # Namespace listing tests
+│   └── test_subresource_apis.py # E2E tests for Status, Eviction, EphemeralContainers, Resize subresources
 ├── test_configuration/         # Unit tests
 │   └── auth/
 │       └── test_exec_provider.py # Exec provider unit tests
+├── test_models/                # Unit tests for kubex-core models
+│   └── test_eviction.py        # Eviction model tests
 ├── test_patch/                 # Unit tests for patch models
 │   ├── test_json_patch.py      # JSON Patch operation model tests
 │   └── test_json_pointer.py    # JSON Pointer (RFC 6901) tests
+├── test_request_builder/       # Unit tests for request builder methods
+│   └── test_create_subresource.py # create_subresource() method tests
 ├── test_subresource_descriptors/ # Unit tests for descriptor-based subresource APIs
 └── test_timeout/               # Unit tests for HTTP timeout settings
 
@@ -205,7 +217,7 @@ KubexException
 ```
 
 ### Descriptor-based subresource APIs
-Subresource capabilities (logs, scale, status, eviction) use Python non-data descriptors with `__get__` overloads to provide type-safe access. Each capability is a class variable on `Api` (e.g., `logs = _LogsDescriptor()`) that returns a typed accessor (`LogsAccessor[T]`) when `T` has the matching marker interface, or raises `NotImplementedError` at runtime (and resolves to `SubresourceNotAvailable` for type checkers) when it does not. Accessors are cached on the instance after first access via `instance.__dict__` (the standard non-data descriptor caching pattern), so repeated attribute access returns the same object without re-invoking the descriptor. Accessor objects receive individual components (client, request_builder, namespace, scope) rather than a back-reference to `Api`. Metadata uses the same accessor pattern (`MetadataAccessor`) but is always available (no descriptor guard needed) and is created eagerly in `Api.__init__`.
+Subresource capabilities (logs, scale, status, eviction, ephemeral_containers, resize) use Python non-data descriptors with `__get__` overloads to provide type-safe access. Each capability is a class variable on `Api` (e.g., `logs = _LogsDescriptor()`) that returns a typed accessor (`LogsAccessor[T]`) when `T` has the matching marker interface, or raises `NotImplementedError` at runtime (and resolves to `SubresourceNotAvailable` for type checkers) when it does not. Accessors are cached on the instance after first access via `instance.__dict__` (the standard non-data descriptor caching pattern), so repeated attribute access returns the same object without re-invoking the descriptor. Accessor objects receive individual components (client, request_builder, namespace, scope, resource_type) rather than a back-reference to `Api`. Metadata uses the same accessor pattern (`MetadataAccessor`) but is always available (no descriptor guard needed) and is created eagerly in `Api.__init__`.
 ```python
 pod_api: Api[Pod] = Api(Pod, client=client, namespace="default")
 await pod_api.logs.get("my-pod")        # OK: Pod has HasLogs
@@ -216,7 +228,7 @@ await deploy_api.scale.get("my-deploy") # OK: Deployment has HasScaleSubresource
 ```
 
 ### Marker interfaces for resource capabilities
-Resources declare capabilities via multiple inheritance from marker classes: `NamespaceScopedEntity`, `ClusterScopedEntity`, `HasLogs`, `HasStatusSubresource`, `HasScaleSubresource`, `Evictable`.
+Resources declare capabilities via multiple inheritance from marker classes: `NamespaceScopedEntity`, `ClusterScopedEntity`, `HasLogs`, `HasStatusSubresource`, `HasScaleSubresource`, `Evictable`, `HasEphemeralContainers`, `HasResize`, `HasAttach`, `HasExec`, `HasPortForward`.
 
 ## Testing
 
@@ -296,6 +308,18 @@ Generated models are fully typed with proper spec/status fields (not generic dic
 from kubex.k8s.v1_35.core.v1.pod import Pod
 from kubex.k8s.v1_35.core.v1.namespace import Namespace
 from kubex.k8s.v1_35.apps.v1.deployment import Deployment
+```
+
+### Regenerating all model packages
+
+Use `mise run regenerate-models` to automatically resolve the latest patch/pre-release tag for each configured Kubernetes minor version, download both v2 and v3 OpenAPI specs from the Kubernetes GitHub repo, regenerate all `kubex-k8s-*` packages, and verify them with mypy. Downloaded specs are cached in `.cache/schemas/<tag>/` and reused on subsequent runs. The list of minor versions is configured via `K8S_VERSIONS` in `mise.toml`.
+
+```bash
+# Regenerate all packages (uses versions from mise.toml)
+mise run regenerate-models
+
+# Or invoke the CLI directly with custom versions
+uv run python -m scripts.codegen regenerate --versions 1.35,1.36
 ```
 
 ### Adding support for a new Kubernetes version

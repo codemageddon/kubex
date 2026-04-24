@@ -34,9 +34,11 @@ from kubex_core.models.typing import (
 )
 from kubex_core.models.watch_event import WatchEvent
 
+from ._ephemeral_containers import _EphemeralContainersDescriptor
 from ._eviction import _EvictionDescriptor
 from ._logs import _LogsDescriptor
 from ._metadata import MetadataAccessor
+from ._resize import _ResizeDescriptor
 from ._scale import _ScaleDescriptor
 from ._status import _StatusDescriptor
 from ._protocol import (
@@ -54,6 +56,8 @@ class Api(Generic[ResourceType]):
     scale = _ScaleDescriptor()
     status = _StatusDescriptor()
     eviction = _EvictionDescriptor()
+    ephemeral_containers = _EphemeralContainersDescriptor()
+    resize = _ResizeDescriptor()
     metadata: MetadataAccessor[ResourceType]
 
     def __init__(
@@ -77,6 +81,7 @@ class Api(Generic[ResourceType]):
             request_builder=self._request_builder,
             namespace=self._namespace,
             scope=self._resource.__RESOURCE_CONFIG__.scope,
+            resource_type=self._resource,
         )
 
     async def get(

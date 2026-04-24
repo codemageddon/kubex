@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import AsyncGenerator, Generic
+from typing import AsyncGenerator, Generic, Type
 
 from kubex.client.client import BaseClient
 from kubex.core.params import (
@@ -40,11 +40,13 @@ class MetadataAccessor(Generic[ResourceType]):
         request_builder: RequestBuilder,
         namespace: NamespaceTypes,
         scope: Scope,
+        resource_type: Type[ResourceType],
     ) -> None:
         self._client = client
         self._request_builder = request_builder
         self._namespace = namespace
         self._scope = scope
+        self._resource_type = resource_type
 
     async def get(
         self,

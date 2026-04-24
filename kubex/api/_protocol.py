@@ -77,6 +77,7 @@ class CachedSubresourceDescriptor:
             request_builder=instance._request_builder,
             namespace=instance._namespace,
             scope=instance._resource.__RESOURCE_CONFIG__.scope,
+            resource_type=instance._resource,
         )
         if hasattr(self, "_attr_name"):
             instance.__dict__[self._attr_name] = accessor

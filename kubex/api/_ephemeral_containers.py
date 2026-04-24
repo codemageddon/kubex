@@ -12,9 +12,8 @@ from kubex.core.params import (
 )
 from kubex.core.patch import Patch
 from kubex.core.request_builder.builder import RequestBuilder
-from kubex_core.models.interfaces import HasScaleSubresource
+from kubex_core.models.interfaces import HasEphemeralContainers
 from kubex_core.models.resource_config import Scope
-from kubex_core.models.scale import Scale
 from kubex_core.models.typing import ResourceType
 
 from ._protocol import (
@@ -26,13 +25,13 @@ from ._protocol import (
     ensure_required_namespace,
 )
 
-_S = TypeVar("_S", bound=HasScaleSubresource)
+_EC = TypeVar("_EC", bound=HasEphemeralContainers)
 
-SCALE_SUBRESOURCE = "scale"
+EPHEMERAL_CONTAINERS_SUBRESOURCE = "ephemeralcontainers"
 
 
-class ScaleAccessor(Generic[ResourceType]):
-    """Accessor for scale subresource operations."""
+class EphemeralContainersAccessor(Generic[ResourceType]):
+    """Accessor for ephemeral containers subresource operations."""
 
     def __init__(
         self,
@@ -54,40 +53,43 @@ class ScaleAccessor(Generic[ResourceType]):
         *,
         namespace: ApiNamespaceTypes = Ellipsis,
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
-    ) -> Scale:
-        """Read the scale of the specified resource."""
+    ) -> ResourceType:
+        """Read the ephemeral containers of the specified resource."""
         _namespace = ensure_required_namespace(namespace, self._namespace, self._scope)
         request = self._request_builder.get_subresource(
-            SCALE_SUBRESOURCE, name, _namespace, request_timeout=request_timeout
+            EPHEMERAL_CONTAINERS_SUBRESOURCE,
+            name,
+            _namespace,
+            request_timeout=request_timeout,
         )
         response = await self._client.request(request)
-        return Scale.model_validate_json(response.content)
+        return self._resource_type.model_validate_json(response.content)
 
     async def replace(
         self,
         name: str,
-        scale: Scale,
+        data: ResourceType,
         *,
         namespace: ApiNamespaceTypes = Ellipsis,
         dry_run: DryRunTypes = None,
         field_manager: str | None = None,
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
-    ) -> Scale:
-        """Replace the scale of the specified resource."""
+    ) -> ResourceType:
+        """Replace the ephemeral containers of the specified resource."""
         _namespace = ensure_required_namespace(namespace, self._namespace, self._scope)
         options = PostOptions(dry_run=dry_run, field_manager=field_manager)
         request = self._request_builder.replace_subresource(
-            SCALE_SUBRESOURCE,
+            EPHEMERAL_CONTAINERS_SUBRESOURCE,
             name,
             _namespace,
-            data=scale.model_dump_json(
+            data=data.model_dump_json(
                 by_alias=True, exclude_unset=True, exclude_none=True
             ),
             options=options,
             request_timeout=request_timeout,
         )
         response = await self._client.request(request)
-        return Scale.model_validate_json(response.content)
+        return self._resource_type.model_validate_json(response.content)
 
     async def patch(
         self,
@@ -100,8 +102,8 @@ class ScaleAccessor(Generic[ResourceType]):
         force: bool | None = None,
         field_validation: FieldValidation | None = None,
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
-    ) -> Scale:
-        """Patch the scale of the specified resource."""
+    ) -> ResourceType:
+        """Patch the ephemeral containers of the specified resource."""
         _namespace = ensure_required_namespace(namespace, self._namespace, self._scope)
         options = PatchOptions(
             dry_run=dry_run,
@@ -110,7 +112,7 @@ class ScaleAccessor(Generic[ResourceType]):
             field_validation=field_validation,
         )
         request = self._request_builder.patch_subresource(
-            SCALE_SUBRESOURCE,
+            EPHEMERAL_CONTAINERS_SUBRESOURCE,
             name,
             _namespace,
             options=options,
@@ -118,21 +120,23 @@ class ScaleAccessor(Generic[ResourceType]):
             request_timeout=request_timeout,
         )
         response = await self._client.request(request)
-        return Scale.model_validate_json(response.content)
+        return self._resource_type.model_validate_json(response.content)
 
 
-class _ScaleDescriptor(CachedSubresourceDescriptor):
-    _marker = HasScaleSubresource
-    _accessor_cls = ScaleAccessor
-    _error_message = (
-        "Scale is only supported for resources with HasScaleSubresource marker"
-    )
+class _EphemeralContainersDescriptor(CachedSubresourceDescriptor):
+    _marker = HasEphemeralContainers
+    _accessor_cls = EphemeralContainersAccessor
+    _error_message = "Ephemeral containers is only supported for resources with HasEphemeralContainers marker"
 
     @overload
-    def __get__(self, instance: None, owner: type) -> _ScaleDescriptor: ...
+    def __get__(
+        self, instance: None, owner: type
+    ) -> _EphemeralContainersDescriptor: ...
 
     @overload
-    def __get__(self, instance: ApiProtocol[_S], owner: type) -> ScaleAccessor[_S]: ...
+    def __get__(
+        self, instance: ApiProtocol[_EC], owner: type
+    ) -> EphemeralContainersAccessor[_EC]: ...
 
     @overload
     def __get__(

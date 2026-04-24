@@ -272,6 +272,16 @@ def _bases_for(defn: str, ctx: EmissionContext, *, is_list: bool) -> list[str]:
         bases.append("HasScaleSubresource")
     if info.has_status:
         bases.append("HasStatusSubresource")
+    if info.has_ephemeral_containers:
+        bases.append("HasEphemeralContainers")
+    if info.has_resize:
+        bases.append("HasResize")
+    if info.has_attach:
+        bases.append("HasAttach")
+    if info.has_exec:
+        bases.append("HasExec")
+    if info.has_port_forward:
+        bases.append("HasPortForward")
     return bases
 
 
@@ -288,6 +298,11 @@ def _import_base(module: EmittedModule, base: str, ctx: EmissionContext) -> None
         "HasStatusSubresource",
         "HasScaleSubresource",
         "Evictable",
+        "HasEphemeralContainers",
+        "HasResize",
+        "HasAttach",
+        "HasExec",
+        "HasPortForward",
     }:
         module.imports.add_from("kubex_core.models.interfaces", base)
         module.imports.add_from("kubex_core.models.resource_config", "ResourceConfig")

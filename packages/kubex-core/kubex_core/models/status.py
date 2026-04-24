@@ -37,7 +37,7 @@ class StatusDetails(BaseK8sModel):
 class Status(BaseEntity):
     """Status is a return value for calls that don't return other objects."""
 
-    api_version: Literal["meta/v1"] | None = "meta/v1"
+    api_version: Literal["v1"] | None = "v1"
     """APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"""
     kind: Literal["Status"] | None = "Status"
     """Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"""
@@ -53,7 +53,7 @@ class Status(BaseEntity):
     """Status of the operation. One of: "Success" or "Failure". More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status"""
 
     __RESOURCE_CONFIG__ = ResourceConfig["Status"](
-        version="meta/v1",
+        version="v1",
         kind="Status",
         plural="statuses",
         scope=Scope.CLUSTER,
