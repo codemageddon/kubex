@@ -66,7 +66,7 @@
 - [x] Run tests — must pass before next task
 
 ### Task 2: Add `regenerate` CLI command to the codegen module
-- [ ] In `scripts/codegen/__main__.py`, add a new `regenerate` typer command that:
+- [x] In `scripts/codegen/__main__.py`, add a new `regenerate` typer command that:
   - Accepts `--versions` (comma-separated minor versions, e.g. `"1.32,1.33,1.34,1.35,1.36,1.37"`) — required
   - Accepts `--cache-dir` (default: `.cache/schemas`)
   - Accepts `--package-version` (default: `"0.1.0-alpha.1"`)
@@ -75,21 +75,21 @@
   - Calls `fetch_all_specs()` to resolve and download all swagger + v3 specs
   - Iterates over each version: runs `generate` logic with both `--swagger` and `--v3-dir` from the downloaded specs (reuse existing code), then optionally `verify`
   - Reports summary at the end (success/failure per version)
-- [ ] Refactor the existing `generate` command body into a reusable function so `regenerate` can call it without subprocess overhead
-- [ ] Write unit tests in `scripts/codegen/tests/test_regenerate_command.py`:
+- [x] Refactor the existing `generate` command body into a reusable function so `regenerate` can call it without subprocess overhead
+- [x] Write unit tests in `scripts/codegen/tests/test_regenerate_command.py`:
   - Test CLI argument parsing (invoke via typer.testing.CliRunner)
   - Test that regenerate calls fetch + generate + verify in correct order (mock the heavy operations)
-- [ ] Run tests — must pass before next task
+- [x] Run tests — must pass before next task
 
 ### Task 3: Add mise task configuration
-- [ ] Add `[tasks.regenerate-models]` to `mise.toml`:
+- [x] Add `[tasks.regenerate-models]` to `mise.toml`:
   - `run = "uv run python -m scripts.codegen regenerate --versions {{env.K8S_VERSIONS}}"`
   - Define `K8S_VERSIONS` env var with explicit version list: `"1.32,1.33,1.34,1.35,1.36,1.37"`
   - Add description: `"Download latest K8s OpenAPI specs and regenerate all model packages"`
-- [ ] Add `.cache/` to `.gitignore` if not already present
-- [ ] Verify `mise run regenerate-models` works end-to-end (dry run or with one version)
-- [ ] Write no new tests (mise config is verified by running the task)
-- [ ] Run existing tests — must still pass
+- [x] Add `.cache/` to `.gitignore` if not already present (`.cache` already in .gitignore)
+- [x] Verify `mise run regenerate-models` works end-to-end (dry run or with one version)
+- [x] Write no new tests (mise config is verified by running the task)
+- [x] Run existing tests — must still pass
 
 ### Task 4: Verify acceptance criteria
 - [ ] Verify the task resolves latest patch releases correctly (e.g. 1.32 -> v1.32.13, 1.37 -> v1.37.0-alpha.0)
