@@ -35,6 +35,7 @@ from kubex_core.models.typing import (
 from kubex_core.models.watch_event import WatchEvent
 
 from ._ephemeral_containers import _EphemeralContainersDescriptor
+from ._exec import _ExecDescriptor
 from ._eviction import _EvictionDescriptor
 from ._logs import _LogsDescriptor
 from ._metadata import MetadataAccessor
@@ -58,6 +59,7 @@ class Api(Generic[ResourceType]):
     eviction = _EvictionDescriptor()
     ephemeral_containers = _EphemeralContainersDescriptor()
     resize = _ResizeDescriptor()
+    exec = _ExecDescriptor()
     metadata: MetadataAccessor[ResourceType]
 
     def __init__(

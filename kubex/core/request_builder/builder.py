@@ -12,6 +12,7 @@ from kubex.core.params import (
 )
 from kubex.core.patch import Patch
 from kubex.core.request import Request
+from kubex.core.request_builder.exec import ExecRequestBuilder
 from kubex.core.request_builder.logs import LogsRequestBuilder
 from kubex.core.request_builder.metadata import MetadataRequestBuilder
 from kubex_core.models.resource_config import ResourceConfig
@@ -21,7 +22,10 @@ from .subresource import SubresourceRequestBuilder
 
 
 class RequestBuilder(
-    MetadataRequestBuilder, SubresourceRequestBuilder, LogsRequestBuilder
+    MetadataRequestBuilder,
+    SubresourceRequestBuilder,
+    LogsRequestBuilder,
+    ExecRequestBuilder,
 ):
     def __init__(self, resource_config: ResourceConfig[Any]) -> None:
         self.resource_config = resource_config

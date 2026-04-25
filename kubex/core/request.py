@@ -14,9 +14,11 @@ class Request:
         body: str | bytes | None = None,
         headers: dict[str, str] | None = None,
         timeout: TimeoutTypes | EllipsisType = ...,
+        query_param_pairs: list[tuple[str, str]] | None = None,
     ) -> None:
         self.url = url
         self.query_params = query_params
+        self.query_param_pairs = query_param_pairs
         self.method = method
         self.body = body
         self.headers = headers
@@ -27,6 +29,7 @@ class Request:
     def __repr__(self) -> str:
         return (
             f"Request(method={self.method}, url={self.url}, "
-            f"query_params={self.query_params}, body={self.body!r}, "
+            f"query_params={self.query_params}, "
+            f"query_param_pairs={self.query_param_pairs}, body={self.body!r}, "
             f"headers={self.headers}, timeout={self.timeout!r})"
         )
