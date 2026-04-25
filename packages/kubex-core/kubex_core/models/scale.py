@@ -19,4 +19,4 @@ class Scale(BaseEntity):
     kind: Literal["Scale"] = "Scale"
     metadata: ObjectMetadata
     spec: ScaleSpec
-    status: dict[str, int] | None = None
+    status: ScaleStatus | None = None

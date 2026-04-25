@@ -100,7 +100,7 @@ class OidcRefreshableToken(BaseRefreshableToken):
 
     def _get_expiration(self, token: str) -> float:
         # TODO: Implement this
-        return float(TOKEN_REFRESH_INTERVAL)
+        return anyio.current_time() + float(TOKEN_REFRESH_INTERVAL)
 
     async def _id_token(self) -> SecretStr:
         if not self._is_expiring() and self._last_read_token is not None:
@@ -117,7 +117,7 @@ class ExecRefreshableToken(BaseRefreshableToken):
         self._provider = provider
 
     def _get_expiration(self, token: str) -> float:
-        return float(TOKEN_REFRESH_INTERVAL)
+        return anyio.current_time() + float(TOKEN_REFRESH_INTERVAL)
 
     async def _id_token(self) -> SecretStr:
         if not self._is_expiring() and self._last_read_token is not None:

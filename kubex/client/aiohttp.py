@@ -125,16 +125,19 @@ class AioHttpClient(BaseClient):
             headers=headers,
             **extra,
         )
-        status = _response.status
-        if 400 <= status < 600:
-            response = Response(
-                status_code=status,
-                headers=HeadersWrapper(_response.headers),
-                content=await _response.read(),
-            )
-            handle_request_error(response)
-        while line := await _response.content.readline():
-            yield line.decode("utf-8")
+        try:
+            status = _response.status
+            if 400 <= status < 600:
+                response = Response(
+                    status_code=status,
+                    headers=HeadersWrapper(_response.headers),
+                    content=await _response.read(),
+                )
+                handle_request_error(response)
+            while line := await _response.content.readline():
+                yield line.decode("utf-8")
+        finally:
+            _response.close()
 
     async def close(self) -> None:
         await self._inner_client.close()

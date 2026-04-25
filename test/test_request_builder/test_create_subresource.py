@@ -78,32 +78,31 @@ def test_create_subresource_no_query_params_when_default_options(
     assert request.query_params is None
 
 
-def test_create_subresource_timeout(builder: RequestBuilder) -> None:
-    request = builder.create_subresource(
-        "eviction",
-        "my-pod",
-        "default",
-        data="{}",
-        options=PostOptions(),
-        request_timeout=30,
-    )
-    timeout = request.timeout
-    assert timeout is not None
-    assert timeout is not Ellipsis
-    assert timeout.total == 30
+_TIMEOUT_CASES = [
+    pytest.param(..., ..., id="default_ellipsis"),
+    pytest.param(30, 30.0, id="passthrough"),
+]
 
 
-def test_create_subresource_default_timeout_is_ellipsis(
-    builder: RequestBuilder,
+@pytest.mark.parametrize("request_timeout,expected_total", _TIMEOUT_CASES)
+def test_create_subresource_timeout(
+    builder: RequestBuilder, request_timeout: object, expected_total: object
 ) -> None:
+    kwargs = {} if request_timeout is ... else {"request_timeout": request_timeout}
     request = builder.create_subresource(
         "eviction",
         "my-pod",
         "default",
         data="{}",
         options=PostOptions(),
+        **kwargs,  # type: ignore[arg-type]
     )
-    assert request.timeout is Ellipsis
+    if expected_total is ...:
+        assert request.timeout is Ellipsis
+    else:
+        assert request.timeout is not None
+        assert request.timeout is not Ellipsis
+        assert request.timeout.total == expected_total
 
 
 def test_create_subresource_cluster_scoped() -> None:

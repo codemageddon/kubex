@@ -1,3 +1,5 @@
+import pytest
+
 from kubex.configuration import ClientConfiguration
 from kubex.core.params import Timeout
 
@@ -20,17 +22,19 @@ def test_explicit_none_preserved() -> None:
     assert config.timeout is None
 
 
-def test_int_normalized_to_timeout() -> None:
-    config = _base_config(timeout=3)
-    assert config.timeout == Timeout(total=3.0)
+_NORMALIZE_CASES = [
+    pytest.param(3, Timeout(total=3.0), id="int"),
+    pytest.param(2.5, Timeout(total=2.5), id="float"),
+    pytest.param(
+        Timeout(connect=1, read=2), Timeout(connect=1, read=2), id="timeout_instance"
+    ),
+]
 
 
-def test_float_normalized_to_timeout() -> None:
-    config = _base_config(timeout=2.5)
-    assert config.timeout == Timeout(total=2.5)
-
-
-def test_timeout_instance_passthrough() -> None:
-    t = Timeout(connect=1, read=2)
-    config = _base_config(timeout=t)
-    assert config.timeout is t
+@pytest.mark.parametrize("input_val,expected", _NORMALIZE_CASES)
+def test_timeout_normalized(input_val: object, expected: Timeout) -> None:
+    config = _base_config(timeout=input_val)
+    if isinstance(input_val, Timeout):
+        assert config.timeout is input_val
+    else:
+        assert config.timeout == expected

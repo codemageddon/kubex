@@ -124,16 +124,25 @@ test/                           # Test suite
 │   ├── test_core_api_pod.py    # Pod CRUD tests
 │   ├── test_core_api_namespaces.py  # Namespace listing tests
 │   └── test_subresource_apis.py # E2E tests for Status, Eviction, EphemeralContainers, Resize subresources
-├── test_configuration/         # Unit tests
+├── test_configuration/         # Unit tests for configuration and auth
+│   ├── test_file_config.py     # Kubeconfig file parsing tests
+│   ├── test_incluster_config.py # In-cluster configuration tests
 │   └── auth/
-│       └── test_exec_provider.py # Exec provider unit tests
+│       ├── test_exec_provider.py # Exec provider unit tests
+│       └── test_refreshable_token.py # Token refresh and async lock tests
+├── test_error_handling.py      # handle_request_error() and exception hierarchy tests
+├── test_metadata_accessor.py   # MetadataAccessor (get, list, patch) tests
 ├── test_models/                # Unit tests for kubex-core models
 │   └── test_eviction.py        # Eviction model tests
 ├── test_patch/                 # Unit tests for patch models
 │   ├── test_json_patch.py      # JSON Patch operation model tests
 │   └── test_json_pointer.py    # JSON Pointer (RFC 6901) tests
 ├── test_request_builder/       # Unit tests for request builder methods
-│   └── test_create_subresource.py # create_subresource() method tests
+│   ├── test_builder.py         # Core RequestBuilder methods (get, list, create, delete, replace, patch, watch)
+│   ├── test_create_subresource.py # create_subresource() method tests
+│   ├── test_logs.py            # LogsRequestBuilder (logs, stream_logs) tests
+│   ├── test_metadata.py        # MetadataRequestBuilder (get/list/watch/patch_metadata) tests
+│   └── test_subresource.py     # SubresourceRequestBuilder (get/replace/patch_subresource) tests
 ├── test_subresource_descriptors/ # Unit tests for descriptor-based subresource APIs
 └── test_timeout/               # Unit tests for HTTP timeout settings
 
@@ -141,7 +150,14 @@ examples/                       # Usage examples
 ├── get_pod.py                  # Create, get, list metadata, delete a Pod
 ├── watch_pods.py               # Watch for Pod events
 ├── get_pod_logs.py             # Stream Pod logs
-└── list_namespaces.py          # List cluster namespaces
+├── list_namespaces.py          # List cluster namespaces
+├── patch_deployment.py         # All three patch types (MergePatch, StrategicMergePatch, JsonPatch)
+├── replace_pod.py              # Get → modify → replace pattern
+├── scale_deployment.py         # Scale subresource (get + replace)
+├── status_operations.py        # Status subresource (get + replace)
+├── error_handling.py           # Exception handling (KubexApiError, NotFound, Conflict)
+├── aiohttp_client.py           # Using AioHttpClient explicitly
+└── delete_collection.py        # Bulk delete with label_selector
 
 .github/workflows/
 ├── lint.yaml                   # Pre-commit, ruff check, ruff format --check, mypy, codegen verify
@@ -234,7 +250,7 @@ Resources declare capabilities via multiple inheritance from marker classes: `Na
 
 - **Framework**: pytest with `pytest-cov` and `anyio` for async support
 - **E2E tests** use `testcontainers` with a K3S container (requires Docker); located in `test/e2e/`
-- **Unit tests** for configuration/auth in `test/test_configuration/`, timeout settings in `test/test_timeout/`, patch models in `test/test_patch/`, subresource descriptors in `test/test_subresource_descriptors/`
+- **Unit tests** for request builder methods in `test/test_request_builder/`, error handling in `test/test_error_handling.py`, metadata accessor in `test/test_metadata_accessor.py`, configuration/auth in `test/test_configuration/`, timeout settings in `test/test_timeout/`, patch models in `test/test_patch/`, subresource descriptors in `test/test_subresource_descriptors/`
 - **Codegen tests** with golden snapshots in `scripts/codegen/tests/`
 - E2E tests are parameterized over both HTTP clients (`httpx`, `aiohttp`) and async backends (`asyncio`, `trio` — trio only with httpx)
 - Mark async tests with `@pytest.mark.anyio`
