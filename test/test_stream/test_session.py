@@ -3,7 +3,7 @@ from __future__ import annotations
 import anyio
 import pytest
 
-from kubex.api._exec_session import ExecSession
+from kubex.api._stream_session import StreamSession
 from kubex.client.websocket import WebSocketConnection
 from kubex.core.exec_channels import V5ChannelProtocol
 
@@ -64,7 +64,7 @@ async def test_stdout_yields_payload_from_channel_one() -> None:
     fake.feed(bytes([1]) + b"hello")
     fake.feed_eof()
 
-    async with ExecSession(fake, V5ChannelProtocol()) as session:
+    async with StreamSession(fake, V5ChannelProtocol()) as session:
         chunks = [chunk async for chunk in session.stdout]
 
     assert chunks == [b"hello"]
@@ -76,7 +76,7 @@ async def test_stderr_yields_payload_from_channel_two() -> None:
     fake.feed(bytes([2]) + b"err")
     fake.feed_eof()
 
-    async with ExecSession(fake, V5ChannelProtocol()) as session:
+    async with StreamSession(fake, V5ChannelProtocol()) as session:
         chunks = [chunk async for chunk in session.stderr]
 
     assert chunks == [b"err"]
@@ -90,7 +90,7 @@ async def test_dispatches_frames_to_correct_channels() -> None:
     fake.feed(bytes([3]) + b'{"metadata":{},"status":"Success"}')
     fake.feed_eof()
 
-    async with ExecSession(fake, V5ChannelProtocol()) as session:
+    async with StreamSession(fake, V5ChannelProtocol()) as session:
         stdout = [c async for c in session.stdout]
         stderr = [c async for c in session.stderr]
         status = await session.wait_for_status()
@@ -107,7 +107,7 @@ async def test_status_resolves_to_none_when_no_error_frame_received() -> None:
     fake.feed(bytes([1]) + b"only-stdout")
     fake.feed_eof()
 
-    async with ExecSession(fake, V5ChannelProtocol()) as session:
+    async with StreamSession(fake, V5ChannelProtocol()) as session:
         async for _ in session.stdout:
             pass
         status = await session.wait_for_status()
@@ -122,7 +122,7 @@ async def test_unknown_inbound_channels_are_ignored() -> None:
     fake.feed(bytes([1]) + b"good")
     fake.feed_eof()
 
-    async with ExecSession(fake, V5ChannelProtocol()) as session:
+    async with StreamSession(fake, V5ChannelProtocol()) as session:
         chunks = [c async for c in session.stdout]
 
     assert chunks == [b"good"]
@@ -133,7 +133,7 @@ async def test_stdin_write_sends_channel_zero_frame() -> None:
     fake = _FakeWebSocket()
     fake.feed_eof()
 
-    async with ExecSession(fake, V5ChannelProtocol(), stdin=True) as session:
+    async with StreamSession(fake, V5ChannelProtocol(), stdin=True) as session:
         await session.stdin.write(b"input")
 
     assert fake.sent == [b"\x00input"]
@@ -144,7 +144,7 @@ async def test_stdin_writer_close_method_sends_v5_close_frame() -> None:
     fake = _FakeWebSocket()
     fake.feed_eof()
 
-    async with ExecSession(fake, V5ChannelProtocol(), stdin=True) as session:
+    async with StreamSession(fake, V5ChannelProtocol(), stdin=True) as session:
         await session.stdin.close()
 
     assert fake.sent == [b"\xff\x00"]
@@ -155,7 +155,7 @@ async def test_resize_sends_channel_four_frame_with_compact_json_payload() -> No
     fake = _FakeWebSocket()
     fake.feed_eof()
 
-    async with ExecSession(fake, V5ChannelProtocol()) as session:
+    async with StreamSession(fake, V5ChannelProtocol()) as session:
         await session.resize(width=80, height=24)
 
     assert fake.sent == [b'\x04{"Width":80,"Height":24}']
@@ -166,7 +166,7 @@ async def test_close_stdin_sends_v5_close_frame_for_stdin_channel() -> None:
     fake = _FakeWebSocket()
     fake.feed_eof()
 
-    async with ExecSession(fake, V5ChannelProtocol(), stdin=True) as session:
+    async with StreamSession(fake, V5ChannelProtocol(), stdin=True) as session:
         await session.close_stdin()
 
     assert fake.sent == [b"\xff\x00"]
@@ -177,7 +177,7 @@ async def test_context_manager_closes_underlying_connection_on_exit() -> None:
     fake = _FakeWebSocket()
     fake.feed_eof()
 
-    async with ExecSession(fake, V5ChannelProtocol()):
+    async with StreamSession(fake, V5ChannelProtocol()):
         pass
 
     assert fake.closed is True
@@ -188,7 +188,7 @@ async def test_exception_inside_block_still_closes_underlying_connection() -> No
     fake = _FakeWebSocket()
 
     with pytest.raises(RuntimeError, match="boom"):
-        async with ExecSession(fake, V5ChannelProtocol()):
+        async with StreamSession(fake, V5ChannelProtocol()):
             raise RuntimeError("boom")
 
     assert fake.closed is True
@@ -201,7 +201,7 @@ async def test_resize_during_iteration_does_not_corrupt_output() -> None:
     fake.feed(bytes([1]) + b"second")
     fake.feed_eof()
 
-    async with ExecSession(fake, V5ChannelProtocol()) as session:
+    async with StreamSession(fake, V5ChannelProtocol()) as session:
         chunks: list[bytes] = []
         async for chunk in session.stdout:
             chunks.append(chunk)
@@ -220,7 +220,7 @@ async def test_clean_exit_without_eof_does_not_deadlock() -> None:
     # Note: NO feed_eof() — simulates a server that has not closed the channel.
 
     with anyio.fail_after(2.0):
-        async with ExecSession(fake, V5ChannelProtocol(), stdin=True) as session:
+        async with StreamSession(fake, V5ChannelProtocol(), stdin=True) as session:
             await session.stdin.write(b"hello")
 
     assert fake.closed is True
@@ -231,7 +231,7 @@ async def test_close_stdin_is_idempotent() -> None:
     fake = _FakeWebSocket()
     fake.feed_eof()
 
-    async with ExecSession(fake, V5ChannelProtocol(), stdin=True) as session:
+    async with StreamSession(fake, V5ChannelProtocol(), stdin=True) as session:
         await session.close_stdin()
         await session.close_stdin()
         await session.stdin.close()
@@ -244,7 +244,7 @@ async def test_resize_rejects_non_positive_dimensions() -> None:
     fake = _FakeWebSocket()
     fake.feed_eof()
 
-    async with ExecSession(fake, V5ChannelProtocol()) as session:
+    async with StreamSession(fake, V5ChannelProtocol()) as session:
         with pytest.raises(ValueError, match="positive width and height"):
             await session.resize(width=0, height=24)
         with pytest.raises(ValueError, match="positive width and height"):
@@ -256,7 +256,7 @@ async def test_stdin_write_after_close_raises() -> None:
     fake = _FakeWebSocket()
     fake.feed_eof()
 
-    async with ExecSession(fake, V5ChannelProtocol(), stdin=True) as session:
+    async with StreamSession(fake, V5ChannelProtocol(), stdin=True) as session:
         await session.close_stdin()
         with pytest.raises(RuntimeError, match="stdin is closed"):
             await session.stdin.write(b"too late")
@@ -283,7 +283,7 @@ async def test_close_stdin_rolls_back_flag_on_send_failure() -> None:
     fake = _FailingThenOkWebSocket()
     fake.feed_eof()
 
-    async with ExecSession(fake, V5ChannelProtocol(), stdin=True) as session:
+    async with StreamSession(fake, V5ChannelProtocol(), stdin=True) as session:
         with pytest.raises(RuntimeError, match="transient send failure"):
             await session.close_stdin()
         # Retry succeeds; the close frame is actually delivered this time.
@@ -299,7 +299,7 @@ async def test_invalid_status_payload_does_not_crash_read_loop() -> None:
     fake.feed(bytes([1]) + b"after-error")
     fake.feed_eof()
 
-    async with ExecSession(fake, V5ChannelProtocol()) as session:
+    async with StreamSession(fake, V5ChannelProtocol()) as session:
         stdout = [c async for c in session.stdout]
         status = await session.wait_for_status()
 
@@ -321,7 +321,7 @@ async def test_status_observable_when_consumer_does_not_drain_stdout() -> None:
     fake.feed_eof()
 
     with anyio.fail_after(2.0):
-        async with ExecSession(fake, V5ChannelProtocol()) as session:
+        async with StreamSession(fake, V5ChannelProtocol()) as session:
             # Deliberately do NOT iterate session.stdout. Status must still
             # arrive because the read loop cannot be parked on a full buffer.
             status = await session.wait_for_status()
@@ -350,7 +350,7 @@ async def test_stdout_buffer_overflow_closes_channel_without_oom() -> None:
     fake.feed_eof()
 
     with anyio.fail_after(2.0):
-        async with ExecSession(fake, V5ChannelProtocol()) as session:
+        async with StreamSession(fake, V5ChannelProtocol()) as session:
             stderr = [chunk async for chunk in session.stderr]
             status = await session.wait_for_status()
             # The stdout channel was closed locally on overflow; iterating
@@ -379,7 +379,7 @@ async def test_truncation_flags_false_on_clean_exit() -> None:
     fake.feed(bytes([3]) + b'{"metadata":{},"status":"Success"}')
     fake.feed_eof()
 
-    async with ExecSession(fake, V5ChannelProtocol()) as session:
+    async with StreamSession(fake, V5ChannelProtocol()) as session:
         [chunk async for chunk in session.stdout]
         [chunk async for chunk in session.stderr]
         await session.wait_for_status()
@@ -398,7 +398,7 @@ async def test_closed_stdout_does_not_silence_stderr_or_status() -> None:
     fake.feed(bytes([3]) + b'{"metadata":{},"status":"Success"}')
     fake.feed_eof()
 
-    async with ExecSession(fake, V5ChannelProtocol()) as session:
+    async with StreamSession(fake, V5ChannelProtocol()) as session:
         # Close stdout receive immediately; future stdout sends should fail
         # silently inside the read loop without affecting stderr/status.
         session.stdout.close()
@@ -443,7 +443,7 @@ async def test_write_queued_behind_close_observes_closed_state() -> None:
 
     write_error: list[BaseException] = []
 
-    async with ExecSession(fake, V5ChannelProtocol(), stdin=True) as session:
+    async with StreamSession(fake, V5ChannelProtocol(), stdin=True) as session:
 
         async def _do_close() -> None:
             await session.close_stdin()
@@ -484,7 +484,7 @@ async def test_stderr_closes_immediately_when_tty_true() -> None:
     # No EOF — simulates a server keeping the WebSocket open. Iteration
     # over stderr must still terminate because the channel is closed locally.
     with anyio.fail_after(2.0):
-        async with ExecSession(fake, V5ChannelProtocol(), tty=True) as session:
+        async with StreamSession(fake, V5ChannelProtocol(), tty=True) as session:
             chunks = [chunk async for chunk in session.stderr]
 
     assert chunks == []
@@ -494,7 +494,7 @@ async def test_stderr_closes_immediately_when_tty_true() -> None:
 async def test_stderr_closes_immediately_when_stderr_disabled() -> None:
     fake = _FakeWebSocket()
     with anyio.fail_after(2.0):
-        async with ExecSession(fake, V5ChannelProtocol(), stderr=False) as session:
+        async with StreamSession(fake, V5ChannelProtocol(), stderr=False) as session:
             chunks = [chunk async for chunk in session.stderr]
 
     assert chunks == []
@@ -504,7 +504,7 @@ async def test_stderr_closes_immediately_when_stderr_disabled() -> None:
 async def test_stdout_closes_immediately_when_stdout_disabled() -> None:
     fake = _FakeWebSocket()
     with anyio.fail_after(2.0):
-        async with ExecSession(fake, V5ChannelProtocol(), stdout=False) as session:
+        async with StreamSession(fake, V5ChannelProtocol(), stdout=False) as session:
             chunks = [chunk async for chunk in session.stdout]
 
     assert chunks == []
@@ -515,7 +515,7 @@ async def test_stdin_write_raises_when_stdin_not_enabled() -> None:
     fake = _FakeWebSocket()
     fake.feed_eof()
 
-    async with ExecSession(fake, V5ChannelProtocol()) as session:
+    async with StreamSession(fake, V5ChannelProtocol()) as session:
         with pytest.raises(RuntimeError, match="stdin was not enabled"):
             await session.stdin.write(b"nope")
 
@@ -529,7 +529,7 @@ async def test_close_stdin_is_noop_when_stdin_not_enabled() -> None:
     fake = _FakeWebSocket()
     fake.feed_eof()
 
-    async with ExecSession(fake, V5ChannelProtocol()) as session:
+    async with StreamSession(fake, V5ChannelProtocol()) as session:
         await session.close_stdin()
         await session.stdin.close()
 
@@ -546,7 +546,7 @@ async def test_disabled_channels_ignore_unexpected_inbound_frames() -> None:
     fake.feed(bytes([2]) + b"unexpected-stderr")
     fake.feed_eof()
 
-    async with ExecSession(
+    async with StreamSession(
         fake, V5ChannelProtocol(), stdout=False, stderr=False
     ) as session:
         stdout = [c async for c in session.stdout]

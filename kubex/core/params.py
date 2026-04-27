@@ -379,6 +379,37 @@ class ExecOptions:
         return params
 
 
+class AttachOptions:
+    """Options for the Pod ``attach`` subresource. Mirrors ``v1.PodAttachOptions``."""
+
+    __slots__ = ("container", "stdin", "stdout", "stderr", "tty")
+
+    def __init__(
+        self,
+        *,
+        container: str | None = None,
+        stdin: bool = False,
+        stdout: bool = True,
+        stderr: bool = True,
+        tty: bool = False,
+    ) -> None:
+        self.container = container
+        self.stdin = stdin
+        self.stdout = stdout
+        self.stderr = stderr
+        self.tty = tty
+
+    def to_query_params(self) -> list[tuple[str, str]]:
+        params: list[tuple[str, str]] = []
+        if self.container is not None:
+            params.append(("container", self.container))
+        params.append(("stdin", "true" if self.stdin else "false"))
+        params.append(("stdout", "true" if self.stdout else "false"))
+        params.append(("stderr", "true" if self.stderr else "false"))
+        params.append(("tty", "true" if self.tty else "false"))
+        return params
+
+
 class LogOptions:
     def __init__(
         self,

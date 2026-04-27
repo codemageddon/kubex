@@ -15,6 +15,7 @@ if sys.version_info < (3, 11):
     from exceptiongroup import BaseExceptionGroup
 
 from kubex.client.websocket import WebSocketConnection
+from kubex.core.exceptions import KubexClientException
 from kubex.core.exec_channels import (
     CHANNEL_CLOSE,
     CHANNEL_ERROR,
@@ -23,12 +24,27 @@ from kubex.core.exec_channels import (
     CHANNEL_STDIN,
     CHANNEL_STDOUT,
     ChannelProtocol,
+    select_protocol,
 )
 
 if TYPE_CHECKING:
     from typing_extensions import Self
 
-__all__ = ["ExecSession"]
+__all__ = ["StreamSession", "_resolve_protocol"]
+
+
+def _resolve_protocol(
+    connection: WebSocketConnection, protocols: tuple[ChannelProtocol, ...]
+) -> ChannelProtocol:
+    # Both backend adapters already raise ``KubexClientException`` when the
+    # server returns no subprotocol, but if a misbehaving server picks one
+    # outside the requested list, ``select_protocol`` raises ``ValueError``.
+    # Normalise to the documented exec/attach exception type.
+    try:
+        return select_protocol(connection.negotiated_subprotocol, protocols)
+    except ValueError as exc:
+        raise KubexClientException(str(exc)) from exc
+
 
 # Per-channel bounded buffer for stdout / stderr. The read loop never blocks
 # on a full buffer (see ``_read_loop``); instead it closes the channel locally
@@ -40,9 +56,9 @@ _DEFAULT_CHANNEL_BUFFER = 128
 
 
 class _StdinWriter:
-    """Writer for the stdin channel of an :class:`ExecSession`."""
+    """Writer for the stdin channel of a :class:`StreamSession`."""
 
-    def __init__(self, session: ExecSession) -> None:
+    def __init__(self, session: StreamSession) -> None:
         self._session = session
 
     async def write(self, data: bytes) -> None:
@@ -52,13 +68,15 @@ class _StdinWriter:
         await self._session.close_stdin()
 
 
-class ExecSession:
-    """Multiplexes Kubernetes exec channels over a single :class:`WebSocketConnection`.
+class StreamSession:
+    """Multiplexes Kubernetes channel-protocol streams over a single :class:`WebSocketConnection`.
 
     The session owns a background read loop that decodes incoming binary frames
     and dispatches their payloads to per-channel queues. Outgoing writes
     (``stdin``, ``resize``, ``close_stdin``) share a lock so concurrent callers
     do not interleave bytes on the underlying WebSocket.
+
+    Used by both the ``exec`` and ``attach`` subresource accessors.
     """
 
     def __init__(
@@ -143,8 +161,8 @@ class ExecSession:
         """``True`` if the stdout buffer overflowed and frames were dropped.
 
         Consumers should check this after ``session.stdout`` ends to tell
-        a normal EOF (command finished) apart from a local close triggered
-        by backpressure. See the buffer-management note on ``__init__``.
+        a normal EOF apart from a local close triggered by backpressure.
+        See the buffer-management note on ``__init__``.
         """
         return self._stdout_truncated
 
@@ -258,7 +276,7 @@ class ExecSession:
         # send. See ``close_stdin`` for the matching half-close contract.
         async with self._write_lock:
             if not self._stdin_enabled:
-                raise RuntimeError("stdin was not enabled for this exec session")
+                raise RuntimeError("stdin was not enabled for this stream session")
             if self._stdin_closed:
                 raise RuntimeError("stdin is closed")
             await self._send_locked(CHANNEL_STDIN, data)

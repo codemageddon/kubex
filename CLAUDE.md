@@ -52,12 +52,13 @@ kubex/                          # Main package — PEP 420 namespace package (no
 │   ├── _ephemeral_containers.py # EphemeralContainersAccessor + _EphemeralContainersDescriptor — api.ephemeral_containers.get(), replace(), patch()
 │   ├── _resize.py              # ResizeAccessor + _ResizeDescriptor — api.resize.get(), replace(), patch()
 │   ├── _exec.py                # ExecAccessor + _ExecDescriptor + ExecResult — api.exec.run(), api.exec.stream()
-│   ├── _exec_session.py        # ExecSession — channel multiplexer over WebSocketConnection (stdin/stdout/stderr/error/resize)
+│   ├── _attach.py              # AttachAccessor + _AttachDescriptor — api.attach.stream() (no run(); attaches to existing container process)
+│   ├── _stream_session.py      # StreamSession — multiplexes Kubernetes channel-protocol streams over WebSocketConnection (used by exec and attach)
 │   ├── _metadata.py            # MetadataAccessor — api.metadata.get(), list(), patch(), watch()
 │   └── _protocol.py            # ApiProtocol[ResourceType], type aliases, SubresourceNotAvailable, namespace helpers
 ├── client/                     # HTTP client implementations
 │   ├── client.py               # BaseClient ABC, create_client() factory, ClientChoise enum
-│   ├── websocket.py            # WebSocketConnection ABC — abstraction used by exec subresource
+│   ├── websocket.py            # WebSocketConnection ABC — abstraction used by exec and attach subresources
 │   ├── httpx.py                # HttpxClient implementation (exec via httpx-ws)
 │   └── aiohttp.py              # AioHttpClient implementation (exec via aiohttp ws_connect)
 ├── configuration/              # Auth and cluster config
@@ -74,7 +75,7 @@ kubex/                          # Main package — PEP 420 namespace package (no
                                 #   `query_param_pairs: list[tuple[str, str]]` for repeated keys (e.g. exec `command=` entries),
                                 #   forwarded as-is by both http clients in `connect_websocket()` when set
     ├── response.py             # Response dataclass + HeadersWrapper
-    ├── params.py               # API option classes (ListOptions, GetOptions, DeleteOptions, ExecOptions, etc.)
+    ├── params.py               # API option classes (ListOptions, GetOptions, DeleteOptions, ExecOptions, AttachOptions, etc.)
                                 #   + Timeout, TimeoutTypes — HTTP timeout configuration
     ├── json_patch.py           # JSON Patch RFC 6902 operation models (JsonPatchAdd, etc.) + JsonPatch RootModel
     ├── json_pointer.py         # JSON Pointer RFC 6901 implementation (JsonPointer custom str type)
@@ -88,7 +89,8 @@ kubex/                          # Main package — PEP 420 namespace package (no
         ├── metadata.py         # Metadata request building
         ├── subresource.py      # Subresource request building
         ├── logs.py             # Log streaming request building
-        └── exec.py             # Exec WebSocket upgrade request building (repeated command= query params)
+        ├── exec.py             # Exec WebSocket upgrade request building (repeated command= query params)
+        └── attach.py           # Attach WebSocket upgrade request building (mirrors exec.py, no command= params)
 
 packages/                       # Workspace packages
 ├── kubex-core/                 # Shared base models and types (kubex_core)
@@ -135,7 +137,8 @@ test/                           # Test suite
 │   ├── test_core_api_pod.py    # Pod CRUD tests
 │   ├── test_core_api_namespaces.py  # Namespace listing tests
 │   ├── test_subresource_apis.py # E2E tests for Status, Eviction, EphemeralContainers, Resize subresources
-│   └── test_exec.py            # E2E tests for Pod exec subresource (run + stream against K3S)
+│   ├── test_exec.py            # E2E tests for Pod exec subresource (run + stream against K3S)
+│   └── test_attach.py          # E2E tests for Pod attach subresource (stream against K3S)
 ├── test_configuration/         # Unit tests for configuration and auth
 │   ├── test_file_config.py     # Kubeconfig file parsing tests
 │   ├── test_incluster_config.py # In-cluster configuration tests
@@ -155,8 +158,11 @@ test/                           # Test suite
 │   ├── test_logs.py            # LogsRequestBuilder (logs, stream_logs) tests
 │   ├── test_metadata.py        # MetadataRequestBuilder (get/list/watch/patch_metadata) tests
 │   ├── test_subresource.py     # SubresourceRequestBuilder (get/replace/patch_subresource) tests
-│   └── test_exec.py            # ExecRequestBuilder (exec_request URL + repeated command= params) tests
-├── test_exec/                  # Unit tests for exec subresource (ExecOptions, channel protocol, ExecSession, ExecAccessor)
+│   ├── test_exec.py            # ExecRequestBuilder (exec_request URL + repeated command= params) tests
+│   └── test_attach.py          # AttachRequestBuilder (attach_request URL + query_param_pairs) tests
+├── test_exec/                  # Unit tests for exec subresource (ExecOptions, channel protocol, ExecAccessor)
+├── test_attach/                # Unit tests for attach subresource (AttachOptions, AttachAccessor)
+├── test_stream/                # Unit tests for StreamSession channel multiplexer (shared by exec and attach)
 ├── test_client/                # Unit tests for client WebSocket layer (BaseClient ABC, AioHttpClient, HttpxClient)
 ├── test_subresource_descriptors/ # Unit tests for descriptor-based subresource APIs
 └── test_timeout/               # Unit tests for HTTP timeout settings
@@ -173,6 +179,7 @@ examples/                       # Usage examples
 ├── error_handling.py           # Exception handling (KubexApiError, NotFound, Conflict)
 ├── aiohttp_client.py           # Using AioHttpClient explicitly
 ├── exec_pod.py                 # Pod exec subresource — api.exec.run() + api.exec.stream() interactive shell
+├── attach_pod.py               # Pod attach subresource — api.attach.stream() with stdin/stdout
 └── delete_collection.py        # Bulk delete with label_selector
 
 .github/workflows/
@@ -188,10 +195,10 @@ examples/                       # Usage examples
 - **Build backend**: hatchling
 - **Python**: 3.10, 3.11, 3.12, 3.13, 3.14
 - **Workspace members**: `packages/*` (kubex-core, kubex-k8s-1-32 through kubex-k8s-1-37)
-- **Core deps**: `pydantic>=2.0,<3`, `pyyaml>=6.0.2`, `kubex-core` (workspace), `exceptiongroup>=1.2` (Python <3.11 only — used by `ExecSession.__aexit__` to unwrap single-exception `BaseExceptionGroup`s from the anyio task-group cleanup)
+- **Core deps**: `pydantic>=2.0,<3`, `pyyaml>=6.0.2`, `kubex-core` (workspace), `exceptiongroup>=1.2` (Python <3.11 only — used by `StreamSession.__aexit__` to unwrap single-exception `BaseExceptionGroup`s from the anyio task-group cleanup)
 - **Optional deps** (install via `--all-extras` or individually):
   - `httpx>=0.27.2` — primary HTTP client
-  - `httpx-ws>=0.7` — WebSocket support for the httpx client (required for `exec`); install via the dedicated `httpx-ws` extra (`kubex[httpx-ws]`), which also pulls in `httpx`. The plain `httpx` extra deliberately omits it so non-WebSocket installs stay slim.
+  - `httpx-ws>=0.7` — WebSocket support for the httpx client (required for `exec` and `attach`); install via the dedicated `httpx-ws` extra (`kubex[httpx-ws]`), which also pulls in `httpx`. The plain `httpx` extra deliberately omits it so non-WebSocket installs stay slim.
   - `aiohttp>=3.11.2` — alternative HTTP client (built-in WebSocket support via `ws_connect`)
 - **Dev deps** include `kubex-k8s-1-35` (workspace, used for tests), `jinja2`, `typer` (for codegen), testing/linting tools
 - **Version** is stored in `kubex/__version__.py` and referenced from `pyproject.toml` via hatch
@@ -250,7 +257,7 @@ KubexException
 ```
 
 ### Descriptor-based subresource APIs
-Subresource capabilities (logs, scale, status, eviction, ephemeral_containers, resize, exec) use Python non-data descriptors with `__get__` overloads to provide type-safe access. Each capability is a class variable on `Api` (e.g., `logs = _LogsDescriptor()`) that returns a typed accessor (`LogsAccessor[T]`) when `T` has the matching marker interface, or raises `NotImplementedError` at runtime (and resolves to `SubresourceNotAvailable` for type checkers) when it does not. Accessors are cached on the instance after first access via `instance.__dict__` (the standard non-data descriptor caching pattern), so repeated attribute access returns the same object without re-invoking the descriptor. Accessor objects receive individual components (client, request_builder, namespace, scope, resource_type) rather than a back-reference to `Api`. Metadata uses the same accessor pattern (`MetadataAccessor`) but is always available (no descriptor guard needed) and is created eagerly in `Api.__init__`. The `exec` accessor is built on a WebSocket channel-multiplexing layer (`kubex/core/exec_channels.py` + `kubex/api/_exec_session.py`) that uses the v5 channel protocol (`v5.channel.k8s.io`). `ExecSession` exposes `stdin` (writer with `write()` / `close()`), `stdout` and `stderr` as `MemoryObjectReceiveStream[bytes]` async iterators (max-buffer 128 frames each), `resize(width=, height=)`, `close_stdin()`, and `await wait_for_status() -> Status | None` (resolves to `None` if the connection closes before any error frame arrives). Concurrent writes are serialised through an internal `anyio.Lock` so resize and stdin frames cannot interleave on the wire. Exiting an `ExecSession` context manager cancels the read loop's task group before closing the underlying WebSocket, so callers can leave `stream()` early without deadlocking even when the server is still holding the connection open. `close_stdin()` is idempotent. When `tty=True` is requested the kubelet merges stderr into stdout and does not open the stderr channel, so `session.stderr` closes immediately. `run(name, command=, stdin=None)` does not open a stdin channel; `run(..., stdin=b"")` opens, writes zero bytes, and immediately closes one. `ExecResult.exit_code` returns `0` for `Status.status == "Success"`, the integer parsed from `status.details.causes` (where `reason == "ExitCode"`) for a non-zero exit, and `None` when status is missing or carries no recognisable exit information — `None` therefore does not imply success. Exec WebSocket failures (handshake errors, abnormal close, timeout) surface as `KubexClientException`; missing `httpx-ws` raises `ConfgiurationError`.
+Subresource capabilities (logs, scale, status, eviction, ephemeral_containers, resize, exec, attach) use Python non-data descriptors with `__get__` overloads to provide type-safe access. Each capability is a class variable on `Api` (e.g., `logs = _LogsDescriptor()`) that returns a typed accessor (`LogsAccessor[T]`) when `T` has the matching marker interface, or raises `NotImplementedError` at runtime (and resolves to `SubresourceNotAvailable` for type checkers) when it does not. Accessors are cached on the instance after first access via `instance.__dict__` (the standard non-data descriptor caching pattern), so repeated attribute access returns the same object without re-invoking the descriptor. Accessor objects receive individual components (client, request_builder, namespace, scope, resource_type) rather than a back-reference to `Api`. Metadata uses the same accessor pattern (`MetadataAccessor`) but is always available (no descriptor guard needed) and is created eagerly in `Api.__init__`. The `exec` and `attach` accessors are built on a WebSocket channel-multiplexing layer (`kubex/core/exec_channels.py` + `kubex/api/_stream_session.py`) that uses the v5 channel protocol (`v5.channel.k8s.io`). `StreamSession` exposes `stdin` (writer with `write()` / `close()`), `stdout` and `stderr` as `MemoryObjectReceiveStream[bytes]` async iterators (max-buffer 128 frames each), `resize(width=, height=)`, `close_stdin()`, and `await wait_for_status() -> Status | None` (resolves to `None` if the connection closes before any error frame arrives). Concurrent writes are serialised through an internal `anyio.Lock` so resize and stdin frames cannot interleave on the wire. Exiting a `StreamSession` context manager cancels the read loop's task group before closing the underlying WebSocket, so callers can leave `stream()` early without deadlocking even when the server is still holding the connection open. `close_stdin()` is idempotent. When `tty=True` is requested the kubelet merges stderr into stdout and does not open the stderr channel, so `session.stderr` closes immediately. `run(name, command=, stdin=None)` does not open a stdin channel; `run(..., stdin=b"")` opens, writes zero bytes, and immediately closes one. `ExecResult.exit_code` returns `0` for `Status.status == "Success"`, the integer parsed from `status.details.causes` (where `reason == "ExitCode"`) for a non-zero exit, and `None` when status is missing or carries no recognisable exit information — `None` therefore does not imply success. Exec WebSocket failures (handshake errors, abnormal close, timeout) surface as `KubexClientException`; missing `httpx-ws` raises `ConfgiurationError`. The `attach` accessor exposes only `stream()` (no `run()`) — it opens a bidirectional channel to a container's existing stdin/stdout/stderr without issuing a new command; the same `StreamSession` semantics apply (TTY merging, `wait_for_status()`, etc.).
 ```python
 pod_api: Api[Pod] = Api(Pod, client=client, namespace="default")
 await pod_api.logs.get("my-pod")        # OK: Pod has HasLogs
