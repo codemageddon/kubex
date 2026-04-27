@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from enum import Enum
 from typing import Any, Literal, Union
 from uuid import UUID
@@ -315,6 +316,67 @@ class DeleteOptions:
         if body:
             return json.dumps(body)
         return None
+
+
+class ExecOptions:
+    """Options for the Pod ``exec`` subresource.
+
+    Mirrors the ``v1.PodExecOptions`` Kubernetes API. ``command`` is required
+    and must be a non-empty sequence of strings — each element serializes as a
+    separate ``command=`` query parameter. Boolean flags serialize as the
+    lowercase strings ``"true"`` / ``"false"`` to match what the Kubernetes API
+    server expects.
+    """
+
+    __slots__ = ("command", "container", "stdin", "stdout", "stderr", "tty")
+
+    def __init__(
+        self,
+        *,
+        command: Sequence[str],
+        container: str | None = None,
+        stdin: bool = False,
+        stdout: bool = True,
+        stderr: bool = True,
+        tty: bool = False,
+    ) -> None:
+        # ``str`` satisfies ``Sequence[str]`` (each character is itself a
+        # ``str``), so ``list("sh")`` would silently produce ``["s", "h"]``
+        # and emit a broken request. Reject it explicitly so callers see a
+        # clear local validation error instead of a confusing 400 from the
+        # API server.
+        if isinstance(command, (str, bytes)):
+            raise TypeError(
+                "command must be a sequence of strings, not a single "
+                f"{type(command).__name__}; pass e.g. ['sh', '-c', 'echo hi']"
+            )
+        self.command = list(command)
+        if not self.command:
+            raise ValueError("command must be a non-empty sequence of strings")
+        # Each element must be a ``str`` — non-strings would otherwise
+        # serialize via ``__str__`` (or fail at the HTTP layer for ``bytes``)
+        # and produce a confusing 400 from the API server. Validate here so
+        # callers see a clear local error instead.
+        for index, element in enumerate(self.command):
+            if not isinstance(element, str):
+                raise TypeError(
+                    f"command[{index}] must be str, got {type(element).__name__}"
+                )
+        self.container = container
+        self.stdin = stdin
+        self.stdout = stdout
+        self.stderr = stderr
+        self.tty = tty
+
+    def to_query_params(self) -> list[tuple[str, str]]:
+        params: list[tuple[str, str]] = [("command", c) for c in self.command]
+        if self.container is not None:
+            params.append(("container", self.container))
+        params.append(("stdin", "true" if self.stdin else "false"))
+        params.append(("stdout", "true" if self.stdout else "false"))
+        params.append(("stderr", "true" if self.stderr else "false"))
+        params.append(("tty", "true" if self.tty else "false"))
+        return params
 
 
 class LogOptions:

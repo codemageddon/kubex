@@ -4,10 +4,12 @@ import logging
 from abc import ABC, abstractmethod
 from enum import Enum
 from http import HTTPStatus
-from typing import TYPE_CHECKING, Any, AsyncGenerator, NoReturn
+from typing import TYPE_CHECKING, Any, AsyncGenerator, NoReturn, Sequence
 
 if TYPE_CHECKING:
     from typing_extensions import Self
+
+    from kubex.client.websocket import WebSocketConnection
 
 from pydantic import ValidationError
 
@@ -72,6 +74,13 @@ class BaseClient(ABC):
     @abstractmethod
     async def close(self) -> None:
         pass
+
+    async def connect_websocket(
+        self,
+        request: Request,
+        subprotocols: Sequence[str],
+    ) -> "WebSocketConnection":
+        raise NotImplementedError("WebSocket not supported by this client")
 
 
 async def create_client(

@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from unittest.mock import MagicMock
 
     from kubex.api._ephemeral_containers import EphemeralContainersAccessor
+    from kubex.api._exec import ExecAccessor
     from kubex.api._eviction import EvictionAccessor
     from kubex.api._logs import LogsAccessor
     from kubex.api._protocol import SubresourceNotAvailable
@@ -29,28 +30,31 @@ if TYPE_CHECKING:
     ns_api: Api[Namespace] = Api(Namespace, client=client)
 
     # Pod: HasLogs=yes, HasScale=no, HasStatus=yes, Evictable=yes,
-    #       HasEphemeralContainers=yes, HasResize=yes
+    #       HasEphemeralContainers=yes, HasResize=yes, HasExec=yes
     assert_type(pod_api.logs, LogsAccessor[Pod])
     assert_type(pod_api.scale, SubresourceNotAvailable)
     assert_type(pod_api.status, StatusAccessor[Pod])
     assert_type(pod_api.eviction, EvictionAccessor[Pod])
     assert_type(pod_api.ephemeral_containers, EphemeralContainersAccessor[Pod])
     assert_type(pod_api.resize, ResizeAccessor[Pod])
+    assert_type(pod_api.exec, ExecAccessor[Pod])
 
     # Deployment: HasLogs=no, HasScale=yes, HasStatus=yes, Evictable=no,
-    #             HasEphemeralContainers=no, HasResize=no
+    #             HasEphemeralContainers=no, HasResize=no, HasExec=no
     assert_type(deploy_api.logs, SubresourceNotAvailable)
     assert_type(deploy_api.scale, ScaleAccessor[Deployment])
     assert_type(deploy_api.status, StatusAccessor[Deployment])
     assert_type(deploy_api.eviction, SubresourceNotAvailable)
     assert_type(deploy_api.ephemeral_containers, SubresourceNotAvailable)
     assert_type(deploy_api.resize, SubresourceNotAvailable)
+    assert_type(deploy_api.exec, SubresourceNotAvailable)
 
     # Namespace: HasLogs=no, HasScale=no, HasStatus=yes, Evictable=no,
-    #            HasEphemeralContainers=no, HasResize=no
+    #            HasEphemeralContainers=no, HasResize=no, HasExec=no
     assert_type(ns_api.logs, SubresourceNotAvailable)
     assert_type(ns_api.scale, SubresourceNotAvailable)
     assert_type(ns_api.status, StatusAccessor[Namespace])
     assert_type(ns_api.eviction, SubresourceNotAvailable)
     assert_type(ns_api.ephemeral_containers, SubresourceNotAvailable)
     assert_type(ns_api.resize, SubresourceNotAvailable)
+    assert_type(ns_api.exec, SubresourceNotAvailable)
