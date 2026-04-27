@@ -16,6 +16,7 @@ from kubex.core.request_builder.attach import AttachRequestBuilder
 from kubex.core.request_builder.exec import ExecRequestBuilder
 from kubex.core.request_builder.logs import LogsRequestBuilder
 from kubex.core.request_builder.metadata import MetadataRequestBuilder
+from kubex.core.request_builder.portforward import PortforwardRequestBuilder
 from kubex_core.models.resource_config import ResourceConfig
 
 from .constants import ACCEPT_HEADER, APPLICATION_JSON_MIME_TYPE, CONTENT_TYPE_HEADER
@@ -28,6 +29,7 @@ class RequestBuilder(
     LogsRequestBuilder,
     ExecRequestBuilder,
     AttachRequestBuilder,
+    PortforwardRequestBuilder,
 ):
     def __init__(self, resource_config: ResourceConfig[Any]) -> None:
         self.resource_config = resource_config

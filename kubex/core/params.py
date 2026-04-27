@@ -410,6 +410,42 @@ class AttachOptions:
         return params
 
 
+class PortForwardOptions:
+    """Options for the Pod ``portforward`` subresource.
+
+    Validates that ports are unique, non-empty, and within 1..65535.
+    ``to_query_params()`` returns repeated ``("ports", "<n>")`` pairs in input order.
+    """
+
+    __slots__ = ("ports",)
+
+    def __init__(self, *, ports: Sequence[int]) -> None:
+        ports_t = tuple(ports)
+        if not ports_t:
+            raise ValueError("portforward requires at least one port")
+        if len(set(ports_t)) != len(ports_t):
+            raise ValueError("duplicate ports are not allowed")
+        # Channel IDs are a single byte (0..255).  Two channels per port
+        # (data=2i, error=2i+1) means index 127 maps to error channel
+        # 2*127+1 = 255, which collides with the v5 CHANNEL_CLOSE sentinel.
+        # The kubelet portforward currently negotiates v4 only (no
+        # CHANNEL_CLOSE sentinel), but we cap at 127 to stay forward-compatible
+        # with v5 and to keep error-channel ids inside [0, 254].
+        if len(ports_t) > 127:
+            raise ValueError(
+                f"portforward supports at most 127 ports, got {len(ports_t)}"
+            )
+        for p in ports_t:
+            if isinstance(p, bool) or not isinstance(p, int):
+                raise TypeError(f"port must be int, got {type(p).__name__}")
+            if not 1 <= p <= 65535:
+                raise ValueError(f"port {p} out of range 1..65535")
+        self.ports = ports_t
+
+    def to_query_params(self) -> list[tuple[str, str]]:
+        return [("ports", str(p)) for p in self.ports]
+
+
 class LogOptions:
     def __init__(
         self,
