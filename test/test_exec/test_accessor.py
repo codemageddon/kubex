@@ -333,7 +333,7 @@ async def test_run_collects_all_output_under_burst_load() -> None:
     """Regression: ``run()`` must not truncate output when the read loop
     starts before drainer tasks. Earlier the bounded per-channel buffer
     (default 128 frames) would close-on-overflow during the scheduling gap
-    between ``ExecSession.__aenter__`` (starts the read loop) and the
+    between ``StreamSession.__aenter__`` (starts the read loop) and the
     drainers' ``start_soon`` calls in ``run()``. The fix is unbounded
     buffers in the ``run()`` path — OOM risk is unchanged because
     ``ExecResult`` already collects everything in memory."""
@@ -391,7 +391,7 @@ async def test_run_honors_read_timeout_as_wall_clock_fallback() -> None:
 @pytest.mark.anyio
 async def test_run_drives_connection_close_to_completion_on_timeout() -> None:
     """Regression: when ``run()``'s wall-clock ``fail_after`` fires inside
-    ``async with session``, ``ExecSession.__aexit__`` must drive the backend
+    ``async with session``, ``StreamSession.__aexit__`` must drive the backend
     ``connection.close()`` to completion. Without shielding, awaits inside
     close run in an already-cancelled scope and are interrupted mid-flight,
     leaking the underlying HTTP/WebSocket transport."""

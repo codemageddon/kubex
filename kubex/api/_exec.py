@@ -11,14 +11,12 @@ import anyio
 if sys.version_info < (3, 11):
     from exceptiongroup import BaseExceptionGroup
 
-from kubex.api._exec_session import ExecSession
+from kubex.api._stream_session import StreamSession, _resolve_protocol
 from kubex.client.client import BaseClient
-from kubex.client.websocket import WebSocketConnection
 from kubex.core.exceptions import KubexClientException
 from kubex.core.exec_channels import (
     DEFAULT_PROTOCOLS,
     ChannelProtocol,
-    select_protocol,
 )
 from kubex.core.params import ExecOptions, NamespaceTypes, Timeout
 from kubex.core.request_builder.builder import RequestBuilder
@@ -116,7 +114,7 @@ class ExecAccessor(Generic[ResourceType]):
         tty: bool,
         request_timeout: ApiRequestTimeoutTypes,
         buffer_size: float | None,
-    ) -> ExecSession:
+    ) -> StreamSession:
         _namespace = ensure_required_namespace(namespace, self._namespace, self._scope)
         options = ExecOptions(
             command=command,
@@ -143,7 +141,7 @@ class ExecAccessor(Generic[ResourceType]):
             }
             if buffer_size is not None:
                 kwargs["buffer_size"] = buffer_size
-            return ExecSession(connection, protocol, **kwargs)
+            return StreamSession(connection, protocol, **kwargs)
         except BaseException:
             # Suppress cleanup errors so the original exception (e.g. an
             # unsupported-subprotocol ``KubexClientException``) is preserved
@@ -171,7 +169,7 @@ class ExecAccessor(Generic[ResourceType]):
         stderr: bool = True,
         tty: bool = False,
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
-    ) -> AsyncIterator[ExecSession]:
+    ) -> AsyncIterator[StreamSession]:
         """Open a bidirectional exec session as an async context manager."""
         session = await self._open_session(
             name,
@@ -231,7 +229,7 @@ class ExecAccessor(Generic[ResourceType]):
         # default bounded buffers exist to apply backpressure when the
         # consumer iterates lazily; ``run()`` instead spawns drainer tasks
         # that race with the read loop, and the read loop is started in
-        # ``ExecSession.__aenter__`` *before* those drainers are scheduled.
+        # ``StreamSession.__aenter__`` *before* those drainers are scheduled.
         # That scheduling gap means a fast command emitting many frames
         # could fill the bounded buffer and trigger the local
         # close-on-overflow path before the drainers ran even once,
@@ -243,7 +241,7 @@ class ExecAccessor(Generic[ResourceType]):
         # the per-backend WebSocket upgrade (see ``HttpxClient`` /
         # ``AioHttpClient``). The wall-clock ``fail_after`` below covers
         # only the post-handshake portion — keeping it *outside* the
-        # ``async with session`` block ensures ``ExecSession.__aexit__``
+        # ``async with session`` block ensures ``StreamSession.__aexit__``
         # (and the underlying ``connection.close()``) runs in an
         # un-cancelled scope so the HTTP/WebSocket transport is always
         # released, even when the deadline fires mid-call.
@@ -310,19 +308,6 @@ class ExecAccessor(Generic[ResourceType]):
         return ExecResult(
             stdout=bytes(stdout_buf), stderr=bytes(stderr_buf), status=status
         )
-
-
-def _resolve_protocol(
-    connection: WebSocketConnection, protocols: tuple[ChannelProtocol, ...]
-) -> ChannelProtocol:
-    # Both backend adapters already raise ``KubexClientException`` when the
-    # server returns no subprotocol, but if a misbehaving server picks one
-    # outside the requested list, ``select_protocol`` raises ``ValueError``.
-    # Normalise to the documented exec exception type.
-    try:
-        return select_protocol(connection.negotiated_subprotocol, protocols)
-    except ValueError as exc:
-        raise KubexClientException(str(exc)) from exc
 
 
 class _ExecDescriptor(CachedSubresourceDescriptor):

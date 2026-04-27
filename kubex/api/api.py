@@ -34,6 +34,7 @@ from kubex_core.models.typing import (
 )
 from kubex_core.models.watch_event import WatchEvent
 
+from ._attach import _AttachDescriptor
 from ._ephemeral_containers import _EphemeralContainersDescriptor
 from ._exec import _ExecDescriptor
 from ._eviction import _EvictionDescriptor
@@ -53,6 +54,7 @@ from ._protocol import (
 class Api(Generic[ResourceType]):
     """API for interacting with Kubernetes resource."""
 
+    attach = _AttachDescriptor()
     logs = _LogsDescriptor()
     scale = _ScaleDescriptor()
     status = _StatusDescriptor()

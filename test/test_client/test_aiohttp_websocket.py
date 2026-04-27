@@ -405,7 +405,7 @@ async def test_receive_bytes_surfaces_transport_loss_as_abnormal() -> None:
     (e.g. ``ServerDisconnectedError``) into ``WSMsgType.CLOSED`` with
     ``close_code = 1006`` (``ABNORMAL_CLOSURE``). Without inspecting the close
     code, transport loss would be indistinguishable from clean EOF and an
-    ``ExecSession`` would treat a broken stream as a successful exit.
+    ``StreamSession`` would treat a broken stream as a successful exit.
     """
 
     async def drop_connection(request: web.Request) -> web.WebSocketResponse:
