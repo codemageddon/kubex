@@ -144,7 +144,8 @@ class HttpxClient(BaseClient):
             import httpx_ws
         except ImportError as exc:
             raise ConfgiurationError(
-                "httpx-ws is required for WebSocket connections; install kubex[httpx]"
+                "httpx-ws is required for WebSocket connections; "
+                "install kubex[httpx-ws]"
             ) from exc
 
         headers = self._get_headers()

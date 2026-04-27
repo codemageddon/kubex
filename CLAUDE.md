@@ -191,7 +191,7 @@ examples/                       # Usage examples
 - **Core deps**: `pydantic>=2.0,<3`, `pyyaml>=6.0.2`, `kubex-core` (workspace), `exceptiongroup>=1.2` (Python <3.11 only — used by `ExecSession.__aexit__` to unwrap single-exception `BaseExceptionGroup`s from the anyio task-group cleanup)
 - **Optional deps** (install via `--all-extras` or individually):
   - `httpx>=0.27.2` — primary HTTP client
-  - `httpx-ws>=0.7` — WebSocket support for the httpx client (required for `exec`); pulled in by the `httpx` extra
+  - `httpx-ws>=0.7` — WebSocket support for the httpx client (required for `exec`); install via the dedicated `httpx-ws` extra (`kubex[httpx-ws]`), which also pulls in `httpx`. The plain `httpx` extra deliberately omits it so non-WebSocket installs stay slim.
   - `aiohttp>=3.11.2` — alternative HTTP client (built-in WebSocket support via `ws_connect`)
 - **Dev deps** include `kubex-k8s-1-35` (workspace, used for tests), `jinja2`, `typer` (for codegen), testing/linting tools
 - **Version** is stored in `kubex/__version__.py` and referenced from `pyproject.toml` via hatch
