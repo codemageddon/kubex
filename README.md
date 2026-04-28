@@ -57,6 +57,7 @@ Kubex works with both **asyncio** and **trio** (via httpx), with no framework lo
 * Comprehensive, fully-typed Kubernetes resource models (1.32–1.37) generated from the OpenAPI spec via a built-in code generator.
 * Pod `exec` subresource over WebSocket — one-shot `run()` for collecting output, and `stream()` for interactive sessions with stdin/resize. Both accept `command`, `container`, `stdout`, `stderr`, and `request_timeout`; `run()` takes `stdin` as bytes (or `None` to skip), while `stream()` takes `stdin` and `tty` as bools and exposes `session.stdin.write()`/`close()`, `session.stdout`/`session.stderr` as async iterators, `session.resize(width=, height=)`, and `await session.wait_for_status()` (resolves to a `Status` model when the server emits one on the error channel, or `None` if the connection closes first; correspondingly, `result.exit_code` is `0` on success, the parsed integer for a non-zero exit, or `None` when no recognisable exit information is present — `None` does not imply success). Trio is supported only via the `httpx` client; the `aiohttp` backend is asyncio-only and raises on `connect_websocket()` if used with trio. Requires Kubernetes ≥1.30 (uses the v5 channel protocol; install via `kubex[httpx-ws]` to pull in `httpx-ws` (the plain `kubex[httpx]` extra omits it so non-WebSocket installs stay slim); on Python 3.10 the `exceptiongroup` backport is also installed). See `examples/exec_pod.py`.
 * Pod `attach` subresource over WebSocket — `stream()` attaches to an existing container process (stdin/stdout/stderr) without issuing a new command. Exposes the same `StreamSession` interface as `exec` (`session.stdin.write()`/`close()`, `session.stdout`/`session.stderr` as async iterators, `session.resize(width=, height=)`, `await session.wait_for_status()`). Only `stream()` is provided — there is no `run()`. The container must be created with `stdin=True` in its spec for stdin writes to reach the process. Requires `kubex[httpx-ws]` (or `aiohttp`). See `examples/attach_pod.py`.
+* Pod `portforward` subresource over WebSocket — two-level API: `api.portforward.forward(name, ports=[…])` yields a `PortForwarder` with one `anyio.abc.ByteStream` per port (`pf.streams[port]`) and a per-port error iterator (`pf.errors[port]`); `api.portforward.listen(name, port_map={remote_port: local_port})` opens local TCP listener sockets and copies bytes bidirectionally between each accepted local connection and a fresh portforward WebSocket session (one session per connection, matching `kubectl port-forward` semantics). Requires `kubex[httpx-ws]` (or `aiohttp`). See `examples/portforward_pod.py`.
 
 ```python
 from kubex.api import Api
@@ -74,7 +75,7 @@ async with await create_client() as client:
 * [x] Fine-tuning of timeouts.
 * [x] Dynamic API object creation to exclude unsupported methods for resources (requires research for mypy compatibility).
 * [x] JsonPatch models.
-* [x] Type-safe subresource APIs (logs, scale, status, eviction, ephemeral containers, resize, exec, attach).
+* [x] Type-safe subresource APIs (logs, scale, status, eviction, ephemeral containers, resize, exec, attach, portforward).
 * [x] Additional tests and examples.
-* [ ] Remaining websocket-based subresources (portforward).
+* [x] Remaining websocket-based subresources (portforward).
 * [ ] Support for OIDC and other authentication extensions.

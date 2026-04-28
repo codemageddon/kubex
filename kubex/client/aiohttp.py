@@ -160,6 +160,12 @@ class AioHttpClient(BaseClient):
         headers = self._get_headers()
         if request.headers:
             headers.update(request.headers)
+        # The session's default ``Accept: application/json`` is appropriate for
+        # JSON API calls but the kubelet's portforward endpoint rejects it with
+        # ``406 Not Acceptable``. Override per-upgrade so the WebSocket
+        # handshake sends ``Accept: */*`` (matching the httpx-ws backend, which
+        # has no default Accept on its client).
+        headers[constants.ACCEPT_HEADER] = "*/*"
 
         params: Any = (
             request.query_param_pairs

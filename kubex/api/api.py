@@ -40,6 +40,7 @@ from ._exec import _ExecDescriptor
 from ._eviction import _EvictionDescriptor
 from ._logs import _LogsDescriptor
 from ._metadata import MetadataAccessor
+from ._portforward import _PortforwardDescriptor
 from ._resize import _ResizeDescriptor
 from ._scale import _ScaleDescriptor
 from ._status import _StatusDescriptor
@@ -56,6 +57,7 @@ class Api(Generic[ResourceType]):
 
     attach = _AttachDescriptor()
     logs = _LogsDescriptor()
+    portforward = _PortforwardDescriptor()
     scale = _ScaleDescriptor()
     status = _StatusDescriptor()
     eviction = _EvictionDescriptor()

@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from kubex.api._exec import ExecAccessor
     from kubex.api._eviction import EvictionAccessor
     from kubex.api._logs import LogsAccessor
+    from kubex.api._portforward import PortforwardAccessor
     from kubex.api._protocol import SubresourceNotAvailable
     from kubex.api._resize import ResizeAccessor
     from kubex.api._scale import ScaleAccessor
@@ -38,9 +39,10 @@ if TYPE_CHECKING:
     assert_type(pod_api.ephemeral_containers, EphemeralContainersAccessor[Pod])
     assert_type(pod_api.resize, ResizeAccessor[Pod])
     assert_type(pod_api.exec, ExecAccessor[Pod])
+    assert_type(pod_api.portforward, PortforwardAccessor[Pod])
 
     # Deployment: HasLogs=no, HasScale=yes, HasStatus=yes, Evictable=no,
-    #             HasEphemeralContainers=no, HasResize=no, HasExec=no
+    #             HasEphemeralContainers=no, HasResize=no, HasExec=no, HasPortForward=no
     assert_type(deploy_api.logs, SubresourceNotAvailable)
     assert_type(deploy_api.scale, ScaleAccessor[Deployment])
     assert_type(deploy_api.status, StatusAccessor[Deployment])
@@ -48,9 +50,10 @@ if TYPE_CHECKING:
     assert_type(deploy_api.ephemeral_containers, SubresourceNotAvailable)
     assert_type(deploy_api.resize, SubresourceNotAvailable)
     assert_type(deploy_api.exec, SubresourceNotAvailable)
+    assert_type(deploy_api.portforward, SubresourceNotAvailable)
 
     # Namespace: HasLogs=no, HasScale=no, HasStatus=yes, Evictable=no,
-    #            HasEphemeralContainers=no, HasResize=no, HasExec=no
+    #            HasEphemeralContainers=no, HasResize=no, HasExec=no, HasPortForward=no
     assert_type(ns_api.logs, SubresourceNotAvailable)
     assert_type(ns_api.scale, SubresourceNotAvailable)
     assert_type(ns_api.status, StatusAccessor[Namespace])
@@ -58,3 +61,4 @@ if TYPE_CHECKING:
     assert_type(ns_api.ephemeral_containers, SubresourceNotAvailable)
     assert_type(ns_api.resize, SubresourceNotAvailable)
     assert_type(ns_api.exec, SubresourceNotAvailable)
+    assert_type(ns_api.portforward, SubresourceNotAvailable)
