@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Kubex is an async-first Kubernetes client library for Python, inspired by [kube.rs](https://kube.rs/). It is built on Pydantic v2 and is async-runtime agnostic (supports asyncio and trio). The project is in **alpha** (v0.1.0-alpha.1) — backward compatibility may break between releases.
+Kubex is an async-first Kubernetes client library for Python, inspired by [kube.rs](https://kube.rs/). It is built on Pydantic v2 and is async-runtime agnostic (supports asyncio and trio). The project is in **beta** (v0.1.0-beta.1) — backward compatibility may still break between releases.
 
 ## Quick Reference
 
@@ -41,7 +41,7 @@ kubex/                          # Main package — PEP 420 namespace package (no
                                 #   `from kubex.api import Api, create_api`,
                                 #   `from kubex.client import BaseClient, create_client`,
                                 #   `from kubex.configuration import ClientConfiguration`
-├── __version__.py              # Version string (0.1.0-alpha.1)
+├── __version__.py              # Version string (0.1.0-beta.1)
 ├── py.typed                    # PEP 561 type hint marker
 ├── api/                        # High-level API layer
 │   ├── api.py                  # Api[ResourceType] generic class + create_api() factory
@@ -318,10 +318,10 @@ Four GitHub Actions workflows:
 
 To publish a new version to PyPI:
 
-1. Bump the version in `kubex/__version__.py` and in every `packages/*/pyproject.toml` — all 8 packages must have the same version string
+1. Bump the version in `kubex/__version__.py` and in `packages/kubex-core/pyproject.toml` — these two must match the git tag. The `packages/kubex-k8s-*/pyproject.toml` versions are independent (they track Kubernetes minor releases) and only need to be bumped when the corresponding generated package actually changes.
 2. Commit and push to `main`
-3. Create and push a git tag matching the version: `git tag v<VERSION> && git push origin v<VERSION>`
-4. The `publish.yaml` workflow will verify version consistency, build all packages, and publish to production PyPI
+3. Create and push a git tag matching the `kubex` / `kubex-core` version: `git tag v<VERSION> && git push origin v<VERSION>`
+4. The `publish.yaml` workflow will verify that `kubex` and `kubex-core` versions match the tag, build all packages, and publish to production PyPI
 
 Both publish workflows use PyPI OIDC trusted publishing — no API tokens are stored in the repository. Each of the 8 packages must have a trusted publisher configured in its PyPI (and Test PyPI) project settings. See the comment block at the top of each workflow file for the exact configuration values.
 

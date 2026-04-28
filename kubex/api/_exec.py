@@ -83,7 +83,14 @@ def _parse_exit_code(status: Status | None) -> int | None:
 
 
 class ExecAccessor(Generic[ResourceType]):
-    """Accessor for the Pod ``exec`` subresource."""
+    """Accessor for the Pod ``exec`` subresource.
+
+    .. warning::
+
+       **Experimental.** The WebSocket-based subresources (``exec``,
+       ``attach``, ``portforward``) are still under active development and
+       their API may change in future releases without notice.
+    """
 
     def __init__(
         self,
@@ -170,7 +177,13 @@ class ExecAccessor(Generic[ResourceType]):
         tty: bool = False,
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> AsyncIterator[StreamSession]:
-        """Open a bidirectional exec session as an async context manager."""
+        """Open a bidirectional exec session as an async context manager.
+
+        .. warning::
+
+           **Experimental.** This WebSocket-based API is still under active
+           development and may change in future releases without notice.
+        """
         session = await self._open_session(
             name,
             command=command,
@@ -199,6 +212,11 @@ class ExecAccessor(Generic[ResourceType]):
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> ExecResult:
         """Run a command and collect stdout/stderr until the channel closes.
+
+        .. warning::
+
+           **Experimental.** This WebSocket-based API is still under active
+           development and may change in future releases without notice.
 
         Unlike :meth:`stream`, the ``request_timeout`` bound (when provided)
         applies to both the handshake (via the per-call HTTP timeout
