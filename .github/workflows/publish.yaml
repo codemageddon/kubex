@@ -33,35 +33,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Verify all package versions match the tag
+      - name: Verify kubex and kubex-core versions match the tag
         run: |
           TAG_VERSION="${GITHUB_REF_NAME#v}"
           echo "Tag version: ${TAG_VERSION}"
           ERRORS=0
 
-          # Check kubex root package (dynamic version from __version__.py)
+          # Only kubex (the umbrella) and kubex-core (the shared base models)
+          # are required to match the tag. The generated kubex-k8s-* packages
+          # are versioned independently — they track Kubernetes minor releases
+          # and do not need to be re-published on every kubex release.
           KUBEX_VERSION=$(sed -n 's/^VERSION = "\(.*\)"/\1/p' kubex/__version__.py)
           if [ "$KUBEX_VERSION" != "$TAG_VERSION" ]; then
             echo "::error::kubex version mismatch: got '${KUBEX_VERSION}', expected '${TAG_VERSION}'"
             ERRORS=$((ERRORS + 1))
           fi
 
-          # Check workspace packages (version in pyproject.toml)
-          for pkg in packages/*/; do
-            PKG_NAME=$(basename "$pkg")
-            PKG_VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' "${pkg}pyproject.toml")
-            if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
-              echo "::error::${PKG_NAME} version mismatch: got '${PKG_VERSION}', expected '${TAG_VERSION}'"
-              ERRORS=$((ERRORS + 1))
-            fi
-          done
+          KUBEX_CORE_VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' packages/kubex-core/pyproject.toml)
+          if [ "$KUBEX_CORE_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::kubex-core version mismatch: got '${KUBEX_CORE_VERSION}', expected '${TAG_VERSION}'"
+            ERRORS=$((ERRORS + 1))
+          fi
 
           if [ "$ERRORS" -gt 0 ]; then
             echo "::error::${ERRORS} package(s) have version mismatches with tag ${GITHUB_REF_NAME}"
             exit 1
           fi
 
-          echo "All package versions match tag ${GITHUB_REF_NAME}"
+          echo "kubex and kubex-core versions match tag ${GITHUB_REF_NAME}"
 
   build:
     needs: verify-versions

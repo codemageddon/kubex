@@ -38,6 +38,9 @@ async def _wait_for_running(api: Api[Pod], name: str, timeout: int = 120) -> Non
 
 
 async def demo_low_level(api: Api[Pod], pod_name: str) -> None:
+    # forward() is the in-process variant: no host socket is opened — we
+    # read/write bytes directly through pf.streams[port]. Pick this when
+    # only Python code needs to talk to the pod.
     print("--- low-level forward() ---")
     async with api.portforward.forward(pod_name, ports=[80]) as pf:
         stream = pf.streams[80]
@@ -56,6 +59,10 @@ async def demo_low_level(api: Api[Pod], pod_name: str) -> None:
 
 
 async def demo_high_level(api: Api[Pod], pod_name: str) -> None:
+    # listen() is the kubectl-style variant: it binds a real local TCP port
+    # so any process on the host could connect — here we use anyio.connect_tcp,
+    # but `curl 127.0.0.1:18080` would work just as well. Pick this when an
+    # external tool (browser, psql, curl, …) needs to reach the pod.
     print("--- high-level listen() ---")
     async with api.portforward.listen(pod_name, port_map={80: LOCAL_PORT}):
         async with await anyio.connect_tcp("127.0.0.1", LOCAL_PORT) as conn:

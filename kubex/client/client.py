@@ -80,6 +80,15 @@ class BaseClient(ABC):
         request: Request,
         subprotocols: Sequence[str],
     ) -> "WebSocketConnection":
+        """Open a WebSocket connection for a streaming subresource.
+
+        .. warning::
+
+           **Experimental.** The WebSocket transport (used by ``exec``,
+           ``attach`` and ``portforward``) is still under active development
+           and the surrounding API may change in future releases without
+           notice.
+        """
         raise NotImplementedError("WebSocket not supported by this client")
 
 
