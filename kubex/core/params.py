@@ -120,7 +120,7 @@ class ListOptions:
         self,
         label_selector: str | None = None,
         field_selector: str | None = None,
-        timeout: int | None = None,
+        timeout_seconds: int | None = None,
         limit: int | None = None,
         continue_token: str | None = None,
         version_match: VersionMatch | None = None,
@@ -128,7 +128,7 @@ class ListOptions:
     ) -> None:
         self.label_selector = label_selector
         self.field_selector = field_selector
-        self.timeout = timeout
+        self.timeout_seconds = timeout_seconds
         self.limit = limit
         self.continue_token = continue_token
         self.version_match = version_match
@@ -144,8 +144,8 @@ class ListOptions:
             query_params["labelSelector"] = self.label_selector
         if self.field_selector is not None:
             query_params["fieldSelector"] = self.field_selector
-        if self.timeout is not None:
-            query_params["timeoutSeconds"] = str(self.timeout)
+        if self.timeout_seconds is not None:
+            query_params["timeoutSeconds"] = str(self.timeout_seconds)
         if self.limit is not None:
             query_params["limit"] = str(self.limit)
         if self.continue_token is not None:

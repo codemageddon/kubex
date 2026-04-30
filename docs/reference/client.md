@@ -1,0 +1,19 @@
+# kubex.client
+
+Auto-generated reference for the `kubex.client` module.
+
+## BaseClient and factory
+
+::: kubex.client.client
+
+## WebSocket abstraction
+
+::: kubex.client.websocket
+
+## Httpx client
+
+::: kubex.client.httpx
+
+## Aiohttp client
+
+::: kubex.client.aiohttp

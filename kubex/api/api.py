@@ -131,7 +131,7 @@ class Api(Generic[ResourceType]):
         namespace: ApiNamespaceTypes = Ellipsis,
         label_selector: str | None = None,
         field_selector: str | None = None,
-        timeout: int | None = None,
+        timeout_seconds: int | None = None,
         limit: int | None = None,
         continue_token: str | None = None,
         version_match: VersionMatch | None = None,
@@ -148,7 +148,7 @@ class Api(Generic[ResourceType]):
                 For details look at [Label Selectors documentation](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors).
             field_selector: A selector to restrict the list of returned objects by their fields.
                 For details look at [Field Selectors documentation](https://kubernetes.io/docs/concepts/overview/working-with-objects/field-selectors/).
-            timeout: Server-side timeout (in seconds) for the list/watch call;
+            timeout_seconds: Server-side timeout (in seconds) for the list/watch call;
                 sent as the Kubernetes ``timeoutSeconds`` query parameter. For an
                 HTTP client-side timeout, use ``request_timeout``.
             limit: The maximum number of items to return.
@@ -169,7 +169,7 @@ class Api(Generic[ResourceType]):
         options = ListOptions(
             label_selector=label_selector,
             field_selector=field_selector,
-            timeout=timeout,
+            timeout_seconds=timeout_seconds,
             limit=limit,
             continue_token=continue_token,
             version_match=version_match,
@@ -277,7 +277,7 @@ class Api(Generic[ResourceType]):
         namespace: ApiNamespaceTypes = Ellipsis,
         label_selector: str | None = None,
         field_selector: str | None = None,
-        timeout: int | None = None,
+        timeout_seconds: int | None = None,
         limit: int | None = None,
         continue_token: str | None = None,
         version_match: VersionMatch | None = None,
@@ -291,6 +291,9 @@ class Api(Generic[ResourceType]):
         """Delete collection of resources.
 
         Args:
+            timeout_seconds: Server-side timeout (in seconds) for the call;
+                sent as the Kubernetes ``timeoutSeconds`` query parameter. For an
+                HTTP client-side timeout, use ``request_timeout``.
             request_timeout: HTTP-level timeout override for this call. A number is
                 interpreted as the total timeout in seconds. Pass ``None`` to disable
                 timeouts entirely for this call. Omit to use the client default.
@@ -301,7 +304,7 @@ class Api(Generic[ResourceType]):
         list_options = ListOptions(
             label_selector=label_selector,
             field_selector=field_selector,
-            timeout=timeout,
+            timeout_seconds=timeout_seconds,
             limit=limit,
             continue_token=continue_token,
             version_match=version_match,

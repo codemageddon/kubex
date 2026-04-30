@@ -22,7 +22,7 @@ from ._cluster import DEFAULT_K3S_IMAGE, seed_namespace, teardown_namespace
 
 @pytest.fixture(scope="session")
 def k3s_kubeconfig() -> Iterator[str]:
-    """Session-scoped K3s cluster pinned to 1.35; yields kubeconfig path."""
+    """Session-scoped K3s cluster pinned to 1.33; yields kubeconfig path."""
     from testcontainers.k3s import K3SContainer  # type: ignore[import-untyped]
 
     container = K3SContainer(image=DEFAULT_K3S_IMAGE, enable_cgroup_mount=False)

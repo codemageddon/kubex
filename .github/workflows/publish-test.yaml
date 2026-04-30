@@ -33,6 +33,7 @@ jobs:
     outputs:
       dev-version: ${{ steps.version.outputs.dev-version }}
       core-dev-version: ${{ steps.version.outputs.core-dev-version }}
+      k8s-versions: ${{ steps.version.outputs.k8s-versions }}
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
@@ -65,12 +66,23 @@ jobs:
           CORE_DEV_VERSION=$(python3 -c "from packaging.version import Version; print(Version('${CORE_DEV_VERSION_RAW}'))")
           echo "core-dev-version=${CORE_DEV_VERSION}" >> "$GITHUB_OUTPUT"
           sed -i "s/\"kubex-core\"/\"kubex-core==${CORE_DEV_VERSION}\"/" pyproject.toml
+          K8S_VERSIONS_JSON='{'
+          FIRST=true
           for pkg in packages/kubex-k8s-*/; do
             K8S_DEV_VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' "${pkg}pyproject.toml")"
+            K8S_NORMALIZED=$(python3 -c "from packaging.version import Version; print(Version('${K8S_DEV_VERSION}'))")
             pkg_name=$(basename "$pkg")
-            sed -i "s/\"${pkg_name}\"/\"${pkg_name}==${K8S_DEV_VERSION}\"/" pyproject.toml
+            sed -i "s/\"${pkg_name}\"/\"${pkg_name}==${K8S_NORMALIZED}\"/" pyproject.toml
             sed -i "s/\"kubex-core\"/\"kubex-core==${CORE_DEV_VERSION}\"/" "${pkg}pyproject.toml"
+            if [ "$FIRST" = true ]; then
+              FIRST=false
+            else
+              K8S_VERSIONS_JSON="${K8S_VERSIONS_JSON},"
+            fi
+            K8S_VERSIONS_JSON="${K8S_VERSIONS_JSON}\"${pkg_name}\":\"${K8S_NORMALIZED}\""
           done
+          K8S_VERSIONS_JSON="${K8S_VERSIONS_JSON}}"
+          echo "k8s-versions=${K8S_VERSIONS_JSON}" >> "$GITHUB_OUTPUT"
 
       - name: Build packages
         run: |
@@ -102,7 +114,7 @@ jobs:
         with:
           script: |
             const sha = context.payload.pull_request.head.sha;
-            const required = ['pre-commit', 'lint', 'format', 'mypy', 'test'];
+            const required = ['pre-commit', 'lint', 'format', 'mypy', 'test', 'docs'];
             const sleep = ms => new Promise(r => setTimeout(r, ms));
 
             while (true) {
@@ -168,19 +180,16 @@ jobs:
         env:
           DEV_VERSION: ${{ needs.build.outputs.dev-version }}
           CORE_DEV_VERSION: ${{ needs.build.outputs.core-dev-version }}
+          K8S_VERSIONS: ${{ needs.build.outputs.k8s-versions }}
         with:
           script: |
             const devVersion = process.env.DEV_VERSION;
             const coreDevVersion = process.env.CORE_DEV_VERSION;
+            const k8sVersions = JSON.parse(process.env.K8S_VERSIONS);
             const packages = [
               { name: 'kubex', version: devVersion },
               { name: 'kubex-core', version: coreDevVersion },
-              { name: 'kubex-k8s-1-32', version: coreDevVersion },
-              { name: 'kubex-k8s-1-33', version: coreDevVersion },
-              { name: 'kubex-k8s-1-34', version: coreDevVersion },
-              { name: 'kubex-k8s-1-35', version: coreDevVersion },
-              { name: 'kubex-k8s-1-36', version: coreDevVersion },
-              { name: 'kubex-k8s-1-37', version: coreDevVersion },
+              ...Object.entries(k8sVersions).map(([name, version]) => ({ name, version })),
             ];
             const lines = packages.map(({ name, version }) =>
               `- [${name} ${version}](https://test.pypi.org/project/${name}/${version}/)`

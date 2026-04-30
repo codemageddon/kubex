@@ -137,7 +137,7 @@ class PortForwardStream(anyio.abc.ByteStream):
         while not self._buffer:
             try:
                 self._buffer = await self._recv_stream.receive()
-            except anyio.ClosedResourceError:
+            except (anyio.ClosedResourceError, anyio.EndOfStream):
                 raise anyio.EndOfStream()
         data = self._buffer[:max_bytes]
         self._buffer = self._buffer[max_bytes:]

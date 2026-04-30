@@ -71,7 +71,7 @@ class MetadataAccessor(Generic[ResourceType]):
         namespace: ApiNamespaceTypes = Ellipsis,
         label_selector: str | None = None,
         field_selector: str | None = None,
-        timeout: int | None = None,
+        timeout_seconds: int | None = None,
         limit: int | None = None,
         continue_token: str | None = None,
         version_match: VersionMatch | None = None,
@@ -83,7 +83,7 @@ class MetadataAccessor(Generic[ResourceType]):
         options = ListOptions(
             label_selector=label_selector,
             field_selector=field_selector,
-            timeout=timeout,
+            timeout_seconds=timeout_seconds,
             limit=limit,
             continue_token=continue_token,
             version_match=version_match,

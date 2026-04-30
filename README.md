@@ -1,4 +1,12 @@
-# Kubex
+<p align="center">
+  <img src="assets/logo.png" alt="Kubex logo" width="180">
+</p>
+
+<h1 align="center">Kubex</h1>
+
+[![Docs](https://github.com/codemageddon/kubex/actions/workflows/docs.yaml/badge.svg)](https://github.com/codemageddon/kubex/actions/workflows/docs.yaml)
+
+**Documentation:** https://kubex.codemageddon.me/
 
 Kubex is a Kubernetes client library for Python inspired by kube.rs. It is built on top of [Pydantic](https://github.com/pydantic/pydantic) and is async-runtime agnostic.
 
@@ -10,10 +18,10 @@ Kubex is dramatically faster than [kubernetes-asyncio](https://github.com/tomplu
 
 | Scenario | kubernetes-asyncio | kubex (aiohttp) | kubex (httpx) | Speedup |
 |---|---|---|---|---|
-| Single GET | 60 ms | 6 ms | 28 ms | **10x** |
-| List 100 pods | 2,783 ms | 74 ms | 102 ms | **37x** |
-| List 500 pods | 14,167 ms | 351 ms | 409 ms | **40x** |
-| Watch 50 events | 3,856 ms | 635 ms | 1,914 ms | **6x** |
+| Single GET | 68 ms | 7 ms | 26 ms | **10×** |
+| List 100 pods | 14,648 ms | 346 ms | 415 ms | **42×** |
+| List 500 pods | 14,674 ms | 348 ms | 412 ms | **42×** |
+| Watch 50 events | 3,868 ms | 1,200 ms | 1,898 ms | **3×** |
 
 Kubex also uses **49% less heap memory** and makes **up to 5x fewer allocations**, reducing GC pressure in long-running controllers and operators.
 
@@ -55,6 +63,7 @@ Kubex works with both **asyncio** and **trio** (via httpx), with no framework lo
 * `httpx` and `aiohttp` as an underlying http-client support.
 * `asyncio` and `trio` async runtime support (only `httpx` client is supported for `trio`).
 * Comprehensive, fully-typed Kubernetes resource models (1.32–1.37) generated from the OpenAPI spec via a built-in code generator.
+
 > **Experimental — WebSocket subresources.** The `exec`, `attach`, and
 > `portforward` APIs described below are still under active development.
 > Their public surface (method signatures, accessor shape, session helpers)

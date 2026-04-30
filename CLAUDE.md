@@ -4,6 +4,10 @@
 
 Kubex is an async-first Kubernetes client library for Python, inspired by [kube.rs](https://kube.rs/). It is built on Pydantic v2 and is async-runtime agnostic (supports asyncio and trio). The project is in **beta** (v0.1.0-beta.1) — backward compatibility may still break between releases.
 
+**Documentation site:** https://kubex.codemageddon.me/
+
+**Implementation plans** live at `.ralphex/plans/` (not `docs/`).
+
 ## Quick Reference
 
 ```bash
@@ -27,6 +31,12 @@ uv run mypy .
 
 # Run pre-commit hooks
 pre-commit run --all-files
+
+# Serve docs locally with live reload
+mise run docs:serve
+
+# Build docs in strict mode (--strict turns warnings into errors)
+mise run docs:build
 
 # Regenerate all K8s model packages (downloads specs + runs codegen + verifies)
 mise run regenerate-models
@@ -189,6 +199,19 @@ examples/                       # Usage examples
 ├── portforward_pod.py          # Pod portforward subresource — api.portforward.forward() (low-level ByteStream) + api.portforward.listen() (local TCP listener)
 └── delete_collection.py        # Bulk delete with label_selector
 
+docs/                           # MkDocs documentation site source
+├── index.md                    # Landing page
+├── CNAME                       # Custom domain for GitHub Pages (kubex.codemageddon.me)
+├── stylesheets/extra.css       # Site-specific CSS overrides
+├── getting-started/            # Installation + quickstart guides
+├── concepts/                   # Core concept explanations (Api, clients, config, exceptions, subresources)
+├── operations/                 # CRUD, watch, patch, timeouts
+├── subresources/               # Per-subresource pages (logs, metadata, scale, status, eviction, ephemeral-containers, resize, exec, attach, portforward)
+├── advanced/                   # Advanced topics (multi-version K8s, clients/runtimes, auth, benchmarks)
+└── reference/                  # Auto-generated API reference via mkdocstrings
+mkdocs.yml                      # MkDocs configuration (theme, nav, plugins)
+lychee.toml                     # Link checker configuration
+
 .github/workflows/
 ├── lint.yaml                   # Pre-commit, ruff check, ruff format --check, mypy, codegen verify
 ├── test.yaml                   # pytest with all extras on Python 3.13
@@ -237,7 +260,7 @@ Each resource model declares a `__RESOURCE_CONFIG__` class variable (a `Resource
 All models inherit from `BaseK8sModel` which uses `alias_generator=to_camel` and `populate_by_name=True`. This means Python code uses `snake_case` while JSON serialization uses `camelCase` to match the Kubernetes API.
 
 ### Pluggable HTTP clients
-`BaseClient` is an ABC. Implementations (`HttpxClient`, `AioHttpClient`) are lazily imported. The `create_client()` factory auto-detects which library is installed (prefers httpx). `BaseClient` also exposes `connect_websocket(request, subprotocols)` returning a `WebSocketConnection` (defined in `kubex/client/websocket.py`); the default raises `NotImplementedError`. `HttpxClient` implements it via `httpx-ws` (lazy import — raises `ConfgiurationError` if missing); `AioHttpClient` uses aiohttp's built-in `ws_connect`. Both adapters prefer `Request.query_param_pairs` over `Request.query_params` when building the upgrade URL so exec's repeated `command=` entries are preserved.
+`BaseClient` is an ABC. Implementations (`HttpxClient`, `AioHttpClient`) are lazily imported. The `create_client()` factory auto-detects which library is installed (prefers aiohttp, falls back to httpx). `BaseClient` also exposes `connect_websocket(request, subprotocols)` returning a `WebSocketConnection` (defined in `kubex/client/websocket.py`); the default raises `NotImplementedError`. `HttpxClient` implements it via `httpx-ws` (lazy import — raises `ConfgiurationError` if missing); `AioHttpClient` uses aiohttp's built-in `ws_connect`. Both adapters prefer `Request.query_param_pairs` over `Request.query_params` when building the upgrade URL so exec's repeated `command=` entries are preserved.
 
 ### Configuration auto-loading
 `create_client()` → tries kubeconfig file first → falls back to in-cluster pod environment.
@@ -309,7 +332,7 @@ Four GitHub Actions workflows:
 - Uses GitHub environment `test-pypi`; skips publish for fork PRs
 
 **Publish** (`publish.yaml`) — runs on `v*` tag push:
-1. Verifies all 8 package versions match the tag
+1. Verifies `kubex` and `kubex-core` versions match the tag (kubex-k8s-* packages are versioned independently)
 2. Builds all packages in dependency order
 3. Publishes to production PyPI using OIDC trusted publishing
 - Uses GitHub environment `pypi`

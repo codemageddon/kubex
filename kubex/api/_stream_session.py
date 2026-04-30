@@ -137,7 +137,7 @@ class _BaseChannelSession(ABC):
             return await stack.__aexit__(exc_type, exc_value, traceback)
         except BaseExceptionGroup as eg:
             if len(eg.exceptions) == 1:
-                raise eg.exceptions[0] from None
+                raise eg.exceptions[0] from eg
             raise
 
     def _before_cancel(self) -> None:

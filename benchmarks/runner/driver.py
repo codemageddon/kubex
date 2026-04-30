@@ -110,7 +110,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--cpu-profile", action="store_true")
     p.add_argument("--warmup-iters", type=int, default=-1)
     p.add_argument("--measure-iters", type=int, default=-1)
-    p.add_argument("--k8s-version", default="1.35")
+    p.add_argument("--k8s-version", default="1.33")
     return p.parse_args(argv)
 
 
@@ -198,7 +198,7 @@ def main(argv: list[str] | None = None) -> int:
     for adapter, scenario in pairs:
         _run_pair(args, adapter, scenario, artifacts_dir)
 
-    build_report(artifacts_dir, Path(args.report), Path(args.csv))
+    build_report(artifacts_dir, Path(args.report), Path(args.csv), args.k8s_version)
     print(f"[driver] report written to {args.report}")
     return 0
 

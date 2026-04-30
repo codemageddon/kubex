@@ -53,7 +53,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--out", required=True, help="Path for metrics JSON.")
     p.add_argument(
         "--k8s-version",
-        default="1.35",
+        default="1.33",
         help="Server K8s version label (for reporting; does not control wire).",
     )
     p.add_argument(
