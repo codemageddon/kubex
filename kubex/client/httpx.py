@@ -3,10 +3,11 @@ from __future__ import annotations
 import ssl
 import warnings
 from contextlib import AbstractAsyncContextManager
-from typing import TYPE_CHECKING, Any, AsyncGenerator, Sequence
+from typing import TYPE_CHECKING, Any, AsyncGenerator, Sequence, cast
 
 import httpx
 
+from kubex.client.options import ClientOptions
 from kubex.client.websocket import WebSocketConnection
 from kubex.configuration import ClientConfiguration
 from kubex.core.exceptions import ConfgiurationError, KubexClientException
@@ -37,9 +38,12 @@ def _to_httpx_timeout(timeout: Timeout | None) -> httpx.Timeout:
 
 
 class HttpxClient(BaseClient):
-    def __init__(self, configuration: ClientConfiguration) -> None:
-        self._configuration = configuration
-        self._inner_client = self._create_inner_client()
+    def __init__(
+        self,
+        configuration: ClientConfiguration,
+        options: ClientOptions | None = None,
+    ) -> None:
+        super().__init__(configuration, options)
 
     @property
     def configuration(self) -> ClientConfiguration:
@@ -71,9 +75,11 @@ class HttpxClient(BaseClient):
             "base_url": str(self.configuration.base_url),
             "verify": _verify,
         }
-        configured_timeout = self.configuration.timeout
+        configured_timeout = self.options.timeout
         if configured_timeout is not Ellipsis:
-            kwargs["timeout"] = _to_httpx_timeout(configured_timeout)
+            kwargs["timeout"] = _to_httpx_timeout(
+                cast("Timeout | None", configured_timeout)
+            )
         return httpx.AsyncClient(**kwargs)
 
     async def request(self, request: Request) -> Response:
@@ -97,11 +103,13 @@ class HttpxClient(BaseClient):
             headers=HeadersWrapper(_response.headers),
             content=_response.content,
         )
-        if self.configuration.log_api_warnings and (
+        if self.options.log_api_warnings and (
             api_warnings := _response.headers.get("warning")
         ):
             for warning in api_warnings.split(","):
-                warnings.warn(f"API Warning: {warning}")
+                warnings.warn(
+                    f"API Warning: {warning.strip()}", UserWarning, stacklevel=2
+                )
         if 400 <= status < 600:
             handle_request_error(response)
         return response
@@ -129,6 +137,15 @@ class HttpxClient(BaseClient):
                     content=await _response.aread(),
                 )
                 handle_request_error(response)
+            if self.options.log_api_warnings and (
+                api_warnings := _response.headers.get("warning")
+            ):
+                for warning in api_warnings.split(","):
+                    warnings.warn(
+                        f"API Warning: {warning.strip()}",
+                        UserWarning,
+                        stacklevel=2,
+                    )
             async for line in _response.aiter_lines():
                 yield line
 

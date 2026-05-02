@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
 from pydantic import ValidationError
 
+from kubex.client.options import ClientOptions
 from kubex.configuration import ClientConfiguration
 from kubex.configuration.file_config import configure_from_kubeconfig
 from kubex.configuration.incluster_config import configure_from_pod_env
@@ -31,9 +32,12 @@ logger = logging.getLogger("kubex.client")
 async def _try_read_configuration() -> ClientConfiguration:
     try:
         return await configure_from_kubeconfig()
+    except FileNotFoundError:
+        logger.debug("No kubeconfig file found, falling back to in-cluster config")
+        return await configure_from_pod_env()
     except Exception as e:
         logger.error("Failed to read configuration from kubeconfig", exc_info=e)
-        return await configure_from_pod_env()
+        raise
 
 
 class ClientChoise(str, Enum):
@@ -43,10 +47,19 @@ class ClientChoise(str, Enum):
 
 
 class BaseClient(ABC):
-    def __init__(self, configuration: ClientConfiguration) -> None:
+    def __init__(
+        self,
+        configuration: ClientConfiguration,
+        options: ClientOptions | None = None,
+    ) -> None:
         super().__init__()
         self._configuration = configuration
+        self._options = options if options is not None else ClientOptions()
         self._inner_client: Any = self._create_inner_client()
+
+    @property
+    def options(self) -> ClientOptions:
+        return self._options
 
     @abstractmethod
     def _create_inner_client(self) -> Any: ...
@@ -94,25 +107,32 @@ class BaseClient(ABC):
 
 async def create_client(
     configuration: ClientConfiguration | None = None,
+    options: ClientOptions | None = None,
     client_class: ClientChoise = ClientChoise.AUTO,
 ) -> BaseClient:
+    if options is not None and not isinstance(options, ClientOptions):
+        raise TypeError(
+            f"options must be a ClientOptions instance or None, got {type(options).__name__!r}"
+        )
     if configuration is None:
         configuration = await _try_read_configuration()
     match client_class:
         case ClientChoise.HTTPX:
             from .httpx import HttpxClient
 
-            return HttpxClient(configuration)
+            return HttpxClient(configuration, options)
         case ClientChoise.AIOHTTP:
             from .aiohttp import AioHttpClient
 
-            return AioHttpClient(configuration)
+            return AioHttpClient(configuration, options)
         case ClientChoise.AUTO:
             try:
-                return await create_client(configuration, ClientChoise.AIOHTTP)
+                return await create_client(configuration, options, ClientChoise.AIOHTTP)
             except ImportError:
                 try:
-                    return await create_client(configuration, ClientChoise.HTTPX)
+                    return await create_client(
+                        configuration, options, ClientChoise.HTTPX
+                    )
                 except ImportError:
                     raise ImportError(
                         "You need to install either httpx or aiohttp to use the client"

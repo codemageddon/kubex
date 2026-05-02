@@ -6,6 +6,10 @@ Auto-generated reference for the `kubex.client` module.
 
 ::: kubex.client.client
 
+## Client options
+
+::: kubex.client.options
+
 ## WebSocket abstraction
 
 ::: kubex.client.websocket

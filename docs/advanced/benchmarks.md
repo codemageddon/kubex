@@ -4,7 +4,7 @@ Kubex is dramatically faster than [kubernetes-asyncio](https://github.com/tomplu
 
 ## Summary
 
-Benchmarks run against a K3s 1.35 cluster (K3s testcontainer, same hardware, same server):
+Benchmarks run against a K3s 1.33 cluster (K3s testcontainer, same hardware, same server):
 
 | Scenario | kubernetes-asyncio | kubex (aiohttp) | kubex (httpx) | Speedup |
 |---|---|---|---|---|
@@ -17,7 +17,7 @@ Kubex also uses **49% less heap memory** and makes **up to 5× fewer allocations
 
 ## Detailed results
 
-Results below are from `benchmarks/report.md` in the repository. All numbers use a K3s 1.35 testcontainer on Linux. See the caveats section for measurement details.
+Results below are from `benchmarks/report.md` in the repository. All numbers use a K3s 1.33 testcontainer on Linux. See the caveats section for measurement details.
 
 ### Single GET
 

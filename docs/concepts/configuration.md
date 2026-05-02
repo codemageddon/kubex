@@ -9,9 +9,12 @@ Kubex builds cluster credentials from `ClientConfiguration`. You can construct i
 1. **kubeconfig file** — `configure_from_kubeconfig()` reads `~/.kube/config` (or the file pointed to by `$KUBECONFIG`).
 2. **In-cluster environment** — `configure_from_pod_env()` reads the service-account token and CA bundle mounted inside a Pod (`/var/run/secrets/kubernetes.io/serviceaccount/`).
 
-If kubeconfig parsing fails for any reason, the library falls back to in-cluster automatically and logs the error.
+If the kubeconfig file is not found, the library falls back to in-cluster automatically. Other kubeconfig errors (malformed file, missing context, permission denied, etc.) are propagated to the caller.
 
 ## `ClientConfiguration`
+
+!!! note "Operational options live elsewhere"
+    Timeouts and API-warning logging are client-level concerns, not kubeconfig data. They belong on [`ClientOptions`](clients.md#clientoptions), not here.
 
 `ClientConfiguration` holds all connection parameters:
 
@@ -23,7 +26,6 @@ config = ClientConfiguration(
     token="my-bearer-token",          # or token_file="/path/to/token"
     server_ca_file="/path/to/ca.crt", # or insecure_skip_tls_verify=True
     namespace="default",
-    timeout=30,                        # default HTTP timeout in seconds
 )
 ```
 
@@ -38,7 +40,6 @@ Key parameters:
 | `insecure_skip_tls_verify` | `bool` | Disable TLS verification (not for production) |
 | `client_cert_file` / `client_key_file` | `Path | str` | Mutual TLS client certificate + key |
 | `namespace` | `str` | Default namespace (used by `configure_from_pod_env`) |
-| `timeout` | `int | float | Timeout | None` | Default HTTP timeout; `None` = no timeout; `...` = library default |
 | `try_refresh_token` | `bool` | Re-read `token_file` every 60 s (for projected service-account tokens) |
 
 ## `configure_from_kubeconfig()`

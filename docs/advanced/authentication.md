@@ -4,7 +4,7 @@ Kubex supports three authentication methods: kubeconfig files, in-cluster servic
 
 ## Auto-detection
 
-`create_client()` calls `configure_from_kubeconfig()` first. If that fails (file not found, malformed, no current context), it falls back to `configure_from_pod_env()`:
+`create_client()` calls `configure_from_kubeconfig()` first. If the kubeconfig file is not found, it falls back to `configure_from_pod_env()`. Other kubeconfig errors (malformed file, missing context, permission denied, etc.) are propagated to the caller:
 
 ```python
 from kubex.client import create_client

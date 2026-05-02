@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+from kubex.client.options import ClientOptions
 from kubex.configuration import ClientConfiguration
 from kubex.core.params import Timeout
 
@@ -10,27 +11,29 @@ httpx = pytest.importorskip("httpx")
 from kubex.client.httpx import HttpxClient, _to_httpx_timeout  # noqa: E402
 
 
-def _configuration(**kwargs: object) -> ClientConfiguration:
+def _configuration() -> ClientConfiguration:
     return ClientConfiguration(
         url="https://example.invalid",
         insecure_skip_tls_verify=True,
-        **kwargs,  # type: ignore[arg-type]
     )
+
+
+def _options(**kwargs: object) -> ClientOptions:
+    return ClientOptions(**kwargs)
 
 
 def test_create_inner_client_without_timeout_uses_httpx_default() -> None:
     client = HttpxClient(_configuration())
-    # Constructing without a timeout should leave httpx's default in place.
     assert client._inner_client.timeout == httpx.Timeout(5.0)
 
 
 def test_create_inner_client_with_timeout() -> None:
-    client = HttpxClient(_configuration(timeout=5))
+    client = HttpxClient(_configuration(), _options(timeout=5))
     assert client._inner_client.timeout == httpx.Timeout(5.0)
 
 
 def test_create_inner_client_with_none_disables_timeout() -> None:
-    client = HttpxClient(_configuration(timeout=None))
+    client = HttpxClient(_configuration(), _options(timeout=None))
     assert client._inner_client.timeout == httpx.Timeout(None)
 
 

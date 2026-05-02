@@ -49,7 +49,7 @@ kubex/                          # Main package — PEP 420 namespace package (no
                                 #   workspace `kubex-k8s-*` packages can contribute `kubex.k8s.*` submodules.
                                 #   Public API is imported from explicit submodules:
                                 #   `from kubex.api import Api, create_api`,
-                                #   `from kubex.client import BaseClient, create_client`,
+                                #   `from kubex.client import BaseClient, create_client, ClientOptions`,
                                 #   `from kubex.configuration import ClientConfiguration`
 ├── __version__.py              # Version string (0.1.0-beta.1)
 ├── py.typed                    # PEP 561 type hint marker
@@ -70,6 +70,7 @@ kubex/                          # Main package — PEP 420 namespace package (no
 │   └── _protocol.py            # ApiProtocol[ResourceType], type aliases, SubresourceNotAvailable, namespace helpers
 ├── client/                     # HTTP client implementations
 │   ├── client.py               # BaseClient ABC, create_client() factory, ClientChoise enum
+│   ├── options.py              # ClientOptions pydantic model — timeout and log_api_warnings defaults
 │   ├── websocket.py            # WebSocketConnection ABC — abstraction used by exec and attach subresources
 │   ├── httpx.py                # HttpxClient implementation (exec via httpx-ws)
 │   └── aiohttp.py              # AioHttpClient implementation (exec via aiohttp ws_connect)
@@ -260,7 +261,7 @@ Each resource model declares a `__RESOURCE_CONFIG__` class variable (a `Resource
 All models inherit from `BaseK8sModel` which uses `alias_generator=to_camel` and `populate_by_name=True`. This means Python code uses `snake_case` while JSON serialization uses `camelCase` to match the Kubernetes API.
 
 ### Pluggable HTTP clients
-`BaseClient` is an ABC. Implementations (`HttpxClient`, `AioHttpClient`) are lazily imported. The `create_client()` factory auto-detects which library is installed (prefers aiohttp, falls back to httpx). `BaseClient` also exposes `connect_websocket(request, subprotocols)` returning a `WebSocketConnection` (defined in `kubex/client/websocket.py`); the default raises `NotImplementedError`. `HttpxClient` implements it via `httpx-ws` (lazy import — raises `ConfgiurationError` if missing); `AioHttpClient` uses aiohttp's built-in `ws_connect`. Both adapters prefer `Request.query_param_pairs` over `Request.query_params` when building the upgrade URL so exec's repeated `command=` entries are preserved.
+`BaseClient` is an ABC. Implementations (`HttpxClient`, `AioHttpClient`) are lazily imported. The `create_client()` factory auto-detects which library is installed (prefers aiohttp, falls back to httpx). `BaseClient` also exposes `connect_websocket(request, subprotocols)` returning a `WebSocketConnection` (defined in `kubex/client/websocket.py`); the default raises `NotImplementedError`. `HttpxClient` implements it via `httpx-ws` (lazy import — raises `ConfgiurationError` if missing); `AioHttpClient` uses aiohttp's built-in `ws_connect`. Both adapters prefer `Request.query_param_pairs` over `Request.query_params` when building the upgrade URL so exec's repeated `command=` entries are preserved. `create_client()` also accepts `options: ClientOptions | None` — a `ClientOptions` instance carrying the client-level `timeout` default and `log_api_warnings` flag. When `None`, a `ClientOptions()` with library defaults is used. Both `HttpxClient` and `AioHttpClient` expose an `options` property and read `self.options.timeout` / `self.options.log_api_warnings` in `_create_inner_client()` and `request()` respectively.
 
 ### Configuration auto-loading
 `create_client()` → tries kubeconfig file first → falls back to in-cluster pod environment.
@@ -268,7 +269,7 @@ All models inherit from `BaseK8sModel` which uses `alias_generator=to_camel` and
 ### Ellipsis sentinel for optional overrides
 `Ellipsis` (`...`) is used as a sentinel to distinguish "not provided" (use the default) from `None` (explicitly disabled). This pattern is used in two places:
 - **Namespace**: `...` = use the `Api` instance default; `None` = explicitly no namespace.
-- **Request timeout**: `...` = use the client-level default (or the HTTP library default if none was configured); `None` = explicitly disable timeouts for this call.
+- **Request timeout**: `...` = use the `ClientOptions.timeout` default (itself `...` unless overridden, meaning use the HTTP library's own default); `None` = explicitly disable timeouts for this call.
 
 ### Exception hierarchy
 ```
@@ -304,7 +305,7 @@ Resources declare capabilities via multiple inheritance from marker classes: `Na
 
 - **Framework**: pytest with `pytest-cov` and `anyio` for async support
 - **E2E tests** use `testcontainers` with a K3S container (requires Docker); located in `test/e2e/`
-- **Unit tests** for request builder methods in `test/test_request_builder/`, error handling in `test/test_error_handling.py`, metadata accessor in `test/test_metadata_accessor.py`, configuration/auth in `test/test_configuration/`, timeout settings in `test/test_timeout/`, patch models in `test/test_patch/`, subresource descriptors in `test/test_subresource_descriptors/`
+- **Unit tests** for request builder methods in `test/test_request_builder/`, error handling in `test/test_error_handling.py`, metadata accessor in `test/test_metadata_accessor.py`, configuration/auth in `test/test_configuration/`, timeout settings in `test/test_timeout/`, patch models in `test/test_patch/`, subresource descriptors in `test/test_subresource_descriptors/`, `ClientOptions` and `create_client()` in `test/test_client/`
 - **Codegen tests** with golden snapshots in `scripts/codegen/tests/`
 - E2E tests are parameterized over both HTTP clients (`httpx`, `aiohttp`) and async backends (`asyncio`, `trio` — trio only with httpx)
 - Mark async tests with `@pytest.mark.anyio`
@@ -312,7 +313,7 @@ Resources declare capabilities via multiple inheritance from marker classes: `Na
 
 ## CI/CD
 
-Four GitHub Actions workflows:
+Five GitHub Actions workflows:
 
 **Lint** (`lint.yaml`) — runs on push and pull_request:
 1. Pre-commit hooks (all files)
@@ -336,6 +337,11 @@ Four GitHub Actions workflows:
 2. Builds all packages in dependency order
 3. Publishes to production PyPI using OIDC trusted publishing
 - Uses GitHub environment `pypi`
+
+**Docs** (`docs.yaml`) — runs on push to `main`, `v*` tag, and `workflow_dispatch`:
+1. Builds docs in strict mode (`mkdocs build --strict`)
+2. Deploys to GitHub Pages via `mike` (`dev` alias on main push, versioned label on tag)
+- Promotion of a versioned label to `latest` is intentionally manual
 
 ## Releasing
 

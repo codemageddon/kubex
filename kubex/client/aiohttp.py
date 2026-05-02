@@ -1,6 +1,6 @@
 import ssl
 import warnings
-from typing import Any, AsyncGenerator, Sequence
+from typing import Any, AsyncGenerator, Sequence, cast
 
 import anyio
 from aiohttp import (
@@ -13,6 +13,7 @@ from aiohttp import (
 )
 from aiohttp.connector import TCPConnector
 
+from kubex.client.options import ClientOptions
 from kubex.client.websocket import WebSocketConnection
 from kubex.configuration import ClientConfiguration
 from kubex.core.exceptions import KubexClientException
@@ -42,13 +43,16 @@ def _to_aiohttp_timeout(timeout: Timeout | None) -> ClientTimeout:
 
 
 class AioHttpClient(BaseClient):
-    def __init__(self, configuration: ClientConfiguration) -> None:
-        self._configuration = configuration
+    def __init__(
+        self,
+        configuration: ClientConfiguration,
+        options: ClientOptions | None = None,
+    ) -> None:
         self._default_headers = {
             constants.CONTENT_TYPE_HEADER: constants.APPLICATION_JSON_MIME_TYPE,
             constants.ACCEPT_HEADER: constants.APPLICATION_JSON_MIME_TYPE,
         }
-        self._inner_client: ClientSession = self._create_inner_client()
+        super().__init__(configuration, options)
 
     @property
     def configuration(self) -> ClientConfiguration:
@@ -75,19 +79,18 @@ class AioHttpClient(BaseClient):
             ssl_context.check_hostname = False
             ssl_context.verify_mode = ssl.CERT_NONE
 
-        connector = TCPConnector(
-            verify_ssl=not bool(self.configuration.insecure_skip_tls_verify),
-            ssl=ssl_context,
-        )
+        connector = TCPConnector(ssl=ssl_context)
         kwargs: dict[str, Any] = {
             "base_url": str(self.configuration.base_url),
             "connector": connector,
             "read_bufsize": 2**21,
             "headers": self._default_headers,
         }
-        configured_timeout = self.configuration.timeout
+        configured_timeout = self.options.timeout
         if configured_timeout is not Ellipsis:
-            kwargs["timeout"] = _to_aiohttp_timeout(configured_timeout)
+            kwargs["timeout"] = _to_aiohttp_timeout(
+                cast("Timeout | None", configured_timeout)
+            )
         return ClientSession(**kwargs)
 
     async def request(self, request: Request) -> Response:
@@ -111,11 +114,13 @@ class AioHttpClient(BaseClient):
             headers=HeadersWrapper(_response.headers),
             content=await _response.read(),
         )
-        if self.configuration.log_api_warnings and (
-            api_warnings := _response.headers.get("Warning")
+        if self.options.log_api_warnings and (
+            api_warnings := _response.headers.get("warning")
         ):
             for warning in api_warnings.split(","):
-                warnings.warn(f"API Warning: {warning}")
+                warnings.warn(
+                    f"API Warning: {warning.strip()}", UserWarning, stacklevel=2
+                )
         if 400 <= status < 600:
             handle_request_error(response)
         return response
@@ -144,6 +149,15 @@ class AioHttpClient(BaseClient):
                     content=await _response.read(),
                 )
                 handle_request_error(response)
+            if self.options.log_api_warnings and (
+                api_warnings := _response.headers.get("warning")
+            ):
+                for warning in api_warnings.split(","):
+                    warnings.warn(
+                        f"API Warning: {warning.strip()}",
+                        UserWarning,
+                        stacklevel=2,
+                    )
             while line := await _response.content.readline():
                 yield line.decode("utf-8")
         finally:

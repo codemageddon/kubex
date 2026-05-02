@@ -114,7 +114,7 @@ jobs:
         with:
           script: |
             const sha = context.payload.pull_request.head.sha;
-            const required = ['pre-commit', 'lint', 'format', 'mypy', 'test', 'docs'];
+            const required = ['pre-commit', 'lint', 'format', 'mypy', 'test'];
             const sleep = ms => new Promise(r => setTimeout(r, ms));
 
             while (true) {

@@ -321,7 +321,7 @@ class ExecAccessor(Generic[ResourceType]):
                 # ``_drain_*`` or ``_write_stdin`` directly instead of
                 # having to reach into an exception group.
                 if len(eg.exceptions) == 1:
-                    raise eg.exceptions[0] from eg
+                    raise eg.exceptions[0] from None
                 raise
         return ExecResult(
             stdout=bytes(stdout_buf), stderr=bytes(stderr_buf), status=status

@@ -29,18 +29,18 @@ t = Timeout(total=30.0, connect=5.0, read=25.0)  # granular override
 
 ## Setting a client-level default
 
-Pass `timeout=` when constructing `ClientConfiguration` to apply a default to every request made by that client:
+Pass `ClientOptions(timeout=…)` to `create_client()` to apply a default to every request made by that client:
 
 ```python
-from kubex.configuration import ClientConfiguration
-from kubex.client import create_client
+from kubex.client import ClientOptions, create_client
 from kubex.core.params import Timeout
 
-config = ClientConfiguration(timeout=Timeout(total=30.0))
-client = await create_client(configuration=config)
+client = await create_client(
+    options=ClientOptions(timeout=Timeout(total=30.0)),
+)
 ```
 
-If no timeout is set on `ClientConfiguration` (`timeout=...`, the default), the underlying HTTP library's own default applies (httpx: 5 s total; aiohttp: no timeout).
+If no `options` is provided (or `timeout=...`, the default), the underlying HTTP library's own default applies (httpx: 5 s total; aiohttp: 300 s total, 30 s sock_connect).
 
 ## Per-call override with `request_timeout`
 
