@@ -12,6 +12,14 @@ This section covers advanced topics for production use and deeper integration.
 
     [Multi-version K8s](multi-version-k8s.md)
 
+-   **Custom Resources**
+
+    ---
+
+    Define Pydantic models for your CRDs and use `Api[T]` for full CRUD and status subresource support — no code generation required.
+
+    [Custom Resources](custom-resources.md)
+
 -   **Clients & Runtimes**
 
     ---

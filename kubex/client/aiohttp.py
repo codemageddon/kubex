@@ -1,3 +1,4 @@
+import contextlib
 import ssl
 import warnings
 from typing import Any, AsyncGenerator, Sequence, cast
@@ -229,17 +230,13 @@ class AioHttpClient(BaseClient):
         # the httpx-ws adapter caps frames at 2 MiB; explicitly match here so
         # large exec stdout/stderr chunks fail (or succeed) the same way on
         # both backends.
+        timeout_scope = (
+            anyio.fail_after(handshake_timeout)
+            if handshake_timeout is not None
+            else contextlib.nullcontext()
+        )
         try:
-            if handshake_timeout is not None:
-                with anyio.fail_after(handshake_timeout):
-                    ws = await upgrade_session.ws_connect(
-                        request.url,
-                        protocols=tuple(subprotocols),
-                        headers=headers,
-                        params=params,
-                        max_msg_size=2**21,
-                    )
-            else:
+            with timeout_scope:
                 ws = await upgrade_session.ws_connect(
                     request.url,
                     protocols=tuple(subprotocols),

@@ -47,3 +47,9 @@ def test_ellipsis_sentinel_roundtrip() -> None:
 def test_bogus_timeout_raises() -> None:
     with pytest.raises(ValidationError):
         ClientOptions(timeout="bogus")
+
+
+@pytest.mark.parametrize("value", [True, False])
+def test_bool_timeout_raises(value: bool) -> None:
+    with pytest.raises(ValidationError):
+        ClientOptions(timeout=value)

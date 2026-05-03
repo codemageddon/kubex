@@ -198,6 +198,7 @@ examples/                       # Usage examples
 ├── exec_pod.py                 # Pod exec subresource — api.exec.run() + api.exec.stream() interactive shell
 ├── attach_pod.py               # Pod attach subresource — api.attach.stream() with stdin/stdout
 ├── portforward_pod.py          # Pod portforward subresource — api.portforward.forward() (low-level ByteStream) + api.portforward.listen() (local TCP listener)
+├── custom_resource.py          # Define CRD models (Widget, ClusterWidget) + create/get/list/patch/status/delete
 └── delete_collection.py        # Bulk delete with label_selector
 
 docs/                           # MkDocs documentation site source

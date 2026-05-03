@@ -163,8 +163,10 @@ class PortForwardStream(anyio.abc.ByteStream):
     async def aclose(self) -> None:
         async with self._session._write_lock:
             self._send_closed = True
-        await self._session.close_port_data(self._port)
-        self._recv_stream.close()
+        try:
+            await self._session.close_port_data(self._port)
+        finally:
+            self._recv_stream.close()
 
 
 class PortForwarder:

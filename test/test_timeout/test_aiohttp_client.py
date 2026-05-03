@@ -15,10 +15,6 @@ def _configuration() -> ClientConfiguration:
     return ClientConfiguration(url="https://example.invalid")
 
 
-def _options(**kwargs: object) -> ClientOptions:
-    return ClientOptions(**kwargs)
-
-
 @pytest.mark.anyio
 async def test_create_inner_session_with_ellipsis_uses_aiohttp_default() -> None:
     from aiohttp.client import DEFAULT_TIMEOUT
@@ -32,7 +28,7 @@ async def test_create_inner_session_with_ellipsis_uses_aiohttp_default() -> None
 
 @pytest.mark.anyio
 async def test_create_inner_session_with_timeout() -> None:
-    client = AioHttpClient(_configuration(), _options(timeout=5))
+    client = AioHttpClient(_configuration(), ClientOptions(timeout=5))
     try:
         assert client._inner_client.timeout.total == 5
     finally:
@@ -41,7 +37,7 @@ async def test_create_inner_session_with_timeout() -> None:
 
 @pytest.mark.anyio
 async def test_create_inner_session_with_none_disables_timeout() -> None:
-    client = AioHttpClient(_configuration(), _options(timeout=None))
+    client = AioHttpClient(_configuration(), ClientOptions(timeout=None))
     try:
         assert client._inner_client.timeout.total is None
     finally:

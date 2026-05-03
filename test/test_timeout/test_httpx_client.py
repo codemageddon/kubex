@@ -18,22 +18,18 @@ def _configuration() -> ClientConfiguration:
     )
 
 
-def _options(**kwargs: object) -> ClientOptions:
-    return ClientOptions(**kwargs)
-
-
 def test_create_inner_client_without_timeout_uses_httpx_default() -> None:
     client = HttpxClient(_configuration())
     assert client._inner_client.timeout == httpx.Timeout(5.0)
 
 
 def test_create_inner_client_with_timeout() -> None:
-    client = HttpxClient(_configuration(), _options(timeout=5))
+    client = HttpxClient(_configuration(), ClientOptions(timeout=5))
     assert client._inner_client.timeout == httpx.Timeout(5.0)
 
 
 def test_create_inner_client_with_none_disables_timeout() -> None:
-    client = HttpxClient(_configuration(), _options(timeout=None))
+    client = HttpxClient(_configuration(), ClientOptions(timeout=None))
     assert client._inner_client.timeout == httpx.Timeout(None)
 
 

@@ -63,6 +63,7 @@ Kubex works with both **asyncio** and **trio** (via httpx), with no framework lo
 * `httpx` and `aiohttp` as an underlying http-client support.
 * `asyncio` and `trio` async runtime support (only `httpx` client is supported for `trio`).
 * Comprehensive, fully-typed Kubernetes resource models (1.32–1.37) generated from the OpenAPI spec via a built-in code generator.
+* Custom Resource Definitions (CRDs) — define a Pydantic model inheriting from `NamespaceScopedEntity` or `ClusterScopedEntity` with `__RESOURCE_CONFIG__` and use `Api[T]` for full CRUD, watch, and subresource access. No code generation required. See `examples/custom_resource.py` and the [Custom Resources docs](https://kubex.codemageddon.me/advanced/custom-resources/).
 
 > **Experimental — WebSocket subresources.** The `exec`, `attach`, and
 > `portforward` APIs described below are still under active development.

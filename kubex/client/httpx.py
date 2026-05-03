@@ -55,21 +55,23 @@ class HttpxClient(BaseClient):
         return {"Authorization": f"Bearer {self.configuration.token}"}
 
     def _create_inner_client(self) -> httpx.AsyncClient:
-        verify = self.configuration.verify
-        if verify is False:
-            _verify: ssl.SSLContext | bool = False
-        elif isinstance(verify, str):
-            ssl_context = ssl.create_default_context(cafile=verify)
-            if (client_cert := self.configuration.client_cert) is not None:
-                if isinstance(client_cert, tuple):
-                    ssl_context.load_cert_chain(
-                        certfile=client_cert[0], keyfile=client_cert[1]
-                    )
-                else:
-                    ssl_context.load_cert_chain(certfile=client_cert)
-            _verify = ssl_context
-        else:
-            _verify = True
+        cafile = (
+            str(self.configuration.server_ca_file)
+            if self.configuration.server_ca_file
+            else None
+        )
+        ssl_context = ssl.create_default_context(cafile=cafile)
+        if (client_cert := self.configuration.client_cert) is not None:
+            if isinstance(client_cert, tuple):
+                ssl_context.load_cert_chain(
+                    certfile=client_cert[0], keyfile=client_cert[1]
+                )
+            else:
+                ssl_context.load_cert_chain(certfile=client_cert)
+        if self.configuration.insecure_skip_tls_verify:
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+        _verify: ssl.SSLContext = ssl_context
 
         kwargs: dict[str, Any] = {
             "base_url": str(self.configuration.base_url),
