@@ -96,6 +96,7 @@ class AioHttpClient(BaseClient):
             constants.CONTENT_TYPE_HEADER: constants.APPLICATION_JSON_MIME_TYPE,
             constants.ACCEPT_HEADER: constants.APPLICATION_JSON_MIME_TYPE,
         }
+        self._resolved_proxy: str | None = None
         super().__init__(configuration, options)
 
     @property
@@ -163,6 +164,7 @@ class AioHttpClient(BaseClient):
         _apply_aiohttp_proxy(
             kwargs, self.options.proxy, str(self.configuration.base_url)
         )
+        self._resolved_proxy = cast("str | None", kwargs.get("proxy"))
 
         buffer_size = self.options.buffer_size
         if isinstance(buffer_size, EllipsisType):
@@ -192,9 +194,8 @@ class AioHttpClient(BaseClient):
             "connector_owner": False,
             "headers": self._default_headers,
         }
-        _apply_aiohttp_proxy(
-            kwargs, self.options.proxy, str(self._configuration.base_url)
-        )
+        if self._resolved_proxy is not None:
+            kwargs["proxy"] = self._resolved_proxy
         return kwargs
 
     async def request(self, request: Request) -> Response:

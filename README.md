@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" alt="Kubex logo" width="180">
+  <img src="docs/assets/logo.png" alt="Kubex logo" width="180">
 </p>
 
 <h1 align="center">Kubex</h1>

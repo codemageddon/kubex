@@ -7,7 +7,7 @@ This guide shows how to connect to a Kubernetes cluster and make your first requ
 Install Kubex with an HTTP client and Kubernetes model package:
 
 ```shell
-pip install "kubex[httpx-ws,k8s-1.35]"
+pip install "kubex[aiohttp,k8s-1.35]"
 ```
 
 See [Installation](installation.md) for the full extras matrix.

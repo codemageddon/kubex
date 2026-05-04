@@ -67,7 +67,8 @@ def _build_httpx_limits(options: ClientOptions) -> dict[str, Any]:
 
 def _build_httpx_proxy_kwargs(
     proxy: str | dict[str, str] | None,
-    ssl_context: ssl.SSLContext,
+    verify: ssl.SSLContext | bool,
+    limits: httpx.Limits | None = None,
 ) -> dict[str, Any]:
     """Build proxy-related kwargs for ``httpx.AsyncClient``.
 
@@ -75,14 +76,21 @@ def _build_httpx_proxy_kwargs(
     directly (verified against the 0.27.2 source), so the existing ssl_context
     (which may carry custom CA, client cert, or insecure-skip-verify settings)
     is forwarded to each per-scheme transport entry in the dict case.
+
+    When ``limits`` is provided it is applied to each per-scheme transport so
+    that pool-size and keep-alive settings take effect for proxied traffic too.
+    Without this, mounted transports ignore the client-level ``Limits`` object.
     """
     if proxy is None:
         return {}
     if isinstance(proxy, str):
         return {"proxy": proxy}
+    transport_kw: dict[str, Any] = {"verify": verify}
+    if limits is not None:
+        transport_kw["limits"] = limits
     return {
         "mounts": {
-            f"{scheme}://": httpx.AsyncHTTPTransport(proxy=url, verify=ssl_context)
+            f"{scheme}://": httpx.AsyncHTTPTransport(proxy=url, **transport_kw)
             for scheme, url in proxy.items()
         }
     }
@@ -111,18 +119,28 @@ class HttpxClient(BaseClient):
             if self.configuration.server_ca_file
             else None
         )
-        ssl_context = ssl.create_default_context(cafile=cafile)
-        if (client_cert := self.configuration.client_cert) is not None:
-            if isinstance(client_cert, tuple):
-                ssl_context.load_cert_chain(
-                    certfile=client_cert[0], keyfile=client_cert[1]
-                )
-            else:
-                ssl_context.load_cert_chain(certfile=client_cert)
-        if self.configuration.insecure_skip_tls_verify:
-            ssl_context.check_hostname = False
-            ssl_context.verify_mode = ssl.CERT_NONE
-        _verify: ssl.SSLContext = ssl_context
+        client_cert = self.configuration.client_cert
+        needs_custom_ssl = bool(
+            cafile or self.configuration.insecure_skip_tls_verify or client_cert
+        )
+        _verify: ssl.SSLContext | bool
+        if needs_custom_ssl:
+            ssl_context = ssl.create_default_context(cafile=cafile)
+            if client_cert is not None:
+                if isinstance(client_cert, tuple):
+                    ssl_context.load_cert_chain(
+                        certfile=client_cert[0], keyfile=client_cert[1]
+                    )
+                else:
+                    ssl_context.load_cert_chain(certfile=client_cert)
+            if self.configuration.insecure_skip_tls_verify:
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
+            _verify = ssl_context
+        else:
+            # No custom TLS settings — let httpx use its default trust bundle
+            # (certifi), which is consistent with the pre-ClientOptions behavior.
+            _verify = True
 
         kwargs: dict[str, Any] = {
             "base_url": str(self.configuration.base_url),
@@ -135,10 +153,11 @@ class HttpxClient(BaseClient):
             )
 
         limits_kw = _build_httpx_limits(self.options)
-        if limits_kw:
-            kwargs["limits"] = httpx.Limits(**limits_kw)
+        limits = httpx.Limits(**limits_kw) if limits_kw else None
+        if limits is not None:
+            kwargs["limits"] = limits
 
-        kwargs.update(_build_httpx_proxy_kwargs(self.options.proxy, ssl_context))
+        kwargs.update(_build_httpx_proxy_kwargs(self.options.proxy, _verify, limits))
 
         if not isinstance(self.options.buffer_size, EllipsisType):
             warnings.warn(

@@ -109,8 +109,13 @@ def test_apply_aiohttp_proxy_dict_no_matching_scheme_warns_no_proxy() -> None:
 
 @pytest.mark.anyio
 async def test_aiohttp_pool_size_default_uses_library_default() -> None:
-    client = AioHttpClient(_config(), ClientOptions())
-    assert client._inner_client.connector.limit == 100  # aiohttp default
+    # Ellipsis (default) must NOT pass limit at all — let aiohttp decide.
+    from aiohttp.connector import TCPConnector as _RealTCPConnector
+
+    with patch("kubex.client.aiohttp.TCPConnector", wraps=_RealTCPConnector) as spy:
+        AioHttpClient(_config(), ClientOptions())
+        init_kwargs = spy.call_args.kwargs
+        assert "limit" not in init_kwargs
 
 
 @pytest.mark.anyio

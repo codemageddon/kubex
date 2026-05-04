@@ -35,7 +35,7 @@ class ClientOptions(BaseModel):
     **Backend asymmetries**
 
     Some fields are silently ignored on certain backends (a :class:`UserWarning`
-    is emitted on first use):
+    is emitted at client construction time):
 
     - ``buffer_size``: httpx has no equivalent buffer-size knob; the value is
       ignored and a warning is raised.
@@ -50,7 +50,7 @@ class ClientOptions(BaseModel):
       ``mounts=``.
     """
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
 
     log_api_warnings: bool = True
     """Emit Python :mod:`warnings` for any ``Warning`` HTTP headers returned by
@@ -189,7 +189,11 @@ class ClientOptions(BaseModel):
     @field_validator("proxy", mode="before")
     @classmethod
     def _normalize_proxy(cls, value: object) -> object:
-        if value is None or isinstance(value, str):
+        if value is None:
+            return value
+        if isinstance(value, str):
+            if not value:
+                raise ValueError("proxy str must not be empty")
             return value
         if isinstance(value, dict):
             if not value:
@@ -203,6 +207,10 @@ class ClientOptions(BaseModel):
                 if not isinstance(v, str):
                     raise ValueError(
                         f"proxy dict values must be strings, got {type(v).__name__!r}"
+                    )
+                if not v:
+                    raise ValueError(
+                        f"proxy dict value for scheme {k!r} must not be empty"
                     )
                 if k not in allowed_schemes:
                     raise ValueError(

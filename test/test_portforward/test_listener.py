@@ -12,6 +12,7 @@ import pytest
 from kubex.api._portforward import PortforwardAccessor
 from kubex.client.client import BaseClient
 from kubex.client.websocket import WebSocketConnection
+from kubex.configuration import ClientConfiguration
 from kubex.core.exec_channels import CHANNEL_CLOSE
 from kubex.core.request import Request
 from kubex.core.request_builder.builder import RequestBuilder
@@ -76,6 +77,11 @@ class _DynamicFakeClient(BaseClient):
     """Stub client that creates a new WebSocket via factory on each connect."""
 
     def __init__(self, ws_factory: Callable[[], _FakeWebSocket]) -> None:
+        super().__init__(
+            ClientConfiguration(
+                url="https://example.invalid", insecure_skip_tls_verify=True
+            )
+        )
         self._ws_factory = ws_factory
         self.connect_count = 0
 
@@ -418,11 +424,16 @@ async def test_local_half_close_does_not_drop_remote_response() -> None:
 
 
 @pytest.mark.anyio
-async def test_listen_logs_warning_on_buffer_overflow(
+async def test_listen_applies_backpressure_without_data_loss(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Per-port data buffer overflow must be surfaced via a warning log so
-    silent truncation does not corrupt streams unnoticed."""
+    """A slow local TCP reader must not cause data loss.
+
+    The read loop now blocks (awaits) when the per-port memory buffer is full
+    instead of closing the stream and dropping bytes.  Closing the local socket
+    while the read loop is stalled should unblock it cleanly with no truncation
+    warning logged.
+    """
     local_port = _get_free_port()
     ws_ready = anyio.Event()
 
@@ -430,13 +441,12 @@ async def test_listen_logs_warning_on_buffer_overflow(
         ws = _FakeWebSocket(buffer=4096)
         ws.feed(bytes([0]) + _port_prefix(80))
         ws.feed(bytes([1]) + _port_prefix(80))
-        # Pre-feed many data frames to overflow the per-port buffer.
+        # Feed frames that will stall the read loop via backpressure.
         for _ in range(200):
             ws.feed(bytes([0]) + b"X" * 64)
         ws_ready.set()
         return ws
 
-    # Tiny per-port buffer makes overflow inevitable.
     accessor = PortforwardAccessor(
         client=_DynamicFakeClient(ws_factory),
         request_builder=RequestBuilder(resource_config=Pod.__RESOURCE_CONFIG__),
@@ -445,8 +455,7 @@ async def test_listen_logs_warning_on_buffer_overflow(
         resource_type=Pod,
     )
 
-    # Patch buffer_size by wrapping _open_session — the public API does not
-    # expose it for listen(), but we exercise the warning path directly.
+    # Tiny per-port buffer so backpressure kicks in quickly.
     original_open = accessor._open_session
 
     async def _open_with_tiny_buffer(*args: Any, **kwargs: Any) -> Any:
@@ -460,12 +469,12 @@ async def test_listen_logs_warning_on_buffer_overflow(
             sock = await anyio.connect_tcp("127.0.0.1", local_port)
             await ws_ready.wait()
             try:
-                # Don't read — force the buffer to overflow, then close.
+                # Don't read — let the read loop stall under backpressure.
                 await anyio.sleep(0.1)
             finally:
                 await sock.aclose()
             await anyio.sleep(0.1)
 
-    assert any(
-        "data dropped" in r.message and "80" in r.message for r in caplog.records
-    )
+    # Backpressure must not produce a "data dropped" warning — data is stalled,
+    # not silently discarded.
+    assert not any("data dropped" in r.message for r in caplog.records)

@@ -16,7 +16,7 @@ Each subresource capability is declared as a marker class in `kubex_core.models.
 | `HasResize` | `api.resize` | `Pod` |
 | `HasExec` | `api.exec` | `Pod` |
 | `HasAttach` | `api.attach` | `Pod` |
-| `HasPortForward` | `api.portforward` | `Pod`, `Service` |
+| `HasPortForward` | `api.portforward` | `Pod` |
 
 A resource declares multiple capabilities through multiple inheritance:
 

@@ -7,6 +7,7 @@ import pytest
 
 from kubex.client.client import BaseClient
 from kubex.client.websocket import WebSocketConnection
+from kubex.configuration import ClientConfiguration
 from kubex.core.exceptions import KubexClientException
 from kubex.core.exec_channels import V4ChannelProtocol
 from kubex.core.request import Request
@@ -71,6 +72,11 @@ class _FakeClient(BaseClient):
     """Stub BaseClient that yields a preconfigured WebSocketConnection."""
 
     def __init__(self, websocket: WebSocketConnection) -> None:
+        super().__init__(
+            ClientConfiguration(
+                url="https://example.invalid", insecure_skip_tls_verify=True
+            )
+        )
         self._websocket = websocket
         self.connect_calls: list[tuple[Request, list[str]]] = []
 

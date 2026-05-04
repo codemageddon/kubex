@@ -230,6 +230,7 @@ class PortforwardAccessor(Generic[ResourceType]):
         namespace: ApiNamespaceTypes,
         request_timeout: ApiRequestTimeoutTypes,
         buffer_size: float = 128,
+        block_on_full: bool = False,
     ) -> PortForwardSession:
         _namespace = ensure_required_namespace(namespace, self._namespace, self._scope)
         options = PortForwardOptions(ports=ports)
@@ -243,7 +244,11 @@ class PortforwardAccessor(Generic[ResourceType]):
         try:
             protocol = _resolve_protocol(connection, self._channel_protocols)
             return PortForwardSession(
-                connection, protocol, ports, buffer_size=buffer_size
+                connection,
+                protocol,
+                ports,
+                buffer_size=buffer_size,
+                block_on_full=block_on_full,
             )
         except BaseException:
             try:
@@ -389,6 +394,7 @@ class PortforwardAccessor(Generic[ResourceType]):
                             ports=[remote_port],
                             namespace=namespace,
                             request_timeout=request_timeout,
+                            block_on_full=True,
                         )
                         async with session:
                             pf = PortForwarder(session)
@@ -411,13 +417,6 @@ class PortforwardAccessor(Generic[ResourceType]):
                                     copy_tg.start_soon(_copy, stream, port_stream)
                                     copy_tg.start_soon(_copy, port_stream, stream)
                                 conn_tg.cancel_scope.cancel()
-                            if pf.port_data_truncated.get(remote_port):
-                                _logger.warning(
-                                    "portforward: data dropped for port %d due "
-                                    "to local backpressure (buffer overflow); "
-                                    "the local connection received truncated bytes",
-                                    remote_port,
-                                )
                 except Exception:
                     _logger.exception(
                         "portforward connection error on port %d", remote_port
