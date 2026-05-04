@@ -38,7 +38,13 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: Deploy (main → dev)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: uv run --group docs mike deploy --push --update-aliases dev
+        run: |
+          uv run --group docs mike deploy --push --update-aliases dev
+          # Plant the root redirect index.html so https://kubex.codemageddon.me/
+          # resolves. Safe to run on every main push: this only points the root
+          # at `dev`. Tag deploys do not touch the default — promotion to a
+          # stable release remains manual (see comment on the tag step below).
+          uv run --group docs mike set-default --push dev
       - name: Deploy (tag → versioned)
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
         run: |
@@ -53,4 +59,10 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         env:
           VERSION_LABEL: ${{ github.event.inputs.version }}
-        run: uv run --group docs mike deploy --push --update-aliases "$VERSION_LABEL"
+        run: |
+          uv run --group docs mike deploy --push --update-aliases "$VERSION_LABEL"
+          # Only re-plant the root redirect when re-deploying the `dev` label;
+          # promoting any other label to default is left manual.
+          if [ "$VERSION_LABEL" = "dev" ]; then
+            uv run --group docs mike set-default --push dev
+          fi
