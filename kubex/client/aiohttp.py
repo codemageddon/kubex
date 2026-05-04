@@ -1,7 +1,9 @@
 import contextlib
 import ssl
 import warnings
+from types import EllipsisType
 from typing import Any, AsyncGenerator, Sequence, cast
+from urllib.parse import urlparse
 
 import anyio
 from aiohttp import (
@@ -14,7 +16,7 @@ from aiohttp import (
 )
 from aiohttp.connector import TCPConnector
 
-from kubex.client.options import ClientOptions
+from kubex.client.options import ClientOptions, resolve_ws_max_message_size
 from kubex.client.websocket import WebSocketConnection
 from kubex.configuration import ClientConfiguration
 from kubex.core.exceptions import KubexClientException
@@ -41,6 +43,47 @@ def _to_aiohttp_timeout(timeout: Timeout | None) -> ClientTimeout:
         sock_connect=timeout.connect,
         sock_read=timeout.read,
     )
+
+
+def _apply_aiohttp_proxy(
+    kwargs: dict[str, Any],
+    proxy: str | dict[str, str] | None,
+    base_url: str,
+) -> None:
+    """Mutate *kwargs* to add ``proxy=`` for an aiohttp session if applicable.
+
+    aiohttp accepts only a single session-level proxy URL.  When *proxy* is a
+    ``dict`` the entry matching the API server's URL scheme is used; other
+    entries are dropped and a :class:`UserWarning` is emitted.  When no entry
+    matches the active scheme, no proxy is applied and a warning is emitted.
+    """
+    if proxy is None:
+        return
+    if isinstance(proxy, str):
+        kwargs["proxy"] = proxy
+        return
+    scheme = urlparse(base_url).scheme
+    if scheme in proxy:
+        kwargs["proxy"] = proxy[scheme]
+        dropped = sorted(k for k in proxy if k != scheme)
+        if dropped:
+            warnings.warn(
+                f"aiohttp supports only a single session-level proxy URL; "
+                f"using the {scheme!r} entry. "
+                f"Dropped proxy scheme entries: {dropped}. "
+                f"Use the httpx backend for per-scheme proxy routing.",
+                UserWarning,
+                stacklevel=4,
+            )
+    else:
+        warnings.warn(
+            f"aiohttp proxy dict has no entry for URL scheme {scheme!r}; "
+            f"no proxy applied. "
+            f"Available keys: {sorted(proxy.keys())}. "
+            f"Use the httpx backend for per-scheme proxy routing.",
+            UserWarning,
+            stacklevel=4,
+        )
 
 
 class AioHttpClient(BaseClient):
@@ -80,19 +123,79 @@ class AioHttpClient(BaseClient):
             ssl_context.check_hostname = False
             ssl_context.verify_mode = ssl.CERT_NONE
 
-        connector = TCPConnector(ssl=ssl_context)
+        connector_kwargs: dict[str, Any] = {"ssl": ssl_context}
+
+        pool_size = self.options.pool_size
+        if pool_size is None:
+            connector_kwargs["limit"] = 0
+        elif not isinstance(pool_size, EllipsisType):
+            connector_kwargs["limit"] = pool_size
+
+        pool_size_per_host = self.options.pool_size_per_host
+        if pool_size_per_host is None:
+            connector_kwargs["limit_per_host"] = 0
+        elif not isinstance(pool_size_per_host, EllipsisType):
+            connector_kwargs["limit_per_host"] = pool_size_per_host
+
+        if not self.options.keep_alive:
+            connector_kwargs["force_close"] = True
+        else:
+            keep_alive_timeout = self.options.keep_alive_timeout
+            if keep_alive_timeout is None:
+                warnings.warn(
+                    "ClientOptions.keep_alive_timeout=None is not supported by aiohttp; "
+                    "aiohttp has no 'unlimited keep-alive timeout' mode. "
+                    "The setting is ignored and aiohttp uses its own default (15 s).",
+                    UserWarning,
+                    stacklevel=3,
+                )
+            elif not isinstance(keep_alive_timeout, EllipsisType):
+                connector_kwargs["keepalive_timeout"] = keep_alive_timeout
+
+        connector = TCPConnector(**connector_kwargs)
+
         kwargs: dict[str, Any] = {
             "base_url": str(self.configuration.base_url),
             "connector": connector,
-            "read_bufsize": 2**21,
             "headers": self._default_headers,
         }
+
+        _apply_aiohttp_proxy(
+            kwargs, self.options.proxy, str(self.configuration.base_url)
+        )
+
+        buffer_size = self.options.buffer_size
+        if isinstance(buffer_size, EllipsisType):
+            kwargs["read_bufsize"] = 2**21
+        elif buffer_size is not None:
+            kwargs["read_bufsize"] = buffer_size
+        # buffer_size=None → omit read_bufsize (aiohttp library default)
+
         configured_timeout = self.options.timeout
         if configured_timeout is not Ellipsis:
             kwargs["timeout"] = _to_aiohttp_timeout(
                 cast("Timeout | None", configured_timeout)
             )
         return ClientSession(**kwargs)
+
+    def _session_kwargs(self) -> dict[str, Any]:
+        """Return base kwargs for temporary ``ClientSession`` instances.
+
+        Used in ``connect_websocket()`` to build per-call sessions that share
+        the persistent connector.  Proxy is propagated so timeout overrides do
+        not silently lose it.  ``read_bufsize`` and ``timeout`` are excluded —
+        those are handled by the persistent session or added at the call site.
+        """
+        kwargs: dict[str, Any] = {
+            "base_url": str(self._configuration.base_url),
+            "connector": self._inner_client.connector,
+            "connector_owner": False,
+            "headers": self._default_headers,
+        }
+        _apply_aiohttp_proxy(
+            kwargs, self.options.proxy, str(self._configuration.base_url)
+        )
+        return kwargs
 
     async def request(self, request: Request) -> Response:
         headers = self._get_headers()
@@ -115,13 +218,12 @@ class AioHttpClient(BaseClient):
             headers=HeadersWrapper(_response.headers),
             content=await _response.read(),
         )
-        if self.options.log_api_warnings and (
-            api_warnings := _response.headers.get("warning")
-        ):
-            for warning in api_warnings.split(","):
-                warnings.warn(
-                    f"API Warning: {warning.strip()}", UserWarning, stacklevel=2
-                )
+        if self.options.log_api_warnings:
+            for api_warning in _response.headers.getall("warning", []):
+                for warning in api_warning.split(","):
+                    warnings.warn(
+                        f"API Warning: {warning.strip()}", UserWarning, stacklevel=2
+                    )
         if 400 <= status < 600:
             handle_request_error(response)
         return response
@@ -150,15 +252,14 @@ class AioHttpClient(BaseClient):
                     content=await _response.read(),
                 )
                 handle_request_error(response)
-            if self.options.log_api_warnings and (
-                api_warnings := _response.headers.get("warning")
-            ):
-                for warning in api_warnings.split(","):
-                    warnings.warn(
-                        f"API Warning: {warning.strip()}",
-                        UserWarning,
-                        stacklevel=2,
-                    )
+            if self.options.log_api_warnings:
+                for api_warning in _response.headers.getall("warning", []):
+                    for warning in api_warning.split(","):
+                        warnings.warn(
+                            f"API Warning: {warning.strip()}",
+                            UserWarning,
+                            stacklevel=2,
+                        )
             while line := await _response.content.readline():
                 yield line.decode("utf-8")
         finally:
@@ -218,10 +319,7 @@ class AioHttpClient(BaseClient):
             upgrade_session = self._inner_client
         else:
             temp_session = ClientSession(
-                base_url=str(self._configuration.base_url),
-                connector=self._inner_client.connector,
-                connector_owner=False,
-                headers=self._default_headers,
+                **self._session_kwargs(),
                 timeout=_to_aiohttp_timeout(request.timeout),
             )
             upgrade_session = temp_session
@@ -242,7 +340,9 @@ class AioHttpClient(BaseClient):
                     protocols=tuple(subprotocols),
                     headers=headers,
                     params=params,
-                    max_msg_size=2**21,
+                    max_msg_size=resolve_ws_max_message_size(
+                        self.options.ws_max_message_size
+                    ),
                 )
         except WSServerHandshakeError as exc:
             raise KubexClientException(f"WebSocket handshake failed: {exc}") from exc
@@ -264,7 +364,12 @@ class AioHttpClient(BaseClient):
             raise KubexClientException(f"WebSocket connection failed: {exc}") from exc
         finally:
             if temp_session is not None:
-                await temp_session.close()
+                # Suppress any close error so a ws_connect failure is what
+                # the caller sees, not a secondary cleanup exception.
+                try:
+                    await temp_session.close()
+                except Exception:
+                    pass
 
         if subprotocols and ws.protocol is None:
             # Suppress any cleanup error so the descriptive subprotocol

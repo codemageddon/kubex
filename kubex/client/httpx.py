@@ -3,11 +3,12 @@ from __future__ import annotations
 import ssl
 import warnings
 from contextlib import AbstractAsyncContextManager
+from types import EllipsisType
 from typing import TYPE_CHECKING, Any, AsyncGenerator, Sequence, cast
 
 import httpx
 
-from kubex.client.options import ClientOptions
+from kubex.client.options import ClientOptions, resolve_ws_max_message_size
 from kubex.client.websocket import WebSocketConnection
 from kubex.configuration import ClientConfiguration
 from kubex.core.exceptions import ConfgiurationError, KubexClientException
@@ -35,6 +36,56 @@ def _to_httpx_timeout(timeout: Timeout | None) -> httpx.Timeout:
         write=timeout.write if timeout.write is not None else timeout.total,
         pool=timeout.pool if timeout.pool is not None else timeout.total,
     )
+
+
+def _build_httpx_limits(options: ClientOptions) -> dict[str, Any]:
+    """Collect only the explicitly-set pool/keep-alive fields into a Limits kwargs dict.
+
+    Returns an empty dict when all three fields are still ``...`` so that the
+    caller can skip creating an ``httpx.Limits`` object entirely (letting httpx
+    apply its own full default ``Limits``).
+    """
+    kw: dict[str, Any] = {}
+
+    pool_size = options.pool_size
+    if pool_size is None:
+        kw["max_connections"] = None
+    elif not isinstance(pool_size, EllipsisType):
+        kw["max_connections"] = pool_size
+
+    if not options.keep_alive:
+        kw["max_keepalive_connections"] = 0
+
+    keep_alive_timeout = options.keep_alive_timeout
+    if keep_alive_timeout is None:
+        kw["keepalive_expiry"] = None
+    elif not isinstance(keep_alive_timeout, EllipsisType):
+        kw["keepalive_expiry"] = keep_alive_timeout
+
+    return kw
+
+
+def _build_httpx_proxy_kwargs(
+    proxy: str | dict[str, str] | None,
+    ssl_context: ssl.SSLContext,
+) -> dict[str, Any]:
+    """Build proxy-related kwargs for ``httpx.AsyncClient``.
+
+    On httpx >= 0.27.2, ``AsyncHTTPTransport`` accepts ``verify=ssl.SSLContext``
+    directly (verified against the 0.27.2 source), so the existing ssl_context
+    (which may carry custom CA, client cert, or insecure-skip-verify settings)
+    is forwarded to each per-scheme transport entry in the dict case.
+    """
+    if proxy is None:
+        return {}
+    if isinstance(proxy, str):
+        return {"proxy": proxy}
+    return {
+        "mounts": {
+            f"{scheme}://": httpx.AsyncHTTPTransport(proxy=url, verify=ssl_context)
+            for scheme, url in proxy.items()
+        }
+    }
 
 
 class HttpxClient(BaseClient):
@@ -82,6 +133,38 @@ class HttpxClient(BaseClient):
             kwargs["timeout"] = _to_httpx_timeout(
                 cast("Timeout | None", configured_timeout)
             )
+
+        limits_kw = _build_httpx_limits(self.options)
+        if limits_kw:
+            kwargs["limits"] = httpx.Limits(**limits_kw)
+
+        kwargs.update(_build_httpx_proxy_kwargs(self.options.proxy, ssl_context))
+
+        if not isinstance(self.options.buffer_size, EllipsisType):
+            warnings.warn(
+                "ClientOptions.buffer_size is set but httpx has no equivalent "
+                "buffer-size knob; the value is ignored on the httpx backend.",
+                UserWarning,
+                stacklevel=3,
+            )
+
+        if not isinstance(self.options.pool_size_per_host, EllipsisType):
+            warnings.warn(
+                "ClientOptions.pool_size_per_host is set but httpx has no "
+                "per-host pool limit; the value is ignored on the httpx backend.",
+                UserWarning,
+                stacklevel=3,
+            )
+
+        if self.options.ws_max_message_size is None:
+            warnings.warn(
+                "ClientOptions.ws_max_message_size=None is not supported on the "
+                "httpx backend; falls back to httpx-ws default (65536 bytes). "
+                "The value is ignored.",
+                UserWarning,
+                stacklevel=3,
+            )
+
         return httpx.AsyncClient(**kwargs)
 
     async def request(self, request: Request) -> Response:
@@ -181,17 +264,15 @@ class HttpxClient(BaseClient):
             # Forwarded as-is to httpx.stream() during the WebSocket upgrade;
             # bounds the handshake but not the streaming exec session itself.
             extra["timeout"] = _to_httpx_timeout(request.timeout)
+        ws_opt = self.options.ws_max_message_size
+        if ws_opt is not None:
+            extra["max_message_size_bytes"] = resolve_ws_max_message_size(ws_opt)
         cm: AbstractAsyncContextManager[AsyncWebSocketSession] = httpx_ws.aconnect_ws(
             request.url,
             client=self._inner_client,
             subprotocols=list(subprotocols) if subprotocols else None,
             headers=headers,
             params=params,
-            # httpx-ws defaults to 64 KiB; raise to match the aiohttp adapter's
-            # ``read_bufsize=2**21`` so a single large exec stdout chunk does
-            # not trigger ``WebSocketNetworkError`` on one backend but not the
-            # other.
-            max_message_size_bytes=2**21,
             **extra,
         )
 

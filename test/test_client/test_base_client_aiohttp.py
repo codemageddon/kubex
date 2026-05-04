@@ -10,6 +10,8 @@ from kubex.configuration import ClientConfiguration
 
 pytest.importorskip("aiohttp")
 
+from multidict import CIMultiDict  # noqa: E402
+
 from kubex.client.aiohttp import AioHttpClient  # noqa: E402
 
 
@@ -32,7 +34,7 @@ async def test_aiohttp_log_api_warnings_true_emits_warning() -> None:
         (),
         {
             "status": 200,
-            "headers": {"warning": "299 - deprecated"},
+            "headers": CIMultiDict({"warning": "299 - deprecated"}),
             "read": AsyncMock(return_value=b"{}"),
         },
     )()
@@ -59,7 +61,7 @@ async def test_aiohttp_log_api_warnings_false_suppresses_warning() -> None:
         (),
         {
             "status": 200,
-            "headers": {"warning": "299 - deprecated"},
+            "headers": CIMultiDict({"warning": "299 - deprecated"}),
             "read": AsyncMock(return_value=b"{}"),
         },
     )()
@@ -72,4 +74,7 @@ async def test_aiohttp_log_api_warnings_false_suppresses_warning() -> None:
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
             await client.request(req)
-        assert not any(caught)
+        assert not any(
+            issubclass(w.category, UserWarning) and "API Warning" in str(w.message)
+            for w in caught
+        )

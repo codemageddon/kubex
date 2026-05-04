@@ -107,8 +107,8 @@ class BaseClient(ABC):
 
 async def create_client(
     configuration: ClientConfiguration | None = None,
-    options: ClientOptions | None = None,
     client_class: ClientChoise = ClientChoise.AUTO,
+    options: ClientOptions | None = None,
 ) -> BaseClient:
     if options is not None and not isinstance(options, ClientOptions):
         raise TypeError(
@@ -127,11 +127,11 @@ async def create_client(
             return AioHttpClient(configuration, options)
         case ClientChoise.AUTO:
             try:
-                return await create_client(configuration, options, ClientChoise.AIOHTTP)
+                return await create_client(configuration, ClientChoise.AIOHTTP, options)
             except ImportError:
                 try:
                     return await create_client(
-                        configuration, options, ClientChoise.HTTPX
+                        configuration, ClientChoise.HTTPX, options
                     )
                 except ImportError:
                     raise ImportError(

@@ -51,8 +51,8 @@ async def _copy(
 
     On natural EOF on the source, sends EOF on the destination so the peer
     can keep streaming in the opposite direction (TCP half-close support).
-    Errors propagate to the surrounding task group, which cancels the other
-    copy task — full teardown happens via the outer ``async with`` blocks.
+    Broken or closed stream errors are silently ignored — the task exits and
+    the other direction tears down naturally via the outer ``async with`` blocks.
     """
     try:
         while True:

@@ -72,4 +72,7 @@ async def test_log_api_warnings_false_suppresses_warning() -> None:
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
             await client.request(req)
-        assert not any(caught)
+        assert not any(
+            issubclass(w.category, UserWarning) and "API Warning" in str(w.message)
+            for w in caught
+        )
