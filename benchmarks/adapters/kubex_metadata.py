@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import ClassVar
 
+from kubex.client.aiohttp import AioHttpClient
 from kubex.client.client import BaseClient
-from kubex.client.httpx import HttpxClient
 from kubex.configuration.configuration import ClientConfiguration
 
 from ._kubex_base import KubexAdapterBase
@@ -24,7 +24,7 @@ class KubexMetadataAdapter(KubexAdapterBase):
     typed Pod API because those endpoints have no metadata-only equivalent.
     """
 
-    name: ClassVar[str] = "kubex-metadata-httpx-asyncio"
+    name: ClassVar[str] = "kubex-metadata-aiohttp-asyncio"
     capabilities: ClassVar[frozenset[str]] = frozenset(
         {CAP_POD_CRUD, CAP_NAMESPACE_LIST, CAP_METADATA}
     )
@@ -32,7 +32,7 @@ class KubexMetadataAdapter(KubexAdapterBase):
 
     async def _build_client(self, config: object) -> BaseClient:
         assert isinstance(config, ClientConfiguration)
-        return HttpxClient(config)
+        return AioHttpClient(config)
 
     async def list_pods(self, namespace: str, *, limit: int | None = None) -> int:
         result = await self._pods().metadata.list(namespace=namespace, limit=limit)

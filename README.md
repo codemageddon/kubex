@@ -14,16 +14,16 @@ Kubex is a Kubernetes client library for Python inspired by kube.rs. It is built
 
 ### Performance
 
-Kubex is dramatically faster than [kubernetes-asyncio](https://github.com/tomplus/kubernetes_asyncio), the most popular async Kubernetes client for Python. Benchmarks against a K3s 1.35 cluster (see `benchmarks/`):
+Kubex is dramatically faster than [kubernetes-asyncio](https://github.com/tomplus/kubernetes_asyncio), the most popular async Kubernetes client for Python. Benchmarks against a K3s 1.35.4 cluster (see `benchmarks/`):
 
 | Scenario | kubernetes-asyncio | kubex (aiohttp) | kubex (httpx) | Speedup |
 |---|---|---|---|---|
-| Single GET | 68 ms | 7 ms | 26 ms | **10×** |
-| List 100 pods | 14,648 ms | 346 ms | 415 ms | **42×** |
-| List 500 pods | 14,674 ms | 348 ms | 412 ms | **42×** |
-| Watch 50 events | 3,868 ms | 1,200 ms | 1,898 ms | **3×** |
+| Single GET | 61 ms | 6 ms | 26 ms | **10×** |
+| List 100 pods | 2,813 ms | 73 ms | 102 ms | **38×** |
+| List 500 pods | 14,441 ms | 351 ms | 410 ms | **41×** |
+| Watch 50 events | 3,957 ms | 562 ms | 1,764 ms | **7×** |
 
-Kubex also uses **49% less heap memory** and makes **up to 5x fewer allocations**, reducing GC pressure in long-running controllers and operators.
+Kubex also uses **~47% less heap memory** and makes **up to ~5x fewer allocations**, reducing GC pressure in long-running controllers and operators.
 
 ### Fully typed
 

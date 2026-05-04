@@ -124,13 +124,13 @@ def _header_note(artifacts: list[Metrics], k8s_version: str | None = None) -> st
 
             k8s_version = Counter(m.k8s_version for m in artifacts).most_common(1)[0][0]
         else:
-            k8s_version = "1.33"
+            k8s_version = "1.35"
     parts = k8s_version.split(".")
-    # version_dashed needs only major.minor (e.g. "1-33"), not the patch component.
+    # version_dashed needs only major.minor (e.g. "1-35"), not the patch component.
     version_dashed = (
         "-".join(parts[:2]) if len(parts) >= 2 else k8s_version.replace(".", "-")
     )
-    # k8s_minor is the minor portion (e.g. "33" from "1.33.4").
+    # k8s_minor is the minor portion (e.g. "35" from "1.35.4").
     k8s_minor = parts[1] if len(parts) >= 2 else k8s_version
     return _HEADER_TEMPLATE.format(
         k8s_version=k8s_version,

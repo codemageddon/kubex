@@ -39,7 +39,7 @@ ADAPTER_LOADERS: dict[str, Callable[[], type[ClientAdapter]]] = {
     "kubex-httpx-asyncio": _load_kubex_httpx_asyncio,
     "kubex-httpx-trio": _load_kubex_httpx_trio,
     "kubex-aiohttp-asyncio": _load_kubex_aiohttp,
-    "kubex-metadata-httpx-asyncio": _load_kubex_metadata,
+    "kubex-metadata-aiohttp-asyncio": _load_kubex_metadata,
     "k8s-asyncio": _load_k8s_asyncio,
 }
 

@@ -11,7 +11,7 @@ Kubex supports two HTTP client backends and two async runtimes. This page explai
 
 ### aiohttp
 
-`aiohttp` is the faster backend for asyncio workloads. Benchmarks show it is consistently **5–10× faster** than `kubernetes-asyncio` (aiohttp-based) and slightly faster than the httpx backend on most list and watch scenarios. It has built-in WebSocket support, so `exec`, `attach`, and `portforward` work without any extra dependencies.
+`aiohttp` is the faster backend for asyncio workloads. Benchmarks show it is consistently **~10× faster than `kubernetes-asyncio`** on single-request paths and **~40× faster** on large list/deserialise paths, and it is faster than the httpx backend on most list and watch scenarios. It has built-in WebSocket support, so `exec`, `attach`, and `portforward` work without any extra dependencies.
 
 ```bash
 pip install "kubex[aiohttp,k8s-1.35]"

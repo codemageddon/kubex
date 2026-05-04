@@ -4,20 +4,20 @@ Kubex is dramatically faster than [kubernetes-asyncio](https://github.com/tomplu
 
 ## Summary
 
-Benchmarks run against a K3s 1.33 cluster (K3s testcontainer, same hardware, same server):
+Benchmarks run against a K3s 1.35.4 cluster (K3s testcontainer, same hardware, same server):
 
 | Scenario | kubernetes-asyncio | kubex (aiohttp) | kubex (httpx) | Speedup |
 |---|---|---|---|---|
-| Single GET | 68 ms | 7 ms | 26 ms | **10×** |
-| List 100 pods | 14,648 ms | 346 ms | 415 ms | **42×** |
-| List 500 pods | 14,674 ms | 348 ms | 412 ms | **42×** |
-| Watch 50 events | 3,868 ms | 1,200 ms | 1,898 ms | **3×** |
+| Single GET | 61 ms | 6 ms | 26 ms | **10×** |
+| List 100 pods | 2,813 ms | 73 ms | 102 ms | **38×** |
+| List 500 pods | 14,441 ms | 351 ms | 410 ms | **41×** |
+| Watch 50 events | 3,957 ms | 562 ms | 1,764 ms | **7×** |
 
-Kubex also uses **49% less heap memory** and makes **up to 5× fewer allocations**, reducing GC pressure in long-running controllers and operators.
+Kubex also uses **~47% less heap memory** and makes **up to ~5× fewer allocations**, reducing GC pressure in long-running controllers and operators.
 
 ## Detailed results
 
-Results below are from `benchmarks/report.md` in the repository. All numbers use a K3s 1.33 testcontainer on Linux. See the caveats section for measurement details.
+Results below are from `benchmarks/report.md` in the repository. All numbers use a K3s 1.35.4 testcontainer. See the caveats section for measurement details.
 
 ### Single GET
 
@@ -25,10 +25,10 @@ Results below are from `benchmarks/report.md` in the repository. All numbers use
 
 | metric | k8s-asyncio | kubex-aiohttp | kubex-httpx | kubex-httpx-trio |
 |---|---|---|---|---|
-| wall p50 (ms) | 67.6 | 6.7 | 26.5 | 27.0 |
-| wall p95 (ms) | 70.3 | 7.4 | 32.3 | 28.8 |
-| steady heap (MB) | 50.5 | 26.6 | 30.7 | 29.2 |
-| total allocations | 2,674,844 | 2,755,851 | 3,042,188 | 2,971,923 |
+| wall p50 (ms) | 60.8 | 5.7 | 25.6 | 27.0 |
+| wall p95 (ms) | 66.9 | 7.4 | 26.9 | 27.7 |
+| steady heap (MB) | 55.4 | 27.9 | 31.7 | 30.2 |
+| total allocations | 15,517,716 | 4,152,111 | 3,226,073 | 3,268,915 |
 
 ### List 100 pods
 
@@ -36,10 +36,10 @@ Results below are from `benchmarks/report.md` in the repository. All numbers use
 
 | metric | k8s-asyncio | kubex-aiohttp | kubex-httpx | kubex-httpx-trio |
 |---|---|---|---|---|
-| wall p50 (ms) | 14,648 | 346 | 415 | 388 |
-| wall p95 (ms) | 14,663 | 358 | 428 | 397 |
-| steady heap (MB) | 50.6 | 26.7 | 30.8 | 29.3 |
-| total allocations | 31,050,288 | 6,370,304 | 6,785,110 | 6,771,325 |
+| wall p50 (ms) | 2,813 | 73 | 102 | 100 |
+| wall p95 (ms) | 2,920 | 79 | 107 | 109 |
+| steady heap (MB) | 52.1 | 27.5 | 31.7 | 30.2 |
+| total allocations | 7,934,267 | 3,619,184 | 3,936,894 | 3,870,615 |
 
 ### List 500 pods
 
@@ -47,10 +47,10 @@ Results below are from `benchmarks/report.md` in the repository. All numbers use
 
 | metric | k8s-asyncio | kubex-aiohttp | kubex-httpx | kubex-httpx-trio |
 |---|---|---|---|---|
-| wall p50 (ms) | 14,674 | 348 | 412 | 390 |
-| wall p95 (ms) | 14,727 | 358 | 433 | 397 |
-| steady heap (MB) | 50.6 | 26.7 | 30.8 | 29.3 |
-| total allocations | 31,048,536 | 6,370,472 | 6,795,165 | 6,771,446 |
+| wall p50 (ms) | 14,441 | 351 | 410 | 390 |
+| wall p95 (ms) | 14,574 | 618 | 533 | 456 |
+| steady heap (MB) | 52.2 | 27.6 | 31.8 | 30.3 |
+| total allocations | 29,948,177 | 6,506,349 | 6,940,526 | 6,893,850 |
 
 ### Watch 50 events
 
@@ -58,21 +58,22 @@ Results below are from `benchmarks/report.md` in the repository. All numbers use
 
 | metric | k8s-asyncio | kubex-aiohttp | kubex-httpx | kubex-httpx-trio |
 |---|---|---|---|---|
-| wall p50 (ms) | 3,868 | 1,200 | 1,898 | 1,996 |
-| evt p50 (µs) | 23,388 | 1,527 | 3,562 | 4,580 |
-| evt p99 (µs) | 61,776 | 9,305 | 6,194 | 15,684 |
-| steady heap (MB) | 50.6 | 26.6 | 30.7 | 29.3 |
-| total allocations | 4,924,497 | 3,381,830 | 4,517,750 | 4,547,164 |
+| wall p50 (ms) | 3,957 | 562 | 1,764 | 1,863 |
+| evt p50 (µs) | 24,069 | 1,611 | 3,581 | 4,729 |
+| evt p99 (µs) | 56,655 | 9,163 | 5,855 | 15,563 |
+| steady heap (MB) | 52.2 | 27.6 | 31.7 | 30.2 |
+| total allocations | 4,977,137 | 3,472,840 | 4,685,643 | 4,714,213 |
 
 ### PartialObjectMetadata (asymmetric)
 
-> Kubex metadata-only list vs kubernetes-asyncio full list. These are asymmetric — kubernetes-asyncio has no metadata-only equivalent, so its numbers reflect a full object list for contrast.
+> Kubex metadata-only list vs kubernetes-asyncio full list. These are asymmetric — kubernetes-asyncio has no metadata-only equivalent, so its numbers reflect a full object list for contrast. The metadata adapter uses the aiohttp backend so the comparison isolates the `?as=PartialObjectMetadata` saving from any HTTP-stack speed difference.
 
-| metric | k8s-asyncio (full list) | kubex-metadata-httpx |
+| metric | k8s-asyncio (full list, 100 pods) | kubex-metadata-aiohttp |
 |---|---|---|
-| wall p50 (ms) | 14,553 | 75 |
-| steady heap (MB) | 50.5 | 30.8 |
-| total allocations | 31,046,884 | 3,706,741 |
+| wall p50 (ms) | 2,813 | 14.0 |
+| wall p95 (ms) | 3,274 | 15.6 |
+| steady heap (MB) | 52.1 | 27.6 |
+| total allocations | 7,934,232 | 3,061,371 |
 
 ## Why the gap is so large
 
