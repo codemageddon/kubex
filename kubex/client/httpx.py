@@ -3,10 +3,12 @@ from __future__ import annotations
 import ssl
 import warnings
 from contextlib import AbstractAsyncContextManager
-from typing import TYPE_CHECKING, Any, AsyncGenerator, Sequence
+from types import EllipsisType
+from typing import TYPE_CHECKING, Any, AsyncGenerator, Sequence, cast
 
 import httpx
 
+from kubex.client.options import ClientOptions, resolve_ws_max_message_size
 from kubex.client.websocket import WebSocketConnection
 from kubex.configuration import ClientConfiguration
 from kubex.core.exceptions import ConfgiurationError, KubexClientException
@@ -36,10 +38,71 @@ def _to_httpx_timeout(timeout: Timeout | None) -> httpx.Timeout:
     )
 
 
+def _build_httpx_limits(options: ClientOptions) -> dict[str, Any]:
+    """Collect only the explicitly-set pool/keep-alive fields into a Limits kwargs dict.
+
+    Returns an empty dict when all three fields are still ``...`` so that the
+    caller can skip creating an ``httpx.Limits`` object entirely (letting httpx
+    apply its own full default ``Limits``).
+    """
+    kw: dict[str, Any] = {}
+
+    pool_size = options.pool_size
+    if pool_size is None:
+        kw["max_connections"] = None
+    elif not isinstance(pool_size, EllipsisType):
+        kw["max_connections"] = pool_size
+
+    if not options.keep_alive:
+        kw["max_keepalive_connections"] = 0
+
+    keep_alive_timeout = options.keep_alive_timeout
+    if keep_alive_timeout is None:
+        kw["keepalive_expiry"] = None
+    elif not isinstance(keep_alive_timeout, EllipsisType):
+        kw["keepalive_expiry"] = keep_alive_timeout
+
+    return kw
+
+
+def _build_httpx_proxy_kwargs(
+    proxy: str | dict[str, str] | None,
+    verify: ssl.SSLContext | bool,
+    limits: httpx.Limits | None = None,
+) -> dict[str, Any]:
+    """Build proxy-related kwargs for ``httpx.AsyncClient``.
+
+    On httpx >= 0.27.2, ``AsyncHTTPTransport`` accepts ``verify=ssl.SSLContext``
+    directly (verified against the 0.27.2 source), so the existing ssl_context
+    (which may carry custom CA, client cert, or insecure-skip-verify settings)
+    is forwarded to each per-scheme transport entry in the dict case.
+
+    When ``limits`` is provided it is applied to each per-scheme transport so
+    that pool-size and keep-alive settings take effect for proxied traffic too.
+    Without this, mounted transports ignore the client-level ``Limits`` object.
+    """
+    if proxy is None:
+        return {}
+    if isinstance(proxy, str):
+        return {"proxy": proxy}
+    transport_kw: dict[str, Any] = {"verify": verify}
+    if limits is not None:
+        transport_kw["limits"] = limits
+    return {
+        "mounts": {
+            f"{scheme}://": httpx.AsyncHTTPTransport(proxy=url, **transport_kw)
+            for scheme, url in proxy.items()
+        }
+    }
+
+
 class HttpxClient(BaseClient):
-    def __init__(self, configuration: ClientConfiguration) -> None:
-        self._configuration = configuration
-        self._inner_client = self._create_inner_client()
+    def __init__(
+        self,
+        configuration: ClientConfiguration,
+        options: ClientOptions | None = None,
+    ) -> None:
+        super().__init__(configuration, options)
 
     @property
     def configuration(self) -> ClientConfiguration:
@@ -51,29 +114,76 @@ class HttpxClient(BaseClient):
         return {"Authorization": f"Bearer {self.configuration.token}"}
 
     def _create_inner_client(self) -> httpx.AsyncClient:
-        verify = self.configuration.verify
-        if verify is False:
-            _verify: ssl.SSLContext | bool = False
-        elif isinstance(verify, str):
-            ssl_context = ssl.create_default_context(cafile=verify)
-            if (client_cert := self.configuration.client_cert) is not None:
+        cafile = (
+            str(self.configuration.server_ca_file)
+            if self.configuration.server_ca_file
+            else None
+        )
+        client_cert = self.configuration.client_cert
+        needs_custom_ssl = bool(
+            cafile or self.configuration.insecure_skip_tls_verify or client_cert
+        )
+        _verify: ssl.SSLContext | bool
+        if needs_custom_ssl:
+            ssl_context = ssl.create_default_context(cafile=cafile)
+            if client_cert is not None:
                 if isinstance(client_cert, tuple):
                     ssl_context.load_cert_chain(
                         certfile=client_cert[0], keyfile=client_cert[1]
                     )
                 else:
                     ssl_context.load_cert_chain(certfile=client_cert)
+            if self.configuration.insecure_skip_tls_verify:
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
             _verify = ssl_context
         else:
+            # No custom TLS settings — let httpx use its default trust bundle
+            # (certifi), which is consistent with the pre-ClientOptions behavior.
             _verify = True
 
         kwargs: dict[str, Any] = {
             "base_url": str(self.configuration.base_url),
             "verify": _verify,
         }
-        configured_timeout = self.configuration.timeout
+        configured_timeout = self.options.timeout
         if configured_timeout is not Ellipsis:
-            kwargs["timeout"] = _to_httpx_timeout(configured_timeout)
+            kwargs["timeout"] = _to_httpx_timeout(
+                cast("Timeout | None", configured_timeout)
+            )
+
+        limits_kw = _build_httpx_limits(self.options)
+        limits = httpx.Limits(**limits_kw) if limits_kw else None
+        if limits is not None:
+            kwargs["limits"] = limits
+
+        kwargs.update(_build_httpx_proxy_kwargs(self.options.proxy, _verify, limits))
+
+        if not isinstance(self.options.buffer_size, EllipsisType):
+            warnings.warn(
+                "ClientOptions.buffer_size is set but httpx has no equivalent "
+                "buffer-size knob; the value is ignored on the httpx backend.",
+                UserWarning,
+                stacklevel=3,
+            )
+
+        if not isinstance(self.options.pool_size_per_host, EllipsisType):
+            warnings.warn(
+                "ClientOptions.pool_size_per_host is set but httpx has no "
+                "per-host pool limit; the value is ignored on the httpx backend.",
+                UserWarning,
+                stacklevel=3,
+            )
+
+        if self.options.ws_max_message_size is None:
+            warnings.warn(
+                "ClientOptions.ws_max_message_size=None is not supported on the "
+                "httpx backend; falls back to httpx-ws default (65536 bytes). "
+                "The value is ignored.",
+                UserWarning,
+                stacklevel=3,
+            )
+
         return httpx.AsyncClient(**kwargs)
 
     async def request(self, request: Request) -> Response:
@@ -97,11 +207,13 @@ class HttpxClient(BaseClient):
             headers=HeadersWrapper(_response.headers),
             content=_response.content,
         )
-        if self.configuration.log_api_warnings and (
+        if self.options.log_api_warnings and (
             api_warnings := _response.headers.get("warning")
         ):
             for warning in api_warnings.split(","):
-                warnings.warn(f"API Warning: {warning}")
+                warnings.warn(
+                    f"API Warning: {warning.strip()}", UserWarning, stacklevel=2
+                )
         if 400 <= status < 600:
             handle_request_error(response)
         return response
@@ -129,6 +241,15 @@ class HttpxClient(BaseClient):
                     content=await _response.aread(),
                 )
                 handle_request_error(response)
+            if self.options.log_api_warnings and (
+                api_warnings := _response.headers.get("warning")
+            ):
+                for warning in api_warnings.split(","):
+                    warnings.warn(
+                        f"API Warning: {warning.strip()}",
+                        UserWarning,
+                        stacklevel=2,
+                    )
             async for line in _response.aiter_lines():
                 yield line
 
@@ -162,17 +283,15 @@ class HttpxClient(BaseClient):
             # Forwarded as-is to httpx.stream() during the WebSocket upgrade;
             # bounds the handshake but not the streaming exec session itself.
             extra["timeout"] = _to_httpx_timeout(request.timeout)
+        ws_opt = self.options.ws_max_message_size
+        if ws_opt is not None:
+            extra["max_message_size_bytes"] = resolve_ws_max_message_size(ws_opt)
         cm: AbstractAsyncContextManager[AsyncWebSocketSession] = httpx_ws.aconnect_ws(
             request.url,
             client=self._inner_client,
             subprotocols=list(subprotocols) if subprotocols else None,
             headers=headers,
             params=params,
-            # httpx-ws defaults to 64 KiB; raise to match the aiohttp adapter's
-            # ``read_bufsize=2**21`` so a single large exec stdout chunk does
-            # not trigger ``WebSocketNetworkError`` on one backend but not the
-            # other.
-            max_message_size_bytes=2**21,
             **extra,
         )
 

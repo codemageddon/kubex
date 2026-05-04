@@ -228,7 +228,7 @@ _LIST_OPTION_CASES = [
         "status.phase=Failed",
         id="field_selector",
     ),
-    pytest.param({"timeout": 30}, "timeoutSeconds", "30", id="timeout"),
+    pytest.param({"timeout_seconds": 30}, "timeoutSeconds", "30", id="timeout_seconds"),
     pytest.param({"limit": 50}, "limit", "50", id="limit"),
     pytest.param({"continue_token": "tok"}, "continue", "tok", id="continue_token"),
 ]

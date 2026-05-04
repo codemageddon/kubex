@@ -19,11 +19,13 @@ class StubClient(BaseClient):
         status_code: int = 200,
         stream_lines: Iterable[str] = (),
     ) -> None:
-        self._configuration = configuration or ClientConfiguration(
-            url="https://example.invalid",
-            insecure_skip_tls_verify=True,
+        super().__init__(
+            configuration
+            or ClientConfiguration(
+                url="https://example.invalid",
+                insecure_skip_tls_verify=True,
+            )
         )
-        self._inner_client = object()
         self.requests: list[Request] = []
         self._response_content = response_content
         self._status_code = status_code

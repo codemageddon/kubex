@@ -163,7 +163,7 @@ def test_list_metadata_query_params_all(ns_builder: RequestBuilder) -> None:
     opts = ListOptions(
         label_selector="app=web",
         field_selector="status.phase=Running",
-        timeout=30,
+        timeout_seconds=30,
         limit=50,
         continue_token="tok",
         resource_version="999",

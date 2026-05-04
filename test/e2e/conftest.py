@@ -61,7 +61,7 @@ async def client(
 ) -> AsyncGenerator[BaseClient, None]:
     if anyio_backend == "trio" and request.param != ClientChoise.HTTPX:
         pytest.skip("Skipping AIOHTTP client for trio backend")
-    client = await create_client(kubernetes_config, request.param)
+    client = await create_client(kubernetes_config, client_class=request.param)
     async with client as client:
         yield client
 

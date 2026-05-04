@@ -8,6 +8,7 @@ import pytest
 
 from kubex.api._exec import ExecAccessor, ExecResult
 from kubex.client.client import BaseClient
+from kubex.client.options import ClientOptions
 from kubex.client.websocket import WebSocketConnection
 from kubex.core.exceptions import KubexClientException
 from kubex.core.exec_channels import V5ChannelProtocol
@@ -75,6 +76,7 @@ class _FakeClient(BaseClient):
     def __init__(self, websocket: WebSocketConnection) -> None:
         self._websocket = websocket
         self.connect_calls: list[tuple[Request, list[str]]] = []
+        self._options = ClientOptions()
 
     def _create_inner_client(self) -> Any:  # pragma: no cover - never invoked
         return object()

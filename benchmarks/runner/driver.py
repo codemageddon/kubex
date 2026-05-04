@@ -59,7 +59,7 @@ SCENARIOS_BY_ADAPTER: dict[str, list[str]] = {
         "watch_n_events",
         "stream_logs_n_lines",
     ],
-    "kubex-metadata-httpx-asyncio": [
+    "kubex-metadata-aiohttp-asyncio": [
         "single_get_metadata",
         "list_metadata_only",
     ],
@@ -198,7 +198,7 @@ def main(argv: list[str] | None = None) -> int:
     for adapter, scenario in pairs:
         _run_pair(args, adapter, scenario, artifacts_dir)
 
-    build_report(artifacts_dir, Path(args.report), Path(args.csv))
+    build_report(artifacts_dir, Path(args.report), Path(args.csv), args.k8s_version)
     print(f"[driver] report written to {args.report}")
     return 0
 

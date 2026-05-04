@@ -6,11 +6,11 @@ from pathlib import Path
 
 from .metrics import Metrics, loads
 
-_HEADER_NOTE = """\
+_HEADER_TEMPLATE = """\
 # Kubex vs kubernetes-asyncio — Benchmark Report
 
-Both libraries run against the same K3s testcontainer (K8s 1.35). kubex uses
-the `kubex-k8s-1-35` model package; `kubernetes-asyncio 35.x` targets the same
+Both libraries run against the same K3s testcontainer (K8s {k8s_version}). kubex uses
+the `kubex-k8s-{version_dashed}` model package; `kubernetes-asyncio {k8s_minor}.x` targets the same
 server schema — any schema-size differences on the wire are minimised.
 
 Columns:
@@ -115,12 +115,36 @@ def _load_artifacts(artifacts_dir: Path) -> list[Metrics]:
     return out
 
 
-def _render_markdown(artifacts: list[Metrics]) -> str:
+def _header_note(artifacts: list[Metrics], k8s_version: str | None = None) -> str:
+    if k8s_version is None:
+        # Fall back to the most common version across artifacts when the caller
+        # didn't provide an explicit version (e.g. stand-alone report builds).
+        if artifacts:
+            from collections import Counter
+
+            k8s_version = Counter(m.k8s_version for m in artifacts).most_common(1)[0][0]
+        else:
+            k8s_version = "1.35"
+    parts = k8s_version.split(".")
+    # version_dashed needs only major.minor (e.g. "1-35"), not the patch component.
+    version_dashed = (
+        "-".join(parts[:2]) if len(parts) >= 2 else k8s_version.replace(".", "-")
+    )
+    # k8s_minor is the minor portion (e.g. "35" from "1.35.4").
+    k8s_minor = parts[1] if len(parts) >= 2 else k8s_version
+    return _HEADER_TEMPLATE.format(
+        k8s_version=k8s_version,
+        version_dashed=version_dashed,
+        k8s_minor=k8s_minor,
+    )
+
+
+def _render_markdown(artifacts: list[Metrics], k8s_version: str | None = None) -> str:
     by_scenario: dict[str, list[Metrics]] = {}
     for m in artifacts:
         by_scenario.setdefault(m.scenario, []).append(m)
 
-    lines: list[str] = [_HEADER_NOTE]
+    lines: list[str] = [_header_note(artifacts, k8s_version)]
     for scenario in sorted(by_scenario):
         rows = sorted(by_scenario[scenario], key=lambda m: m.adapter)
         caveat = " *(asymmetric)*" if any(m.asymmetric for m in rows) else ""
@@ -187,11 +211,14 @@ def _render_csv(artifacts: list[Metrics]) -> str:
 
 
 def build_report(
-    artifacts_dir: Path, out_md: Path, out_csv: Path | None = None
+    artifacts_dir: Path,
+    out_md: Path,
+    out_csv: Path | None = None,
+    k8s_version: str | None = None,
 ) -> None:
     artifacts = _load_artifacts(artifacts_dir)
     out_md.parent.mkdir(parents=True, exist_ok=True)
-    out_md.write_text(_render_markdown(artifacts))
+    out_md.write_text(_render_markdown(artifacts, k8s_version))
     if out_csv is not None:
         out_csv.parent.mkdir(parents=True, exist_ok=True)
         out_csv.write_text(_render_csv(artifacts))

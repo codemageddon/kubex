@@ -7,6 +7,7 @@ from aiohttp import WSMsgType, web
 from aiohttp.test_utils import TestServer
 
 from kubex.client.aiohttp import AioHttpClient
+from kubex.client.options import ClientOptions
 from kubex.client.websocket import WebSocketConnection
 from kubex.configuration.configuration import ClientConfiguration
 from kubex.core.exceptions import KubexClientException
@@ -373,11 +374,9 @@ async def test_connect_websocket_request_timeout_none_disables_session_timeout()
     server = TestServer(app)
     async with server:
         # Configure session timeout *shorter* than the handshake delay.
-        config = ClientConfiguration(
-            url=str(server.make_url("/")),
-            timeout=Timeout(total=0.1),
-        )
-        async with AioHttpClient(config) as client:
+        config = ClientConfiguration(url=str(server.make_url("/")))
+        opts = ClientOptions(timeout=Timeout(total=0.1))
+        async with AioHttpClient(config, opts) as client:
             # Sanity check: without the per-call override, the session
             # timeout fires and the handshake fails fast.
             request_default = Request(method="GET", url="/ws")

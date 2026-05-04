@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+from kubex.client.options import ClientOptions
 from kubex.configuration import ClientConfiguration
 from kubex.core.params import Timeout
 
@@ -10,19 +11,24 @@ aiohttp = pytest.importorskip("aiohttp")
 from kubex.client.aiohttp import AioHttpClient, _to_aiohttp_timeout  # noqa: E402
 
 
-def _configuration(**kwargs: object) -> ClientConfiguration:
-    # Leave ``insecure_skip_tls_verify`` unset so the aiohttp connector builds a
-    # valid ``SSLContext`` (the code path would otherwise combine
-    # ``verify_ssl=False`` with an ``ssl`` context and raise).
-    return ClientConfiguration(
-        url="https://example.invalid",
-        **kwargs,  # type: ignore[arg-type]
-    )
+def _configuration() -> ClientConfiguration:
+    return ClientConfiguration(url="https://example.invalid")
+
+
+@pytest.mark.anyio
+async def test_create_inner_session_with_ellipsis_uses_aiohttp_default() -> None:
+    from aiohttp.client import DEFAULT_TIMEOUT
+
+    client = AioHttpClient(_configuration())
+    try:
+        assert client._inner_client.timeout == DEFAULT_TIMEOUT
+    finally:
+        await client.close()
 
 
 @pytest.mark.anyio
 async def test_create_inner_session_with_timeout() -> None:
-    client = AioHttpClient(_configuration(timeout=5))
+    client = AioHttpClient(_configuration(), ClientOptions(timeout=5))
     try:
         assert client._inner_client.timeout.total == 5
     finally:
@@ -31,7 +37,7 @@ async def test_create_inner_session_with_timeout() -> None:
 
 @pytest.mark.anyio
 async def test_create_inner_session_with_none_disables_timeout() -> None:
-    client = AioHttpClient(_configuration(timeout=None))
+    client = AioHttpClient(_configuration(), ClientOptions(timeout=None))
     try:
         assert client._inner_client.timeout.total is None
     finally:

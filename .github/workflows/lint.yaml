@@ -45,3 +45,20 @@ jobs:
             uv run python -m scripts.codegen verify "$pkg"
             echo "::endgroup::"
           done
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          python-version: "3.13"
+      - name: Install docs dependencies
+        run: uv lock --python 3.13 && uv sync --group docs
+      - name: Build docs (strict)
+        run: uv run --group docs mkdocs build --strict
+      - name: Check links
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --config lychee.toml docs/
+          fail: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}

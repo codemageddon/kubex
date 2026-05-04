@@ -51,8 +51,8 @@ async def _copy(
 
     On natural EOF on the source, sends EOF on the destination so the peer
     can keep streaming in the opposite direction (TCP half-close support).
-    Errors propagate to the surrounding task group, which cancels the other
-    copy task — full teardown happens via the outer ``async with`` blocks.
+    Broken or closed stream errors are silently ignored — the task exits and
+    the other direction tears down naturally via the outer ``async with`` blocks.
     """
     try:
         while True:
@@ -137,7 +137,7 @@ class PortForwardStream(anyio.abc.ByteStream):
         while not self._buffer:
             try:
                 self._buffer = await self._recv_stream.receive()
-            except anyio.ClosedResourceError:
+            except (anyio.ClosedResourceError, anyio.EndOfStream):
                 raise anyio.EndOfStream()
         data = self._buffer[:max_bytes]
         self._buffer = self._buffer[max_bytes:]
@@ -163,8 +163,10 @@ class PortForwardStream(anyio.abc.ByteStream):
     async def aclose(self) -> None:
         async with self._session._write_lock:
             self._send_closed = True
-        await self._session.close_port_data(self._port)
-        self._recv_stream.close()
+        try:
+            await self._session.close_port_data(self._port)
+        finally:
+            self._recv_stream.close()
 
 
 class PortForwarder:
@@ -195,7 +197,14 @@ class PortForwarder:
 
 
 class PortforwardAccessor(Generic[ResourceType]):
-    """Accessor for the Pod ``portforward`` subresource."""
+    """Accessor for the Pod ``portforward`` subresource.
+
+    .. warning::
+
+       **Experimental.** The WebSocket-based subresources (``exec``,
+       ``attach``, ``portforward``) are still under active development and
+       their API may change in future releases without notice.
+    """
 
     def __init__(
         self,
@@ -221,6 +230,7 @@ class PortforwardAccessor(Generic[ResourceType]):
         namespace: ApiNamespaceTypes,
         request_timeout: ApiRequestTimeoutTypes,
         buffer_size: float = 128,
+        block_on_full: bool = False,
     ) -> PortForwardSession:
         _namespace = ensure_required_namespace(namespace, self._namespace, self._scope)
         options = PortForwardOptions(ports=ports)
@@ -234,7 +244,11 @@ class PortforwardAccessor(Generic[ResourceType]):
         try:
             protocol = _resolve_protocol(connection, self._channel_protocols)
             return PortForwardSession(
-                connection, protocol, ports, buffer_size=buffer_size
+                connection,
+                protocol,
+                ports,
+                buffer_size=buffer_size,
+                block_on_full=block_on_full,
             )
         except BaseException:
             try:
@@ -253,6 +267,21 @@ class PortforwardAccessor(Generic[ResourceType]):
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> AsyncIterator[PortForwarder]:
         """Open portforward streams to the given ports as an async context manager.
+
+        .. warning::
+
+           **Experimental.** This WebSocket-based API is still under active
+           development and may change in future releases without notice.
+
+        This is the **low-level** entry point: a single WebSocket multiplexes
+        all requested ports, and the caller drives I/O directly in Python via
+        per-port ``anyio.abc.ByteStream`` objects. No sockets are bound on the
+        host — bytes never leave the process. Use this when your own code
+        speaks to the pod (custom protocols, embedded clients, tests).
+
+        For the kubectl-style mode where external processes connect through
+        a real local TCP port, use :meth:`listen` instead (which is built on
+        top of this method).
 
         Yields a ``PortForwarder`` exposing per-port ``ByteStream`` objects
         (``pf.streams[port]``) and per-port error iterators (``pf.errors[port]``).
@@ -278,12 +307,26 @@ class PortforwardAccessor(Generic[ResourceType]):
     ) -> AsyncIterator[None]:
         """Open local TCP listeners and forward bytes bidirectionally to remote ports.
 
+        .. warning::
+
+           **Experimental.** This WebSocket-based API is still under active
+           development and may change in future releases without notice.
+
+        This is the **high-level**, kubectl-style entry point: real OS sockets
+        are bound on ``local_host:local_port`` so that any process on the host
+        (``curl``, ``psql``, a browser, …) can connect to the pod through a
+        local port. Each accepted local connection opens its own portforward
+        WebSocket session bound to that single remote port — one session per
+        connection, matching ``kubectl port-forward`` semantics. The method
+        itself yields ``None``; you don't drive I/O through it.
+
+        For the low-level mode where your own Python code reads/writes bytes
+        directly without binding any sockets, use :meth:`forward` instead
+        (which this method is built on top of).
+
         ``port_map`` maps **remote port** (kubelet-side) to **local port**.
         Example: ``{80: 18080}`` opens a local listener on port 18080 that
         forwards to the pod's port 80.
-
-        Each accepted local connection opens its own portforward WebSocket session
-        bound to that single remote port (one session per connection).
         """
         if not port_map:
             raise ValueError("port_map must contain at least one entry")
@@ -351,6 +394,7 @@ class PortforwardAccessor(Generic[ResourceType]):
                             ports=[remote_port],
                             namespace=namespace,
                             request_timeout=request_timeout,
+                            block_on_full=True,
                         )
                         async with session:
                             pf = PortForwarder(session)
@@ -373,13 +417,6 @@ class PortforwardAccessor(Generic[ResourceType]):
                                     copy_tg.start_soon(_copy, stream, port_stream)
                                     copy_tg.start_soon(_copy, port_stream, stream)
                                 conn_tg.cancel_scope.cancel()
-                            if pf.port_data_truncated.get(remote_port):
-                                _logger.warning(
-                                    "portforward: data dropped for port %d due "
-                                    "to local backpressure (buffer overflow); "
-                                    "the local connection received truncated bytes",
-                                    remote_port,
-                                )
                 except Exception:
                     _logger.exception(
                         "portforward connection error on port %d", remote_port

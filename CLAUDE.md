@@ -2,7 +2,11 @@
 
 ## Project Overview
 
-Kubex is an async-first Kubernetes client library for Python, inspired by [kube.rs](https://kube.rs/). It is built on Pydantic v2 and is async-runtime agnostic (supports asyncio and trio). The project is in **alpha** (v0.1.0-alpha.1) — backward compatibility may break between releases.
+Kubex is an async-first Kubernetes client library for Python, inspired by [kube.rs](https://kube.rs/). It is built on Pydantic v2 and is async-runtime agnostic (supports asyncio and trio). The project is in **beta** (v0.1.0-beta.1) — backward compatibility may still break between releases.
+
+**Documentation site:** https://kubex.codemageddon.me/
+
+**Implementation plans** live at `.ralphex/plans/` (not `docs/`).
 
 ## Quick Reference
 
@@ -28,6 +32,12 @@ uv run mypy .
 # Run pre-commit hooks
 pre-commit run --all-files
 
+# Serve docs locally with live reload
+mise run docs:serve
+
+# Build docs in strict mode (--strict turns warnings into errors)
+mise run docs:build
+
 # Regenerate all K8s model packages (downloads specs + runs codegen + verifies)
 mise run regenerate-models
 ```
@@ -39,9 +49,9 @@ kubex/                          # Main package — PEP 420 namespace package (no
                                 #   workspace `kubex-k8s-*` packages can contribute `kubex.k8s.*` submodules.
                                 #   Public API is imported from explicit submodules:
                                 #   `from kubex.api import Api, create_api`,
-                                #   `from kubex.client import BaseClient, create_client`,
+                                #   `from kubex.client import BaseClient, create_client, ClientOptions`,
                                 #   `from kubex.configuration import ClientConfiguration`
-├── __version__.py              # Version string (0.1.0-alpha.1)
+├── __version__.py              # Version string (0.1.0-beta.1)
 ├── py.typed                    # PEP 561 type hint marker
 ├── api/                        # High-level API layer
 │   ├── api.py                  # Api[ResourceType] generic class + create_api() factory
@@ -60,6 +70,7 @@ kubex/                          # Main package — PEP 420 namespace package (no
 │   └── _protocol.py            # ApiProtocol[ResourceType], type aliases, SubresourceNotAvailable, namespace helpers
 ├── client/                     # HTTP client implementations
 │   ├── client.py               # BaseClient ABC, create_client() factory, ClientChoise enum
+│   ├── options.py              # ClientOptions pydantic model — timeout, log_api_warnings, proxy, keep_alive, keep_alive_timeout, buffer_size, ws_max_message_size, pool_size, pool_size_per_host
 │   ├── websocket.py            # WebSocketConnection ABC — abstraction used by exec and attach subresources
 │   ├── httpx.py                # HttpxClient implementation (exec via httpx-ws)
 │   └── aiohttp.py              # AioHttpClient implementation (exec via aiohttp ws_connect)
@@ -187,7 +198,22 @@ examples/                       # Usage examples
 ├── exec_pod.py                 # Pod exec subresource — api.exec.run() + api.exec.stream() interactive shell
 ├── attach_pod.py               # Pod attach subresource — api.attach.stream() with stdin/stdout
 ├── portforward_pod.py          # Pod portforward subresource — api.portforward.forward() (low-level ByteStream) + api.portforward.listen() (local TCP listener)
+├── client_options.py           # ClientOptions knobs — proxy, keep_alive, buffer_size, pool_size, ws_max_message_size
+├── custom_resource.py          # Define CRD models (Widget, ClusterWidget) + create/get/list/patch/status/delete
 └── delete_collection.py        # Bulk delete with label_selector
+
+docs/                           # MkDocs documentation site source
+├── index.md                    # Landing page
+├── CNAME                       # Custom domain for GitHub Pages (kubex.codemageddon.me)
+├── stylesheets/extra.css       # Site-specific CSS overrides
+├── getting-started/            # Installation + quickstart guides
+├── concepts/                   # Core concept explanations (Api, clients, config, exceptions, subresources)
+├── operations/                 # CRUD, watch, patch, timeouts
+├── subresources/               # Per-subresource pages (logs, metadata, scale, status, eviction, ephemeral-containers, resize, exec, attach, portforward)
+├── advanced/                   # Advanced topics (multi-version K8s, clients/runtimes, auth, benchmarks)
+└── reference/                  # Auto-generated API reference via mkdocstrings
+mkdocs.yml                      # MkDocs configuration (theme, nav, plugins)
+lychee.toml                     # Link checker configuration
 
 .github/workflows/
 ├── lint.yaml                   # Pre-commit, ruff check, ruff format --check, mypy, codegen verify
@@ -237,7 +263,7 @@ Each resource model declares a `__RESOURCE_CONFIG__` class variable (a `Resource
 All models inherit from `BaseK8sModel` which uses `alias_generator=to_camel` and `populate_by_name=True`. This means Python code uses `snake_case` while JSON serialization uses `camelCase` to match the Kubernetes API.
 
 ### Pluggable HTTP clients
-`BaseClient` is an ABC. Implementations (`HttpxClient`, `AioHttpClient`) are lazily imported. The `create_client()` factory auto-detects which library is installed (prefers httpx). `BaseClient` also exposes `connect_websocket(request, subprotocols)` returning a `WebSocketConnection` (defined in `kubex/client/websocket.py`); the default raises `NotImplementedError`. `HttpxClient` implements it via `httpx-ws` (lazy import — raises `ConfgiurationError` if missing); `AioHttpClient` uses aiohttp's built-in `ws_connect`. Both adapters prefer `Request.query_param_pairs` over `Request.query_params` when building the upgrade URL so exec's repeated `command=` entries are preserved.
+`BaseClient` is an ABC. Implementations (`HttpxClient`, `AioHttpClient`) are lazily imported. The `create_client()` factory auto-detects which library is installed (prefers aiohttp, falls back to httpx). `BaseClient` also exposes `connect_websocket(request, subprotocols)` returning a `WebSocketConnection` (defined in `kubex/client/websocket.py`); the default raises `NotImplementedError`. `HttpxClient` implements it via `httpx-ws` (lazy import — raises `ConfgiurationError` if missing); `AioHttpClient` uses aiohttp's built-in `ws_connect`. Both adapters prefer `Request.query_param_pairs` over `Request.query_params` when building the upgrade URL so exec's repeated `command=` entries are preserved. `create_client()` also accepts `options: ClientOptions | None` — a `ClientOptions` instance carrying the client-level `timeout` default, `log_api_warnings` flag, and the following connection-pool / proxy / WebSocket knobs: `proxy` (str or per-scheme dict), `keep_alive` (bool), `keep_alive_timeout` (float|None|...), `buffer_size` (int|None|...), `ws_max_message_size` (int|None|...), `pool_size` (int|None|...), `pool_size_per_host` (int|None|...). When `None`, a `ClientOptions()` with library defaults is used. Both `HttpxClient` and `AioHttpClient` expose an `options` property. `HttpxClient._create_inner_client()` maps these into `httpx.Limits(...)`, `proxy=`, and `mounts=`; `AioHttpClient._create_inner_client()` maps them into `TCPConnector(limit=, limit_per_host=, keepalive_timeout=, force_close=)` and `ClientSession(read_bufsize=, proxy=)`. Backend asymmetries (httpx ignores `buffer_size` and `pool_size_per_host`; aiohttp warns on `keep_alive_timeout=None` and `proxy=dict` with non-matching schemes) emit a `UserWarning` at client construction time.
 
 ### Configuration auto-loading
 `create_client()` → tries kubeconfig file first → falls back to in-cluster pod environment.
@@ -245,7 +271,7 @@ All models inherit from `BaseK8sModel` which uses `alias_generator=to_camel` and
 ### Ellipsis sentinel for optional overrides
 `Ellipsis` (`...`) is used as a sentinel to distinguish "not provided" (use the default) from `None` (explicitly disabled). This pattern is used in two places:
 - **Namespace**: `...` = use the `Api` instance default; `None` = explicitly no namespace.
-- **Request timeout**: `...` = use the client-level default (or the HTTP library default if none was configured); `None` = explicitly disable timeouts for this call.
+- **Request timeout**: `...` = use the `ClientOptions.timeout` default (itself `...` unless overridden, meaning use the HTTP library's own default); `None` = explicitly disable timeouts for this call.
 
 ### Exception hierarchy
 ```
@@ -281,7 +307,7 @@ Resources declare capabilities via multiple inheritance from marker classes: `Na
 
 - **Framework**: pytest with `pytest-cov` and `anyio` for async support
 - **E2E tests** use `testcontainers` with a K3S container (requires Docker); located in `test/e2e/`
-- **Unit tests** for request builder methods in `test/test_request_builder/`, error handling in `test/test_error_handling.py`, metadata accessor in `test/test_metadata_accessor.py`, configuration/auth in `test/test_configuration/`, timeout settings in `test/test_timeout/`, patch models in `test/test_patch/`, subresource descriptors in `test/test_subresource_descriptors/`
+- **Unit tests** for request builder methods in `test/test_request_builder/`, error handling in `test/test_error_handling.py`, metadata accessor in `test/test_metadata_accessor.py`, configuration/auth in `test/test_configuration/`, timeout settings in `test/test_timeout/`, patch models in `test/test_patch/`, subresource descriptors in `test/test_subresource_descriptors/`, `ClientOptions` and `create_client()` in `test/test_client/`
 - **Codegen tests** with golden snapshots in `scripts/codegen/tests/`
 - E2E tests are parameterized over both HTTP clients (`httpx`, `aiohttp`) and async backends (`asyncio`, `trio` — trio only with httpx)
 - Mark async tests with `@pytest.mark.anyio`
@@ -289,7 +315,7 @@ Resources declare capabilities via multiple inheritance from marker classes: `Na
 
 ## CI/CD
 
-Four GitHub Actions workflows:
+Five GitHub Actions workflows:
 
 **Lint** (`lint.yaml`) — runs on push and pull_request:
 1. Pre-commit hooks (all files)
@@ -309,19 +335,24 @@ Four GitHub Actions workflows:
 - Uses GitHub environment `test-pypi`; skips publish for fork PRs
 
 **Publish** (`publish.yaml`) — runs on `v*` tag push:
-1. Verifies all 8 package versions match the tag
+1. Verifies `kubex` and `kubex-core` versions match the tag (kubex-k8s-* packages are versioned independently)
 2. Builds all packages in dependency order
 3. Publishes to production PyPI using OIDC trusted publishing
 - Uses GitHub environment `pypi`
+
+**Docs** (`docs.yaml`) — runs on push to `main`, `v*` tag, and `workflow_dispatch`:
+1. Builds docs in strict mode (`mkdocs build --strict`)
+2. Deploys to GitHub Pages via `mike` (`dev` alias on main push, versioned label on tag)
+- Promotion of a versioned label to `latest` is intentionally manual
 
 ## Releasing
 
 To publish a new version to PyPI:
 
-1. Bump the version in `kubex/__version__.py` and in every `packages/*/pyproject.toml` — all 8 packages must have the same version string
+1. Bump the version in `kubex/__version__.py` and in `packages/kubex-core/pyproject.toml` — these two must match the git tag. The `packages/kubex-k8s-*/pyproject.toml` versions are independent (they track Kubernetes minor releases) and only need to be bumped when the corresponding generated package actually changes.
 2. Commit and push to `main`
-3. Create and push a git tag matching the version: `git tag v<VERSION> && git push origin v<VERSION>`
-4. The `publish.yaml` workflow will verify version consistency, build all packages, and publish to production PyPI
+3. Create and push a git tag matching the `kubex` / `kubex-core` version: `git tag v<VERSION> && git push origin v<VERSION>`
+4. The `publish.yaml` workflow will verify that `kubex` and `kubex-core` versions match the tag, build all packages, and publish to production PyPI
 
 Both publish workflows use PyPI OIDC trusted publishing — no API tokens are stored in the repository. Each of the 8 packages must have a trusted publisher configured in its PyPI (and Test PyPI) project settings. See the comment block at the top of each workflow file for the exact configuration values.
 

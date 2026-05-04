@@ -1,0 +1,11 @@
+cache = true
+max_retries = 3
+accept = [200, 206, 429]
+exclude_path = [".ralphex/", "site/", ".venv/"]
+exclude = [
+  "^http://localhost",
+  "^http://127\\.0\\.0\\.1",
+  "^https?://example\\.com",
+  "kubernetes\\.default\\.svc",
+  "my-cluster",
+]

@@ -17,7 +17,12 @@ import asyncio
 import sys
 from pathlib import Path
 
-from ._cluster import k3s_cluster, seed_namespace, teardown_namespace
+from ._cluster import (
+    k3s_cluster,
+    k8s_version_from_image,
+    seed_namespace,
+    teardown_namespace,
+)
 from .runner.driver import main as driver_main
 
 
@@ -31,7 +36,6 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--scenarios", nargs="*", default=None)
     p.add_argument("--no-memory", action="store_true")
     p.add_argument("--cpu-profile", action="store_true")
-    p.add_argument("--k8s-version", default="1.35")
     p.add_argument("--warmup-iters", type=int, default=-1)
     p.add_argument("--measure-iters", type=int, default=-1)
     return p.parse_args(argv)
@@ -40,6 +44,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 async def _setup_and_run(args: argparse.Namespace) -> int:
     async with k3s_cluster() as kubeconfig_path:
         ns = await seed_namespace(kubeconfig_path, args.seed_pods)
+        k8s_version = k8s_version_from_image()
         try:
             driver_argv = [
                 "--kubeconfig",
@@ -53,7 +58,7 @@ async def _setup_and_run(args: argparse.Namespace) -> int:
                 "--csv",
                 args.csv,
                 "--k8s-version",
-                args.k8s_version,
+                k8s_version,
             ]
             if args.adapters:
                 driver_argv += ["--adapters", *args.adapters]

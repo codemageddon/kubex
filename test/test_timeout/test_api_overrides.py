@@ -60,7 +60,7 @@ async def test_list_override_flows_through_without_colliding_with_server_timeout
             b'{"apiVersion": "v1", "kind": "PodList", "metadata": {}, "items": []}'
         )
     )
-    await _pod_api(client).list(timeout=30, request_timeout=4.0)
+    await _pod_api(client).list(timeout_seconds=30, request_timeout=4.0)
     req = client.last_request
     assert req.timeout == Timeout(total=4.0)
     assert req.query_params is not None

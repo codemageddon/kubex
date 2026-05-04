@@ -1,4 +1,12 @@
-# Kubex
+<p align="center">
+  <img src="docs/assets/logo.png" alt="Kubex logo" width="180">
+</p>
+
+<h1 align="center">Kubex</h1>
+
+[![Docs](https://github.com/codemageddon/kubex/actions/workflows/docs.yaml/badge.svg)](https://github.com/codemageddon/kubex/actions/workflows/docs.yaml)
+
+**Documentation:** https://kubex.codemageddon.me/
 
 Kubex is a Kubernetes client library for Python inspired by kube.rs. It is built on top of [Pydantic](https://github.com/pydantic/pydantic) and is async-runtime agnostic.
 
@@ -6,16 +14,16 @@ Kubex is a Kubernetes client library for Python inspired by kube.rs. It is built
 
 ### Performance
 
-Kubex is dramatically faster than [kubernetes-asyncio](https://github.com/tomplus/kubernetes_asyncio), the most popular async Kubernetes client for Python. Benchmarks against a K3s 1.35 cluster (see `benchmarks/`):
+Kubex is dramatically faster than [kubernetes-asyncio](https://github.com/tomplus/kubernetes_asyncio), the most popular async Kubernetes client for Python. Benchmarks against a K3s 1.35.4 cluster (see `benchmarks/`):
 
 | Scenario | kubernetes-asyncio | kubex (aiohttp) | kubex (httpx) | Speedup |
 |---|---|---|---|---|
-| Single GET | 60 ms | 6 ms | 28 ms | **10x** |
-| List 100 pods | 2,783 ms | 74 ms | 102 ms | **37x** |
-| List 500 pods | 14,167 ms | 351 ms | 409 ms | **40x** |
-| Watch 50 events | 3,856 ms | 635 ms | 1,914 ms | **6x** |
+| Single GET | 61 ms | 6 ms | 26 ms | **10×** |
+| List 100 pods | 2,813 ms | 73 ms | 102 ms | **38×** |
+| List 500 pods | 14,441 ms | 351 ms | 410 ms | **41×** |
+| Watch 50 events | 3,957 ms | 562 ms | 1,764 ms | **7×** |
 
-Kubex also uses **49% less heap memory** and makes **up to 5x fewer allocations**, reducing GC pressure in long-running controllers and operators.
+Kubex also uses **~47% less heap memory** and makes **up to ~5x fewer allocations**, reducing GC pressure in long-running controllers and operators.
 
 ### Fully typed
 
@@ -55,6 +63,14 @@ Kubex works with both **asyncio** and **trio** (via httpx), with no framework lo
 * `httpx` and `aiohttp` as an underlying http-client support.
 * `asyncio` and `trio` async runtime support (only `httpx` client is supported for `trio`).
 * Comprehensive, fully-typed Kubernetes resource models (1.32–1.37) generated from the OpenAPI spec via a built-in code generator.
+* Custom Resource Definitions (CRDs) — define a Pydantic model inheriting from `NamespaceScopedEntity` or `ClusterScopedEntity` with `__RESOURCE_CONFIG__` and use `Api[T]` for full CRUD, watch, and subresource access. No code generation required. See `examples/custom_resource.py` and the [Custom Resources docs](https://kubex.codemageddon.me/advanced/custom-resources/).
+* `ClientOptions` — per-client HTTP configuration: `proxy` (single URL string or per-scheme `{"http": …, "https": …}` dict), `keep_alive` / `keep_alive_timeout`, `buffer_size` (aiohttp read buffer), `ws_max_message_size` (WebSocket frame cap for exec/attach/portforward), `pool_size` (total connection pool), and `pool_size_per_host`. Pass `options=ClientOptions(…)` to `create_client()`. See `examples/client_options.py`.
+
+> **Experimental — WebSocket subresources.** The `exec`, `attach`, and
+> `portforward` APIs described below are still under active development.
+> Their public surface (method signatures, accessor shape, session helpers)
+> may change in future releases without notice.
+
 * Pod `exec` subresource over WebSocket — one-shot `run()` for collecting output, and `stream()` for interactive sessions with stdin/resize. Both accept `command`, `container`, `stdout`, `stderr`, and `request_timeout`; `run()` takes `stdin` as bytes (or `None` to skip), while `stream()` takes `stdin` and `tty` as bools and exposes `session.stdin.write()`/`close()`, `session.stdout`/`session.stderr` as async iterators, `session.resize(width=, height=)`, and `await session.wait_for_status()` (resolves to a `Status` model when the server emits one on the error channel, or `None` if the connection closes first; correspondingly, `result.exit_code` is `0` on success, the parsed integer for a non-zero exit, or `None` when no recognisable exit information is present — `None` does not imply success). Trio is supported only via the `httpx` client; the `aiohttp` backend is asyncio-only and raises on `connect_websocket()` if used with trio. Requires Kubernetes ≥1.30 (uses the v5 channel protocol; install via `kubex[httpx-ws]` to pull in `httpx-ws` (the plain `kubex[httpx]` extra omits it so non-WebSocket installs stay slim); on Python 3.10 the `exceptiongroup` backport is also installed). See `examples/exec_pod.py`.
 * Pod `attach` subresource over WebSocket — `stream()` attaches to an existing container process (stdin/stdout/stderr) without issuing a new command. Exposes the same `StreamSession` interface as `exec` (`session.stdin.write()`/`close()`, `session.stdout`/`session.stderr` as async iterators, `session.resize(width=, height=)`, `await session.wait_for_status()`). Only `stream()` is provided — there is no `run()`. The container must be created with `stdin=True` in its spec for stdin writes to reach the process. Requires `kubex[httpx-ws]` (or `aiohttp`). See `examples/attach_pod.py`.
 * Pod `portforward` subresource over WebSocket — two-level API: `api.portforward.forward(name, ports=[…])` yields a `PortForwarder` with one `anyio.abc.ByteStream` per port (`pf.streams[port]`) and a per-port error iterator (`pf.errors[port]`); `api.portforward.listen(name, port_map={remote_port: local_port})` opens local TCP listener sockets and copies bytes bidirectionally between each accepted local connection and a fresh portforward WebSocket session (one session per connection, matching `kubectl port-forward` semantics). Requires `kubex[httpx-ws]` (or `aiohttp`). See `examples/portforward_pod.py`.

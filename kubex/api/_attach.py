@@ -33,7 +33,14 @@ _A = TypeVar("_A", bound=HasAttach)
 
 
 class AttachAccessor(Generic[ResourceType]):
-    """Accessor for the Pod ``attach`` subresource."""
+    """Accessor for the Pod ``attach`` subresource.
+
+    .. warning::
+
+       **Experimental.** The WebSocket-based subresources (``exec``,
+       ``attach``, ``portforward``) are still under active development and
+       their API may change in future releases without notice.
+    """
 
     def __init__(
         self,
@@ -109,7 +116,13 @@ class AttachAccessor(Generic[ResourceType]):
         tty: bool = False,
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> AsyncIterator[StreamSession]:
-        """Open a bidirectional attach session as an async context manager."""
+        """Open a bidirectional attach session as an async context manager.
+
+        .. warning::
+
+           **Experimental.** This WebSocket-based API is still under active
+           development and may change in future releases without notice.
+        """
         session = await self._open_session(
             name,
             container=container,
