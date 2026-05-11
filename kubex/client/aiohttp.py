@@ -166,6 +166,19 @@ class AioHttpClient(BaseClient):
         )
         self._resolved_proxy = cast("str | None", kwargs.get("proxy"))
 
+        if self.options.trust_env and self._resolved_proxy is not None:
+            warnings.warn(
+                "ClientOptions.proxy is set; env-based proxy variables "
+                "(HTTP_PROXY/HTTPS_PROXY/NO_PROXY) are ignored when "
+                "trust_env=True coexists with an explicit proxy.",
+                UserWarning,
+                stacklevel=3,
+            )
+            effective_trust_env = False
+        else:
+            effective_trust_env = self.options.trust_env
+        kwargs["trust_env"] = effective_trust_env
+
         buffer_size = self.options.buffer_size
         if isinstance(buffer_size, EllipsisType):
             kwargs["read_bufsize"] = 2**21
@@ -196,6 +209,7 @@ class AioHttpClient(BaseClient):
         }
         if self._resolved_proxy is not None:
             kwargs["proxy"] = self._resolved_proxy
+        kwargs["trust_env"] = self.options.trust_env and self._resolved_proxy is None
         return kwargs
 
     async def request(self, request: Request) -> Response:

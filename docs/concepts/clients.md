@@ -202,6 +202,59 @@ options = ClientOptions(pool_size_per_host=5)
     httpx has no per-host pool limit. Setting `pool_size_per_host` to anything other
     than `...` on an httpx-backed client emits a `UserWarning` and is otherwise ignored.
 
+### `trust_env`
+
+When `True`, kubex enables environment-driven proxy configuration on both backends:
+
+| Env var | Effect |
+|---|---|
+| `HTTP_PROXY` / `HTTPS_PROXY` / `ALL_PROXY` | Select an outbound proxy for matching requests |
+| `NO_PROXY` | Exclude specific hosts from proxy routing |
+| `~/.netrc` (or `$NETRC`) | Supply basic-auth credentials for the **proxy host** when the env proxy URL carries no embedded `user:pass` |
+
+The default is `False`. This matches aiohttp's library default and overrides httpx's library default of `True`, making behavior symmetric across both backends out of the box.
+
+```python
+# Read HTTPS_PROXY / HTTP_PROXY / NO_PROXY from the environment
+options = ClientOptions(trust_env=True)
+```
+
+**Canonical flow — HTTPS proxy with netrc credentials:**
+
+```shell
+export HTTPS_PROXY=http://proxy.corp.example.com:3128
+# ~/.netrc
+# machine proxy.corp.example.com
+#   login alice
+#   password s3cret
+```
+
+```python
+options = ClientOptions(trust_env=True)
+# Kubex reads HTTPS_PROXY, finds no user:pass in the URL, looks up
+# proxy.corp.example.com in ~/.netrc, and configures the proxy with
+# auth=("alice", "s3cret").
+async with await create_client(options=options) as client:
+    ...
+```
+
+**Netrc scope:** netrc is used for **proxy credentials only**. Kubex's per-request `Authorization: Bearer …` header always takes priority over any netrc-derived target-host Basic auth.
+
+**Conflict with `options.proxy`:** when both `trust_env=True` and `options.proxy` are set, the explicit `options.proxy` wins and a `UserWarning` is emitted at client construction. The effective behavior is `trust_env=False` passed to the backend, so `NO_PROXY` cannot silently exempt the explicit proxy.
+
+!!! note "Backend asymmetries"
+    - `WS_PROXY` / `WSS_PROXY` env vars are read by **aiohttp only**. On httpx, `wss://` upgrades use `HTTPS_PROXY`.
+    - `SSL_CERT_FILE` / `SSL_CERT_DIR` env vars are read by **httpx only** (when no custom CA is configured). aiohttp does not read these.
+
+!!! note "Snapshot semantics (httpx only)"
+    When a proxy env var (`HTTPS_PROXY`, `HTTP_PROXY`, `ALL_PROXY`, etc.) **is set** at construction time, Kubex's proxy-netrc resolver materializes it into an explicit `httpx.Proxy(auth=...)`. Mutations to those env vars after `create_client()` returns are **not** reflected on the httpx backend.
+
+    When **no** proxy env var is set at construction time, httpx receives `trust_env=True` directly and re-reads env vars on every request (httpx's own default behavior).
+
+    The aiohttp backend always retains its native per-request env lookup regardless of whether a proxy was found at construction.
+
+    If snapshot behavior is unwanted on httpx, use the [Custom underlying HTTP client](#custom-underlying-http-client) escape hatch.
+
 ## Backend asymmetries
 
 Some `ClientOptions` fields behave differently (or are unsupported) depending on which HTTP backend is in use. A `UserWarning` is emitted on first use when a field has no effect.
@@ -216,6 +269,7 @@ Some `ClientOptions` fields behave differently (or are unsupported) depending on
 | `ws_max_message_size` | `aconnect_ws(max_message_size_bytes=int)` | `ws_connect(max_msg_size=int)` |
 | `pool_size` | `Limits(max_connections=int\|None)` | `TCPConnector(limit=int)` — `None` maps to `0` (unlimited) |
 | `pool_size_per_host` | **Ignored** — warning emitted | `TCPConnector(limit_per_host=int)` — `None` maps to `0` (unlimited) |
+| `trust_env=True` | If a proxy env var is found at construction, it is materialized into `httpx.Proxy(auth=...)` (snapshot). If none is found, httpx receives `trust_env=True` and re-reads env vars per-request. | Env vars read per-request (aiohttp native behavior) |
 
 Cross-reference: see [Timeouts](../operations/timeouts.md) for the note on `Timeout.write` and `Timeout.pool` being httpx-only fields.
 
@@ -244,3 +298,53 @@ The httpx client is the only client that supports **trio** (in addition to async
 | Auto-detection priority | 1st | 2nd |
 
 For detailed guidance on choosing a client and runtime, see [Clients & Runtimes](../advanced/clients-runtimes.md).
+
+## Custom underlying HTTP client
+
+Kubex prioritizes predictable defaults over knob coverage. When the built-in `ClientOptions` wiring is insufficient — for example, you need target-host Basic auth from netrc, a custom retry policy, a custom TLS transport, or per-request env reads on httpx — you can subclass `HttpxClient` or `AioHttpClient` and override `_create_inner_client()`.
+
+When this escape hatch is used, the subclass is **fully responsible** for mapping all options and configuration. `ClientOptions` proxy, timeout, pool, and `trust_env` fields are **no longer applied automatically**.
+
+**httpx example:**
+
+```python
+import httpx
+from kubex.client.httpx import HttpxClient
+from kubex.client import ClientOptions
+
+class MyHttpxClient(HttpxClient):
+    def _create_inner_client(self) -> httpx.AsyncClient:
+        # Full control: target-host NetRCAuth, custom transport, retry policy, etc.
+        return httpx.AsyncClient(
+            base_url=str(self.configuration.base_url),
+            verify=True,
+            trust_env=True,                   # per-request env reads
+            auth=httpx.NetRCAuth(file=None),  # target-host Basic auth from netrc
+        )
+
+client = MyHttpxClient(configuration=cfg, options=ClientOptions())
+```
+
+**aiohttp example:**
+
+```python
+import ssl
+import aiohttp
+from kubex.client.aiohttp import AioHttpClient
+from kubex.client import ClientOptions
+
+class MyAioHttpClient(AioHttpClient):
+    def _create_inner_client(self) -> aiohttp.ClientSession:
+        ssl_context = ssl.create_default_context()
+        connector = aiohttp.TCPConnector(ssl=ssl_context)
+        return aiohttp.ClientSession(
+            base_url=str(self.configuration.base_url),
+            connector=connector,
+            trust_env=True,
+        )
+
+client = MyAioHttpClient(configuration=cfg, options=ClientOptions())
+```
+
+!!! warning
+    Overriding `_create_inner_client()` means `ClientOptions` proxy, timeout, pool, and `trust_env` fields are no longer applied automatically. The subclass is fully responsible for all HTTP client configuration.

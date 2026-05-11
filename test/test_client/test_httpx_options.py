@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ssl
 import warnings
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -22,6 +23,16 @@ from kubex.configuration import ClientConfiguration  # noqa: E402
 from kubex.core.request import Request  # noqa: E402
 
 
+def _patched_client(
+    options: ClientOptions | None = None,
+) -> tuple[HttpxClient, MagicMock]:
+    """Create an HttpxClient with httpx.AsyncClient patched; return (client, mock)."""
+    with patch("kubex.client.httpx.httpx.AsyncClient") as mock_ac:
+        mock_ac.return_value = MagicMock()
+        client = HttpxClient(_config(), options)
+    return client, mock_ac
+
+
 def _config() -> ClientConfiguration:
     return ClientConfiguration(
         url="https://example.invalid", insecure_skip_tls_verify=True
@@ -30,11 +41,6 @@ def _config() -> ClientConfiguration:
 
 def _client(options: ClientOptions | None = None) -> HttpxClient:
     return HttpxClient(_config(), options)
-
-
-# ---------------------------------------------------------------------------
-# resolve_ws_max_message_size
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -49,57 +55,54 @@ def test_resolve_ws_max_message_size(val: Any, expected: int) -> None:
     assert resolve_ws_max_message_size(val) == expected
 
 
-# ---------------------------------------------------------------------------
-# _build_httpx_limits
-# ---------------------------------------------------------------------------
-
-
 def test_build_httpx_limits_all_defaults_returns_empty() -> None:
-    opts = ClientOptions()
-    assert _build_httpx_limits(opts) == {}
+    assert _build_httpx_limits(ClientOptions()) == {}
 
 
-def test_build_httpx_limits_keep_alive_false() -> None:
-    opts = ClientOptions(keep_alive=False)
-    kw = _build_httpx_limits(opts)
-    assert kw["max_keepalive_connections"] == 0
-
-
-def test_build_httpx_limits_pool_size_int() -> None:
-    opts = ClientOptions(pool_size=50)
-    kw = _build_httpx_limits(opts)
-    assert kw["max_connections"] == 50
-
-
-def test_build_httpx_limits_pool_size_none_unlimited() -> None:
-    opts = ClientOptions(pool_size=None)
-    kw = _build_httpx_limits(opts)
-    assert kw["max_connections"] is None
-
-
-def test_build_httpx_limits_keep_alive_timeout_float() -> None:
-    opts = ClientOptions(keep_alive_timeout=30.0)
-    kw = _build_httpx_limits(opts)
-    assert kw["keepalive_expiry"] == 30.0
-
-
-def test_build_httpx_limits_keep_alive_timeout_none() -> None:
-    opts = ClientOptions(keep_alive_timeout=None)
-    kw = _build_httpx_limits(opts)
-    assert kw["keepalive_expiry"] is None
-
-
-def test_build_httpx_limits_combined() -> None:
-    opts = ClientOptions(pool_size=20, keep_alive=False, keep_alive_timeout=60.0)
-    kw = _build_httpx_limits(opts)
-    assert kw["max_connections"] == 20
-    assert kw["max_keepalive_connections"] == 0
-    assert kw["keepalive_expiry"] == 60.0
-
-
-# ---------------------------------------------------------------------------
-# _build_httpx_proxy_kwargs
-# ---------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "options,expected_subset",
+    [
+        pytest.param(
+            ClientOptions(keep_alive=False),
+            {"max_keepalive_connections": 0},
+            id="keep_alive_false",
+        ),
+        pytest.param(
+            ClientOptions(pool_size=50),
+            {"max_connections": 50},
+            id="pool_size_int",
+        ),
+        pytest.param(
+            ClientOptions(pool_size=None),
+            {"max_connections": None},
+            id="pool_size_none_unlimited",
+        ),
+        pytest.param(
+            ClientOptions(keep_alive_timeout=30.0),
+            {"keepalive_expiry": 30.0},
+            id="keep_alive_timeout_float",
+        ),
+        pytest.param(
+            ClientOptions(keep_alive_timeout=None),
+            {"keepalive_expiry": None},
+            id="keep_alive_timeout_none",
+        ),
+        pytest.param(
+            ClientOptions(pool_size=20, keep_alive=False, keep_alive_timeout=60.0),
+            {
+                "max_connections": 20,
+                "max_keepalive_connections": 0,
+                "keepalive_expiry": 60.0,
+            },
+            id="combined",
+        ),
+    ],
+)
+def test_build_httpx_limits(
+    options: ClientOptions, expected_subset: dict[str, Any]
+) -> None:
+    kw = _build_httpx_limits(options)
+    assert expected_subset.items() <= kw.items()
 
 
 def test_build_httpx_proxy_kwargs_none_returns_empty() -> None:
@@ -142,11 +145,6 @@ def test_build_httpx_proxy_kwargs_dict_both_schemes() -> None:
     mounts = kw["mounts"]
     assert "http://" in mounts
     assert "https://" in mounts
-
-
-# ---------------------------------------------------------------------------
-# HttpxClient._create_inner_client — option wiring
-# ---------------------------------------------------------------------------
 
 
 def _pool(client: HttpxClient) -> Any:
@@ -217,81 +215,40 @@ def test_create_inner_client_no_proxy_by_default() -> None:
     assert isinstance(client._inner_client, httpx.AsyncClient)
 
 
-def test_create_inner_client_buffer_size_not_ellipsis_warns() -> None:
+# httpx has no equivalent for buffer_size / pool_size_per_host. Setting either
+# to anything other than ``...`` must emit a UserWarning mentioning the field;
+# the default (``...``) must not.
+@pytest.mark.parametrize(
+    "field,value,expect_warn",
+    [
+        pytest.param("buffer_size", 65536, True, id="buffer_size_int_warns"),
+        pytest.param("buffer_size", None, True, id="buffer_size_none_warns"),
+        pytest.param("buffer_size", ..., False, id="buffer_size_ellipsis_no_warn"),
+        pytest.param("pool_size_per_host", 10, True, id="pool_size_per_host_int_warns"),
+        pytest.param(
+            "pool_size_per_host", None, True, id="pool_size_per_host_none_warns"
+        ),
+        pytest.param(
+            "pool_size_per_host", ..., False, id="pool_size_per_host_ellipsis_no_warn"
+        ),
+    ],
+)
+def test_create_inner_client_unsupported_field_warns(
+    field: str, value: Any, expect_warn: bool
+) -> None:
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
-        _client(ClientOptions(buffer_size=65536))
-    assert any(
-        issubclass(w.category, UserWarning) and "buffer_size" in str(w.message)
-        for w in caught
-    )
-
-
-def test_create_inner_client_buffer_size_none_warns() -> None:
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        _client(ClientOptions(buffer_size=None))
-    assert any(
-        issubclass(w.category, UserWarning) and "buffer_size" in str(w.message)
-        for w in caught
-    )
-
-
-def test_create_inner_client_buffer_size_ellipsis_no_warn() -> None:
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        _client(ClientOptions(buffer_size=...))
-    buffer_warns = [
+        _client(ClientOptions(**{field: value}))
+    matching = [
         w
         for w in caught
-        if issubclass(w.category, UserWarning) and "buffer_size" in str(w.message)
+        if issubclass(w.category, UserWarning) and field in str(w.message)
     ]
-    assert not buffer_warns
+    assert bool(matching) is expect_warn
 
 
-def test_create_inner_client_pool_size_per_host_not_ellipsis_warns() -> None:
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        _client(ClientOptions(pool_size_per_host=10))
-    assert any(
-        issubclass(w.category, UserWarning) and "pool_size_per_host" in str(w.message)
-        for w in caught
-    )
-
-
-def test_create_inner_client_pool_size_per_host_none_warns() -> None:
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        _client(ClientOptions(pool_size_per_host=None))
-    assert any(
-        issubclass(w.category, UserWarning) and "pool_size_per_host" in str(w.message)
-        for w in caught
-    )
-
-
-def test_create_inner_client_pool_size_per_host_ellipsis_no_warn() -> None:
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        _client(ClientOptions(pool_size_per_host=...))
-    per_host_warns = [
-        w
-        for w in caught
-        if issubclass(w.category, UserWarning)
-        and "pool_size_per_host" in str(w.message)
-    ]
-    assert not per_host_warns
-
-
-# ---------------------------------------------------------------------------
-# connect_websocket — ws_max_message_size
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.anyio
-async def test_connect_websocket_default_max_message_size() -> None:
-    client = _client(ClientOptions())
+async def _connect_ws_and_get_kwargs(client: HttpxClient) -> dict[str, Any]:
     request = Request(method="GET", url="/ws")
-
     with patch("httpx_ws.aconnect_ws") as mock_connect:
         mock_session = MagicMock()
         mock_session.subprotocol = "v5.channel.k8s.io"
@@ -299,12 +256,26 @@ async def test_connect_websocket_default_max_message_size() -> None:
         mock_cm.__aenter__ = AsyncMock(return_value=mock_session)
         mock_cm.__aexit__ = AsyncMock(return_value=None)
         mock_connect.return_value = mock_cm
-
         conn = await client.connect_websocket(request, ["v5.channel.k8s.io"])
         await conn.close()
-
     _, kwargs = mock_connect.call_args
-    assert kwargs.get("max_message_size_bytes") == 2**21
+    return dict(kwargs)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "ws_max_message_size,expected",
+    [
+        pytest.param(..., 2**21, id="default_kubex_default"),
+        pytest.param(8 * 1024 * 1024, 8 * 1024 * 1024, id="explicit_int"),
+    ],
+)
+async def test_connect_websocket_forwards_max_message_size(
+    ws_max_message_size: Any, expected: int
+) -> None:
+    client = _client(ClientOptions(ws_max_message_size=ws_max_message_size))
+    kwargs = await _connect_ws_and_get_kwargs(client)
+    assert kwargs.get("max_message_size_bytes") == expected
 
 
 @pytest.mark.anyio
@@ -318,47 +289,8 @@ async def test_connect_websocket_none_max_message_size_warns_and_skips_param() -
         for w in caught
     )
 
-    request = Request(method="GET", url="/ws")
-
-    with patch("httpx_ws.aconnect_ws") as mock_connect:
-        mock_session = MagicMock()
-        mock_session.subprotocol = "v5.channel.k8s.io"
-        mock_cm = AsyncMock()
-        mock_cm.__aenter__ = AsyncMock(return_value=mock_session)
-        mock_cm.__aexit__ = AsyncMock(return_value=None)
-        mock_connect.return_value = mock_cm
-
-        conn = await client.connect_websocket(request, ["v5.channel.k8s.io"])
-        await conn.close()
-
-    _, kwargs = mock_connect.call_args
+    kwargs = await _connect_ws_and_get_kwargs(client)
     assert "max_message_size_bytes" not in kwargs
-
-
-@pytest.mark.anyio
-async def test_connect_websocket_explicit_max_message_size() -> None:
-    explicit_size = 8 * 1024 * 1024
-    client = _client(ClientOptions(ws_max_message_size=explicit_size))
-    request = Request(method="GET", url="/ws")
-
-    with patch("httpx_ws.aconnect_ws") as mock_connect:
-        mock_session = MagicMock()
-        mock_session.subprotocol = "v5.channel.k8s.io"
-        mock_cm = AsyncMock()
-        mock_cm.__aenter__ = AsyncMock(return_value=mock_session)
-        mock_cm.__aexit__ = AsyncMock(return_value=None)
-        mock_connect.return_value = mock_cm
-
-        conn = await client.connect_websocket(request, ["v5.channel.k8s.io"])
-        await conn.close()
-
-    _, kwargs = mock_connect.call_args
-    assert kwargs.get("max_message_size_bytes") == explicit_size
-
-
-# ---------------------------------------------------------------------------
-# Regression: ClientOptions() defaults produce identical behavior to pre-option code
-# ---------------------------------------------------------------------------
 
 
 def test_regression_defaults_no_limits_no_proxy() -> None:
@@ -379,3 +311,177 @@ def test_regression_defaults_no_limits_no_proxy() -> None:
     assert pool._max_connections == 100
     assert pool._max_keepalive_connections == 20
     assert pool._keepalive_expiry == 5.0
+
+
+def test_trust_env_false_default_passed_to_async_client() -> None:
+    _, mock_ac = _patched_client(ClientOptions())
+    _, kwargs = mock_ac.call_args
+    assert kwargs.get("trust_env") is False
+
+
+def test_trust_env_false_default_overrides_httpx_library_default_with_env_set(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("HTTPS_PROXY", "http://leak.example.com:3128")
+    _, mock_ac = _patched_client(ClientOptions())
+    _, kwargs = mock_ac.call_args
+    assert kwargs.get("trust_env") is False
+    assert "proxy" not in kwargs
+    assert "mounts" not in kwargs
+
+
+def test_trust_env_true_passed_to_async_client() -> None:
+    _, mock_ac = _patched_client(ClientOptions(trust_env=True))
+    _, kwargs = mock_ac.call_args
+    assert kwargs.get("trust_env") is True
+    assert "auth" not in kwargs
+
+
+def test_trust_env_true_explicit_proxy_emits_warning() -> None:
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        _, mock_ac = _patched_client(
+            ClientOptions(proxy="http://corp.proxy:8080", trust_env=True)
+        )
+    _, kwargs = mock_ac.call_args
+    assert any(
+        issubclass(w.category, UserWarning)
+        and "proxy" in str(w.message)
+        and "trust_env" in str(w.message)
+        for w in caught
+    )
+    assert kwargs.get("proxy") == "http://corp.proxy:8080"
+    assert kwargs.get("trust_env") is False
+
+
+def test_trust_env_true_explicit_proxy_preserves_ssl_cert_file(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # When trust_env=True + explicit proxy conflict, trust_env=False is passed
+    # to httpx which also suppresses SSL_CERT_FILE. kubex must apply SSL_CERT_FILE
+    # manually so callers relying on env-provided CA bundles are not silently
+    # downgraded to certifi. Use a config without insecure_skip_tls_verify so
+    # needs_custom_ssl=False and the SSL_CERT_FILE branch is exercised (not
+    # masked by the pre-existing custom-ssl path).
+    monkeypatch.setenv("SSL_CERT_FILE", "/path/to/custom_ca.pem")
+    monkeypatch.delenv("SSL_CERT_DIR", raising=False)
+    fake_ssl_ctx = MagicMock(spec=ssl.SSLContext)
+    cfg = ClientConfiguration(url="https://example.invalid")
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter("always")
+        with (
+            patch("kubex.client.httpx.httpx.AsyncClient") as mock_ac,
+            patch(
+                "kubex.client.httpx.ssl.create_default_context",
+                return_value=fake_ssl_ctx,
+            ) as mock_ctx,
+        ):
+            mock_ac.return_value = MagicMock()
+            HttpxClient(
+                cfg, ClientOptions(proxy="http://corp.proxy:8080", trust_env=True)
+            )
+    _, kwargs = mock_ac.call_args
+    assert kwargs.get("trust_env") is False
+    assert kwargs.get("verify") is fake_ssl_ctx
+    mock_ctx.assert_called_once_with(cafile="/path/to/custom_ca.pem", capath=None)
+
+
+def test_trust_env_true_explicit_proxy_preserves_ssl_cert_dir(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # SSL_CERT_DIR set (no SSL_CERT_FILE) — capath must be forwarded to
+    # ssl.create_default_context when trust_env=True + explicit proxy conflict.
+    monkeypatch.delenv("SSL_CERT_FILE", raising=False)
+    monkeypatch.setenv("SSL_CERT_DIR", "/path/to/cert/dir")
+    fake_ssl_ctx = MagicMock(spec=ssl.SSLContext)
+    cfg = ClientConfiguration(url="https://example.invalid")
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter("always")
+        with (
+            patch("kubex.client.httpx.httpx.AsyncClient") as mock_ac,
+            patch(
+                "kubex.client.httpx.ssl.create_default_context",
+                return_value=fake_ssl_ctx,
+            ) as mock_ctx,
+        ):
+            mock_ac.return_value = MagicMock()
+            HttpxClient(
+                cfg, ClientOptions(proxy="http://corp.proxy:8080", trust_env=True)
+            )
+    _, kwargs = mock_ac.call_args
+    assert kwargs.get("trust_env") is False
+    assert kwargs.get("verify") is fake_ssl_ctx
+    mock_ctx.assert_called_once_with(cafile=None, capath="/path/to/cert/dir")
+
+
+def test_trust_env_true_explicit_proxy_no_ssl_cert_file_keeps_bool_verify(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # When trust_env=True + explicit proxy but no SSL_CERT_FILE env var set,
+    # our new SSL_CERT_FILE path is not triggered — verify stays as the bool
+    # True that was set before the conflict branch runs. Use a config without
+    # insecure_skip_tls_verify so needs_custom_ssl=False and _verify=True.
+    monkeypatch.delenv("SSL_CERT_FILE", raising=False)
+    monkeypatch.delenv("SSL_CERT_DIR", raising=False)
+    cfg = ClientConfiguration(url="https://example.invalid")
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter("always")
+        with patch("kubex.client.httpx.httpx.AsyncClient") as mock_ac:
+            mock_ac.return_value = MagicMock()
+            HttpxClient(
+                cfg, ClientOptions(proxy="http://corp.proxy:8080", trust_env=True)
+            )
+    _, kwargs = mock_ac.call_args
+    assert kwargs.get("trust_env") is False
+    assert kwargs.get("verify") is True
+
+
+def test_trust_env_true_no_explicit_proxy_invokes_env_resolver() -> None:
+    fake_proxy = httpx.Proxy(url="http://proxy.corp:3128", auth=("alice", "s3cret"))
+    resolver_result: dict[str, Any] = {"proxy": fake_proxy}
+    with patch(
+        "kubex.client.httpx._resolve_env_proxy_with_netrc",
+        return_value=resolver_result,
+    ) as mock_resolver:
+        _, mock_ac = _patched_client(ClientOptions(trust_env=True))
+    mock_resolver.assert_called_once_with("https://example.invalid")
+    _, kwargs = mock_ac.call_args
+    assert kwargs.get("proxy") == fake_proxy
+    assert kwargs.get("trust_env") is True
+
+
+def test_trust_env_true_explicit_proxy_dict_matching_scheme_emits_warning() -> None:
+    # Dict proxy with a key matching the base URL scheme (https) conflicts with
+    # trust_env=True → warning emitted and trust_env forced False (mirrors aiohttp).
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        _, mock_ac = _patched_client(
+            ClientOptions(proxy={"https": "http://corp.proxy:8080"}, trust_env=True)
+        )
+    _, kwargs = mock_ac.call_args
+    assert any(
+        issubclass(w.category, UserWarning)
+        and "proxy" in str(w.message)
+        and "trust_env" in str(w.message)
+        for w in caught
+    )
+    assert kwargs.get("trust_env") is False
+
+
+def test_trust_env_true_proxy_dict_no_matching_scheme_emits_warning() -> None:
+    # Dict proxy only for http:// while the base URL is https:// — any explicit
+    # proxy conflicts with trust_env=True regardless of scheme, so a warning is
+    # emitted and trust_env is forced False. Mirrors the aiohttp backend.
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        _, mock_ac = _patched_client(
+            ClientOptions(proxy={"http": "http://corp.proxy:8080"}, trust_env=True)
+        )
+    _, kwargs = mock_ac.call_args
+    assert any(
+        issubclass(w.category, UserWarning)
+        and "proxy" in str(w.message)
+        and "trust_env" in str(w.message)
+        for w in caught
+    )
+    assert kwargs.get("trust_env") is False

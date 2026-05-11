@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import logging
+import netrc
+import os
 import ssl
 import warnings
 from contextlib import AbstractAsyncContextManager
 from types import EllipsisType
 from typing import TYPE_CHECKING, Any, AsyncGenerator, Sequence, cast
+from urllib.parse import urlparse
 
 import httpx
 
@@ -96,6 +100,154 @@ def _build_httpx_proxy_kwargs(
     }
 
 
+_logger = logging.getLogger("kubex.client.httpx")
+
+
+def _getenv_icase(name: str) -> tuple[str | None, str]:
+    """Case-insensitive env var lookup: lowercase > uppercase > mixed-case.
+
+    Returns (matched_key, value) or (None, "") if not present at any case variant.
+    A higher-priority set-but-empty value suppresses lower-priority non-empty values,
+    preserving the curl/urllib convention that ``https_proxy=""`` suppresses
+    ``HTTPS_PROXY``.
+
+    Always returns the *actual* key stored in ``os.environ``, not the normalised
+    lookup form.  This is critical on Windows where ``os.environ`` is
+    case-insensitive: a containment check like ``"http_proxy" in os.environ``
+    returns ``True`` when only ``HTTP_PROXY`` is stored, and the subsequent
+    ``os.environ["http_proxy"]`` call returns the value but the caller would
+    record the synthetic lowercase key — breaking the HTTPOXY guard which
+    compares ``found_key == "HTTP_PROXY"``.
+    """
+    lc = name.lower()
+    uc = name.upper()
+    lc_match: tuple[str, str] | None = None
+    uc_match: tuple[str, str] | None = None
+    mc_match: tuple[str, str] | None = None
+    for k, v in os.environ.items():
+        if k == lc:
+            lc_match = (k, v)
+        elif k == uc:
+            uc_match = (k, v)
+        elif k.lower() == lc:
+            mc_match = (k, v)
+    if lc_match is not None:
+        return lc_match
+    if uc_match is not None:
+        return uc_match
+    if mc_match is not None:
+        return mc_match
+    return None, ""
+
+
+def _host_matches_no_proxy(host: str, no_proxy: str) -> bool:
+    """NO_PROXY host matching compatible with Python stdlib / aiohttp.
+
+    Entries are comma-separated and whitespace-trimmed. Matching rules:
+
+    - ``*`` matches every host.
+    - A leading-dot entry (e.g. ``.example.com``) matches the exact domain
+      AND any subdomain — ``.example.com`` matches both ``example.com`` and
+      ``api.example.com``, consistent with curl and Python's urllib.
+    - A bare-domain entry (e.g. ``example.com``) matches the exact host and
+      any subdomain.
+    - Port qualifiers in entries (e.g. ``example.com:6443``) are NOT
+      supported and will never match — consistent with Python stdlib and
+      aiohttp behavior. Use a bare hostname entry (``example.com``) instead.
+    - Bracketed IPv6 entries (e.g. ``[::1]``) are NOT supported — use the
+      bare IPv6 address (``::1``) instead. Consistent with Python stdlib and
+      aiohttp, which do not strip brackets before matching.
+    - An IP literal matches only the exact IP; CIDR notation is NOT supported.
+    - Comparison is case-insensitive.
+    """
+    host = host.lower()
+    for raw_entry in (e.strip().lower() for e in no_proxy.split(",")):
+        if not raw_entry:
+            continue
+        if raw_entry == "*":
+            return True
+        # Strip leading dot so that .example.com and example.com both match the
+        # domain itself and its subdomains (curl / Python stdlib semantics).
+        bare = raw_entry.lstrip(".")
+        if host == bare or host.endswith("." + bare):
+            return True
+    return False
+
+
+def _resolve_env_proxy_with_netrc(base_url: str) -> dict[str, Any]:
+    """Resolve env-based proxy URL and netrc credentials for the httpx backend.
+
+    Returns a kwargs dict to be ``.update()``'d into ``httpx.AsyncClient``
+    constructor kwargs:
+
+    - ``{}`` if no env proxy var is set, or NO_PROXY matches the base url host.
+    - ``{"proxy": "<url-str>"}`` if the env proxy URL has embedded ``user:pass``
+      or netrc has no matching entry.
+    - ``{"proxy": httpx.Proxy(url=..., auth=(login, password))}`` if the env
+      proxy URL has no creds AND netrc has a ``machine`` entry for the proxy
+      host.
+
+    Netrc read failures are caught and silently downgraded to "no creds" with
+    the proxy URL still applied. Failures are logged at DEBUG level.
+    """
+    parsed_base = urlparse(base_url)
+    base_host = (parsed_base.hostname or "").lower()
+    scheme = (parsed_base.scheme or "").lower()
+
+    if scheme == "https":
+        candidates = ["https_proxy", "all_proxy"]
+    else:
+        candidates = ["http_proxy", "all_proxy"]
+
+    proxy_url: str | None = None
+    for target in candidates:
+        found_key, found_val = _getenv_icase(target)
+        if found_key is None:
+            continue
+        # CGI safeguard (CVE-2016-1000110 / HTTPOXY): skip exact uppercase
+        # HTTP_PROXY in CGI context to prevent header injection.  Only the
+        # exact uppercase form can be injected by a CGI server (RFC 3875
+        # uppercases header names); lowercase and mixed-case variants are
+        # user-set and are allowed.  Applied on all platforms (including
+        # Windows) to match stdlib / aiohttp behavior.
+        if found_key == "HTTP_PROXY" and "REQUEST_METHOD" in os.environ:
+            continue
+        if found_val:
+            proxy_url = found_val
+            break
+        # Empty value at the winning priority level suppresses this candidate
+        # but allows fallback to the next entry (e.g. ALL_PROXY).
+
+    if proxy_url is None:
+        return {}
+
+    # Case-insensitive NO_PROXY lookup with the same priority rule.
+    no_proxy_key, no_proxy_val = _getenv_icase("no_proxy")
+    no_proxy = no_proxy_val if no_proxy_key is not None else ""
+    if no_proxy and _host_matches_no_proxy(base_host, no_proxy):
+        return {}
+
+    parsed_proxy = urlparse(proxy_url)
+    if parsed_proxy.username or parsed_proxy.password:
+        return {"proxy": proxy_url}
+
+    proxy_host = parsed_proxy.hostname or ""
+    netrc_path = os.environ.get("NETRC") or None
+    try:
+        rc = netrc.netrc(netrc_path)
+        creds = rc.authenticators(proxy_host)
+        if creds is not None:
+            login, _, password = creds
+            if login is not None:
+                return {
+                    "proxy": httpx.Proxy(url=proxy_url, auth=(login, password or ""))
+                }
+    except (FileNotFoundError, netrc.NetrcParseError, OSError) as exc:
+        _logger.debug("Failed to read netrc for proxy credentials: %s", exc)
+
+    return {"proxy": proxy_url}
+
+
 class HttpxClient(BaseClient):
     def __init__(
         self,
@@ -156,6 +308,36 @@ class HttpxClient(BaseClient):
         limits = httpx.Limits(**limits_kw) if limits_kw else None
         if limits is not None:
             kwargs["limits"] = limits
+
+        if self.options.trust_env and self.options.proxy is not None:
+            warnings.warn(
+                "ClientOptions.proxy is set; env-based proxy variables "
+                "(HTTP_PROXY/HTTPS_PROXY/NO_PROXY) are ignored when "
+                "trust_env=True coexists with an explicit proxy.",
+                UserWarning,
+                stacklevel=3,
+            )
+            kwargs["trust_env"] = False
+            # Passing trust_env=False to httpx also suppresses SSL_CERT_FILE /
+            # SSL_CERT_DIR. When no custom CA is configured via kubeconfig,
+            # apply these env vars manually so env-provided CA bundles are not
+            # silently downgraded to certifi.
+            if not needs_custom_ssl:
+                ssl_cert_file = os.environ.get("SSL_CERT_FILE")
+                ssl_cert_dir = os.environ.get("SSL_CERT_DIR")
+                if ssl_cert_file or ssl_cert_dir:
+                    env_ssl_ctx = ssl.create_default_context(
+                        cafile=ssl_cert_file, capath=ssl_cert_dir
+                    )
+                    _verify = env_ssl_ctx
+                    kwargs["verify"] = env_ssl_ctx
+        elif self.options.trust_env:
+            kwargs["trust_env"] = True
+            kwargs.update(
+                _resolve_env_proxy_with_netrc(str(self.configuration.base_url))
+            )
+        else:
+            kwargs["trust_env"] = False
 
         kwargs.update(_build_httpx_proxy_kwargs(self.options.proxy, _verify, limits))
 

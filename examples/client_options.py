@@ -41,6 +41,10 @@ async def main() -> None:
         # Per-host connection limit: 10
         # (ignored on httpx — UserWarning emitted; aiohttp default is 0 = no limit)
         pool_size_per_host=10,
+        # Honor HTTP_PROXY / HTTPS_PROXY / NO_PROXY and ~/.netrc for proxy creds.
+        # NOTE: using trust_env=True together with proxy= emits a UserWarning;
+        # in practice use one or the other — not both.
+        trust_env=True,
     )
 
     async with await create_client(options=options) as client:

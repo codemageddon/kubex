@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `ClientOptions.trust_env: bool = False` — opt-in to environment-driven HTTP proxy
+  configuration (`HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, `NO_PROXY`) and netrc-based
+  proxy credentials on both backends. Netrc is used for proxy credentials only; kubex's
+  per-request bearer `Authorization` header always wins over any netrc-derived target-host
+  Basic auth.
+
+### Changed
+
+- The httpx backend now passes `trust_env=False` to `httpx.AsyncClient` by default,
+  overriding httpx's own library default of `True`. Users who relied on httpx silently
+  honoring `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` must opt in explicitly with
+  `ClientOptions(trust_env=True)`. This aligns httpx behavior with aiohttp, which has
+  always defaulted to `trust_env=False`.
+
 ## [0.1.0-beta.1] - 2026-05-06
 
 Initial public beta release.

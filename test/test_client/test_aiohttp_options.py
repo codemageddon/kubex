@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import warnings
 from typing import Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -30,22 +30,30 @@ def _config() -> ClientConfiguration:
     )
 
 
-# --- resolve_ws_max_message_size ---
+def _patched_session_client(
+    options: ClientOptions | None = None,
+) -> tuple[AioHttpClient, MagicMock]:
+    """Create AioHttpClient with TCPConnector and ClientSession patched; return (client, session_mock)."""
+    with (
+        patch("kubex.client.aiohttp.TCPConnector") as mock_connector,
+        patch("kubex.client.aiohttp.ClientSession") as mock_session,
+    ):
+        mock_connector.return_value = MagicMock()
+        mock_session.return_value = MagicMock()
+        client = AioHttpClient(_config(), options)
+    return client, mock_session
 
 
-def test_resolve_ws_max_message_size_ellipsis_returns_kubex_default() -> None:
-    assert resolve_ws_max_message_size(...) == 2**21
-
-
-def test_resolve_ws_max_message_size_none_returns_zero() -> None:
-    assert resolve_ws_max_message_size(None) == 0
-
-
-def test_resolve_ws_max_message_size_explicit_int() -> None:
-    assert resolve_ws_max_message_size(8 * 1024 * 1024) == 8 * 1024 * 1024
-
-
-# --- _apply_aiohttp_proxy ---
+@pytest.mark.parametrize(
+    "val,expected",
+    [
+        pytest.param(..., 2**21, id="ellipsis_kubex_default"),
+        pytest.param(None, 0, id="none_no_cap"),
+        pytest.param(8 * 1024 * 1024, 8 * 1024 * 1024, id="explicit_int"),
+    ],
+)
+def test_resolve_ws_max_message_size(val: Any, expected: int) -> None:
+    assert resolve_ws_max_message_size(val) == expected
 
 
 def test_apply_aiohttp_proxy_none_no_op() -> None:
@@ -104,9 +112,6 @@ def test_apply_aiohttp_proxy_dict_no_matching_scheme_warns_no_proxy() -> None:
     )
 
 
-# --- connector: pool_size ---
-
-
 @pytest.mark.anyio
 async def test_aiohttp_pool_size_default_uses_library_default() -> None:
     # Ellipsis (default) must NOT pass limit at all — let aiohttp decide.
@@ -119,18 +124,16 @@ async def test_aiohttp_pool_size_default_uses_library_default() -> None:
 
 
 @pytest.mark.anyio
-async def test_aiohttp_pool_size_none_sets_unlimited() -> None:
-    client = AioHttpClient(_config(), ClientOptions(pool_size=None))
-    assert client._inner_client.connector.limit == 0
-
-
-@pytest.mark.anyio
-async def test_aiohttp_pool_size_explicit_int() -> None:
-    client = AioHttpClient(_config(), ClientOptions(pool_size=50))
-    assert client._inner_client.connector.limit == 50
-
-
-# --- connector: pool_size_per_host ---
+@pytest.mark.parametrize(
+    "pool_size,expected_limit",
+    [
+        pytest.param(None, 0, id="none_unlimited"),
+        pytest.param(50, 50, id="explicit_int"),
+    ],
+)
+async def test_aiohttp_pool_size(pool_size: int | None, expected_limit: int) -> None:
+    client = AioHttpClient(_config(), ClientOptions(pool_size=pool_size))
+    assert client._inner_client.connector.limit == expected_limit
 
 
 @pytest.mark.anyio
@@ -165,24 +168,20 @@ async def test_aiohttp_pool_size_per_host_explicit_int() -> None:
     assert client._inner_client.connector.limit_per_host == 5
 
 
-# --- connector: keep_alive ---
-
-
 @pytest.mark.anyio
-async def test_aiohttp_keep_alive_true_default_no_force_close() -> None:
-    client = AioHttpClient(_config(), ClientOptions())
-    force_close = getattr(client._inner_client.connector, "_force_close", False)
-    assert force_close is False
-
-
-@pytest.mark.anyio
-async def test_aiohttp_keep_alive_false_sets_force_close() -> None:
-    client = AioHttpClient(_config(), ClientOptions(keep_alive=False))
+@pytest.mark.parametrize(
+    "options,expected_force_close",
+    [
+        pytest.param(ClientOptions(), False, id="default_keep_alive"),
+        pytest.param(ClientOptions(keep_alive=False), True, id="keep_alive_false"),
+    ],
+)
+async def test_aiohttp_keep_alive_maps_to_force_close(
+    options: ClientOptions, expected_force_close: bool
+) -> None:
+    client = AioHttpClient(_config(), options)
     force_close = getattr(client._inner_client.connector, "_force_close", None)
-    assert force_close is True
-
-
-# --- connector: keep_alive_timeout ---
+    assert force_close is expected_force_close
 
 
 @pytest.mark.anyio
@@ -225,61 +224,34 @@ async def test_aiohttp_keep_alive_false_with_timeout_does_not_raise() -> None:
     assert force_close is True
 
 
-# --- session: buffer_size ---
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "buffer_size,expected_bufsize",
+    [
+        pytest.param(..., 2**21, id="default_kubex_default"),
+        pytest.param(None, 2**16, id="none_aiohttp_default"),
+        pytest.param(4096, 4096, id="explicit_int"),
+    ],
+)
+async def test_aiohttp_buffer_size(buffer_size: Any, expected_bufsize: int) -> None:
+    client = AioHttpClient(_config(), ClientOptions(buffer_size=buffer_size))
+    assert client._inner_client._read_bufsize == expected_bufsize
 
 
 @pytest.mark.anyio
-async def test_aiohttp_buffer_size_default_is_kubex_default() -> None:
-    client = AioHttpClient(_config(), ClientOptions())
-    assert client._inner_client._read_bufsize == 2**21
-
-
-@pytest.mark.anyio
-async def test_aiohttp_buffer_size_none_uses_library_default() -> None:
-    client = AioHttpClient(_config(), ClientOptions(buffer_size=None))
-    # aiohttp library default is 2**16
-    assert client._inner_client._read_bufsize == 2**16
-
-
-@pytest.mark.anyio
-async def test_aiohttp_buffer_size_explicit_int() -> None:
-    client = AioHttpClient(_config(), ClientOptions(buffer_size=4096))
-    assert client._inner_client._read_bufsize == 4096
-
-
-# --- ws_max_message_size ---
-
-
-@pytest.mark.anyio
-async def test_aiohttp_ws_max_message_size_default() -> None:
-    client = AioHttpClient(_config(), ClientOptions())
-    mock_ws = AsyncMock()
-    mock_ws.protocol = None
-    mock_ws.closed = False
-    mock_ws_connect = AsyncMock(return_value=mock_ws)
-    with patch.object(client._inner_client, "ws_connect", new=mock_ws_connect):
-        request = Request(method="GET", url="/exec")
-        await client.connect_websocket(request, [])
-    assert mock_ws_connect.call_args.kwargs["max_msg_size"] == 2**21
-
-
-@pytest.mark.anyio
-async def test_aiohttp_ws_max_message_size_none_no_cap() -> None:
-    client = AioHttpClient(_config(), ClientOptions(ws_max_message_size=None))
-    mock_ws = AsyncMock()
-    mock_ws.protocol = None
-    mock_ws.closed = False
-    mock_ws_connect = AsyncMock(return_value=mock_ws)
-    with patch.object(client._inner_client, "ws_connect", new=mock_ws_connect):
-        request = Request(method="GET", url="/exec")
-        await client.connect_websocket(request, [])
-    assert mock_ws_connect.call_args.kwargs["max_msg_size"] == 0
-
-
-@pytest.mark.anyio
-async def test_aiohttp_ws_max_message_size_explicit() -> None:
+@pytest.mark.parametrize(
+    "ws_max_message_size,expected_max_msg_size",
+    [
+        pytest.param(..., 2**21, id="default_kubex_default"),
+        pytest.param(None, 0, id="none_no_cap"),
+        pytest.param(8 * 1024 * 1024, 8 * 1024 * 1024, id="explicit_int"),
+    ],
+)
+async def test_aiohttp_ws_max_message_size(
+    ws_max_message_size: Any, expected_max_msg_size: int
+) -> None:
     client = AioHttpClient(
-        _config(), ClientOptions(ws_max_message_size=8 * 1024 * 1024)
+        _config(), ClientOptions(ws_max_message_size=ws_max_message_size)
     )
     mock_ws = AsyncMock()
     mock_ws.protocol = None
@@ -288,36 +260,30 @@ async def test_aiohttp_ws_max_message_size_explicit() -> None:
     with patch.object(client._inner_client, "ws_connect", new=mock_ws_connect):
         request = Request(method="GET", url="/exec")
         await client.connect_websocket(request, [])
-    assert mock_ws_connect.call_args.kwargs["max_msg_size"] == 8 * 1024 * 1024
-
-
-# --- proxy integration: propagated through _session_kwargs ---
+    assert mock_ws_connect.call_args.kwargs["max_msg_size"] == expected_max_msg_size
 
 
 @pytest.mark.anyio
-async def test_aiohttp_session_kwargs_includes_proxy_str() -> None:
-    client = AioHttpClient(_config(), ClientOptions(proxy="http://proxy.corp:8080"))
+@pytest.mark.parametrize(
+    "proxy,expected_proxy",
+    [
+        pytest.param(None, None, id="no_proxy"),
+        pytest.param(
+            "http://proxy.corp:8080", "http://proxy.corp:8080", id="proxy_str"
+        ),
+        pytest.param(
+            {"https": "http://proxy.corp:8080"},
+            "http://proxy.corp:8080",
+            id="proxy_dict_matching_scheme",
+        ),
+    ],
+)
+async def test_aiohttp_session_kwargs_proxy(
+    proxy: Any, expected_proxy: str | None
+) -> None:
+    client = AioHttpClient(_config(), ClientOptions(proxy=proxy))
     session_kw = client._session_kwargs()
-    assert session_kw.get("proxy") == "http://proxy.corp:8080"
-
-
-@pytest.mark.anyio
-async def test_aiohttp_session_kwargs_no_proxy_by_default() -> None:
-    client = AioHttpClient(_config(), ClientOptions())
-    session_kw = client._session_kwargs()
-    assert "proxy" not in session_kw
-
-
-@pytest.mark.anyio
-async def test_aiohttp_session_kwargs_includes_proxy_dict_matching_scheme() -> None:
-    client = AioHttpClient(
-        _config(), ClientOptions(proxy={"https": "http://proxy.corp:8080"})
-    )
-    session_kw = client._session_kwargs()
-    assert session_kw.get("proxy") == "http://proxy.corp:8080"
-
-
-# --- regression: defaults preserve prior behavior ---
+    assert session_kw.get("proxy") == expected_proxy
 
 
 @pytest.mark.anyio
@@ -342,3 +308,96 @@ async def test_aiohttp_default_options_regression() -> None:
     # no proxy
     session_kw = client._session_kwargs()
     assert "proxy" not in session_kw
+
+
+@pytest.mark.parametrize(
+    "options,expected",
+    [
+        pytest.param(ClientOptions(), False, id="default_false"),
+        pytest.param(ClientOptions(trust_env=True), True, id="explicit_true"),
+    ],
+)
+def test_trust_env_passed_to_session(options: ClientOptions, expected: bool) -> None:
+    _, mock_session = _patched_session_client(options)
+    _, kwargs = mock_session.call_args
+    assert kwargs.get("trust_env") is expected
+
+
+@pytest.mark.parametrize(
+    "options,expected",
+    [
+        pytest.param(ClientOptions(), False, id="default_false"),
+        pytest.param(ClientOptions(trust_env=True), True, id="explicit_true"),
+    ],
+)
+def test_trust_env_propagated_to_session_kwargs(
+    options: ClientOptions, expected: bool
+) -> None:
+    client, _ = _patched_session_client(options)
+    session_kw = client._session_kwargs()
+    assert session_kw.get("trust_env") is expected
+
+
+def test_trust_env_false_default_with_env_set_aiohttp(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("HTTPS_PROXY", "http://leak.example.com:3128")
+    _, mock_session = _patched_session_client(ClientOptions())
+    _, kwargs = mock_session.call_args
+    assert kwargs.get("trust_env") is False
+    assert "proxy" not in kwargs
+
+
+def test_trust_env_true_explicit_proxy_emits_warning_aiohttp() -> None:
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        _, mock_session = _patched_session_client(
+            ClientOptions(proxy="http://corp.proxy:8080", trust_env=True)
+        )
+    _, kwargs = mock_session.call_args
+    assert any(
+        issubclass(w.category, UserWarning)
+        and "proxy" in str(w.message)
+        and "trust_env" in str(w.message)
+        for w in caught
+    )
+    assert kwargs.get("trust_env") is False
+
+
+def test_trust_env_true_explicit_proxy_session_kwargs_force_false_aiohttp() -> None:
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter("always")
+        client, _ = _patched_session_client(
+            ClientOptions(proxy="http://corp.proxy:8080", trust_env=True)
+        )
+    session_kw = client._session_kwargs()
+    assert session_kw.get("trust_env") is False
+
+
+def test_trust_env_true_proxy_dict_no_matching_scheme_does_not_disable_trust_env() -> (
+    None
+):
+    # proxy={"http": ...} against an https:// API server — aiohttp applies no
+    # effective proxy (wrong scheme). trust_env must NOT be force-disabled just
+    # because the raw options.proxy dict is non-None.
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        _, mock_session = _patched_session_client(
+            ClientOptions(proxy={"http": "http://corp.proxy:8080"}, trust_env=True)
+        )
+    _, kwargs = mock_session.call_args
+    # "no entry for URL scheme" warning must fire (from _apply_aiohttp_proxy)
+    assert any(
+        issubclass(w.category, UserWarning)
+        and "no entry for URL scheme" in str(w.message)
+        for w in caught
+    )
+    # conflict warning must NOT fire — no proxy was actually applied
+    assert not any(
+        issubclass(w.category, UserWarning)
+        and "trust_env" in str(w.message)
+        and "proxy" in str(w.message)
+        and "ignored" in str(w.message)
+        for w in caught
+    )
+    assert kwargs.get("trust_env") is True
