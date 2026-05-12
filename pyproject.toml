@@ -31,7 +31,7 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/codemageddon/kubex"
+Homepage = "https://kubex.codemageddon.me/"
 Repository = "https://github.com/codemageddon/kubex.git"
 Issues = "https://github.com/codemageddon/kubex/issues"
 Changelog = "https://github.com/codemageddon/kubex/blob/main/CHANGELOG.md"
