@@ -12,6 +12,7 @@ from kubex.configuration.configuration import ClientConfiguration, KubeConfig
 from kubex.configuration.file_config import configure_from_kubeconfig
 from kubex.k8s.v1_35.core.v1.namespace import Namespace
 from kubex_core.models.metadata import ObjectMetadata
+from test.e2e._helpers import mint_sa_token
 
 
 @pytest.fixture(scope="session")
@@ -84,3 +85,40 @@ def tmp_namespace_name(
 ) -> Generator[str, None, None]:
     assert tmp_namespace.metadata.name is not None
     yield tmp_namespace.metadata.name
+
+
+@pytest.fixture(scope="session")
+def sa_token(kubernetes: K3SContainer) -> str:
+    return mint_sa_token(kubernetes)
+
+
+@pytest.fixture
+async def kubernetes_token_config(
+    kubernetes_config: ClientConfiguration,
+    sa_token: str,
+) -> ClientConfiguration:
+    kubernetes_config.client_cert_file = None
+    kubernetes_config.client_key_file = None
+    kubernetes_config._token = sa_token
+    return kubernetes_config
+
+
+@pytest.fixture(params=[ClientChoise.HTTPX, ClientChoise.AIOHTTP])
+def client_choice(
+    request: pytest.FixtureRequest,
+    anyio_backend: str,
+) -> ClientChoise:
+    if anyio_backend == "trio" and request.param != ClientChoise.HTTPX:
+        pytest.skip("Skipping AIOHTTP client for trio backend")
+    param: ClientChoise = request.param
+    return param
+
+
+@pytest.fixture
+async def token_client(
+    kubernetes_token_config: ClientConfiguration,
+    client_choice: ClientChoise,
+) -> AsyncGenerator[BaseClient, None]:
+    client = await create_client(kubernetes_token_config, client_class=client_choice)
+    async with client as c:
+        yield c

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from typing import Any, AsyncGenerator
+from unittest.mock import MagicMock
 
+import aiohttp
 import pytest
 from aiohttp import WSMsgType, web
 from aiohttp.test_utils import TestServer
@@ -568,6 +570,25 @@ async def test_send_bytes_wraps_connection_reset_as_kubex_exception() -> None:
             await conn.send_bytes(b"\x00data")
     finally:
         await conn.close()
+
+
+@pytest.mark.anyio
+async def test_trust_env_propagated_to_temp_ws_session(
+    ws_server: TestServer,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """trust_env is forwarded to the temp ClientSession created for WS upgrade with timeout override."""
+    config = _client_config(ws_server)
+    async with AioHttpClient(config, ClientOptions(trust_env=True)) as client:
+        mock_cls = MagicMock(wraps=aiohttp.ClientSession)
+        monkeypatch.setattr("kubex.client.aiohttp.ClientSession", mock_cls)
+        request = Request(method="GET", url="/ws", timeout=None)
+        conn = await client.connect_websocket(request, ["v5.channel.k8s.io"])
+        await conn.close()
+
+    assert mock_cls.call_count == 1
+    _, kwargs = mock_cls.call_args
+    assert kwargs.get("trust_env") is True
 
 
 @pytest.mark.anyio

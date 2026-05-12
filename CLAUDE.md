@@ -70,7 +70,7 @@ kubex/                          # Main package — PEP 420 namespace package (no
 │   └── _protocol.py            # ApiProtocol[ResourceType], type aliases, SubresourceNotAvailable, namespace helpers
 ├── client/                     # HTTP client implementations
 │   ├── client.py               # BaseClient ABC, create_client() factory, ClientChoise enum
-│   ├── options.py              # ClientOptions pydantic model — timeout, log_api_warnings, proxy, keep_alive, keep_alive_timeout, buffer_size, ws_max_message_size, pool_size, pool_size_per_host
+│   ├── options.py              # ClientOptions pydantic model — timeout, log_api_warnings, proxy, keep_alive, keep_alive_timeout, buffer_size, ws_max_message_size, pool_size, pool_size_per_host, trust_env
 │   ├── websocket.py            # WebSocketConnection ABC — abstraction used by exec and attach subresources
 │   ├── httpx.py                # HttpxClient implementation (exec via httpx-ws)
 │   └── aiohttp.py              # AioHttpClient implementation (exec via aiohttp ws_connect)
@@ -147,13 +147,25 @@ scripts/codegen/                # OpenAPI → Pydantic v2 code generator
 
 test/                           # Test suite
 ├── e2e/                        # End-to-end tests (testcontainers + K3S)
-│   ├── conftest.py             # Fixtures: K3S container, client fixtures, temp namespace
+│   ├── conftest.py             # Fixtures: K3S container, client fixtures, temp namespace, bearer-token SA fixtures (sa_token, kubernetes_token_config), client_choice
+│   ├── _helpers.py             # Shared e2e helpers: create_busybox_pod(), wait_for_pod_running(),
+│                               #   mint_sa_token(k3s, *, sa_name, crb_name, clusterrole="view") — provisions a SA + ClusterRoleBinding and returns a short-lived JWT
 │   ├── test_core_api_pod.py    # Pod CRUD tests
 │   ├── test_core_api_namespaces.py  # Namespace listing tests
 │   ├── test_subresource_apis.py # E2E tests for Status, Eviction, EphemeralContainers, Resize subresources
 │   ├── test_exec.py            # E2E tests for Pod exec subresource (run + stream against K3S)
 │   ├── test_attach.py          # E2E tests for Pod attach subresource (stream against K3S)
-│   └── test_portforward.py     # E2E tests for Pod portforward subresource (forward() + listen() against K3S)
+│   ├── test_portforward.py     # E2E tests for Pod portforward subresource (forward() + listen() against K3S)
+│   ├── test_bearer_token_auth.py # E2E tests for bearer-token auth (no proxy): valid SA token succeeds, invalid token returns 401
+│   └── proxy/                  # E2E tests for trust_env proxy support (Squid on shared Docker network)
+│       ├── _constants.py       # SQUID_PROXY_USER / SQUID_PROXY_PASSWORD shared by conftest and tests
+│       ├── conftest.py         # Fixtures: Docker network, K3S-in-network, Squid, proxy_url, proxy config,
+│                               #   kubernetes_token_config_via_proxy (view SA), kubernetes_admin_token_config_via_proxy (admin SA — needed for pods/exec),
+│                               #   tmp_namespace_via_proxy / tmp_namespace_name_via_proxy (direct-access provisioning, bypasses Squid), proxy_netrc,
+│                               #   clean_proxy_env (autouse — clears all proxy env vars before each test)
+│       └── test_trust_env.py   # REST proxy tests: URL-embedded creds, netrc creds, missing-creds-fails, NO_PROXY bypass, bearer-token via proxy.
+│                               #   WS exec proxy tests: cert-auth exec via proxy, bearer-token exec via proxy,
+│                               #   missing-proxy-creds WS handshake fails (KubexClientException), NO_PROXY bypass WS connect fails (KubexClientException)
 ├── test_configuration/         # Unit tests for configuration and auth
 │   ├── test_file_config.py     # Kubeconfig file parsing tests
 │   ├── test_incluster_config.py # In-cluster configuration tests
@@ -180,7 +192,7 @@ test/                           # Test suite
 ├── test_attach/                # Unit tests for attach subresource (AttachOptions, AttachAccessor)
 ├── test_portforward/           # Unit tests for portforward subresource (PortForwardOptions, channels, PortForwardSession, PortForwardStream, PortforwardAccessor, listen())
 ├── test_stream/                # Unit tests for _BaseChannelSession lifecycle + StreamSession channel multiplexer (shared by exec and attach)
-├── test_client/                # Unit tests for client WebSocket layer (BaseClient ABC, AioHttpClient, HttpxClient)
+├── test_client/                # Unit tests for BaseClient ABC, AioHttpClient, HttpxClient, and trust_env env-proxy + netrc resolver (test_trust_env.py)
 ├── test_subresource_descriptors/ # Unit tests for descriptor-based subresource APIs
 └── test_timeout/               # Unit tests for HTTP timeout settings
 
@@ -198,7 +210,7 @@ examples/                       # Usage examples
 ├── exec_pod.py                 # Pod exec subresource — api.exec.run() + api.exec.stream() interactive shell
 ├── attach_pod.py               # Pod attach subresource — api.attach.stream() with stdin/stdout
 ├── portforward_pod.py          # Pod portforward subresource — api.portforward.forward() (low-level ByteStream) + api.portforward.listen() (local TCP listener)
-├── client_options.py           # ClientOptions knobs — proxy, keep_alive, buffer_size, pool_size, ws_max_message_size
+├── client_options.py           # ClientOptions knobs — proxy, keep_alive, buffer_size, pool_size, ws_max_message_size, trust_env
 ├── custom_resource.py          # Define CRD models (Widget, ClusterWidget) + create/get/list/patch/status/delete
 └── delete_collection.py        # Bulk delete with label_selector
 
@@ -263,7 +275,7 @@ Each resource model declares a `__RESOURCE_CONFIG__` class variable (a `Resource
 All models inherit from `BaseK8sModel` which uses `alias_generator=to_camel` and `populate_by_name=True`. This means Python code uses `snake_case` while JSON serialization uses `camelCase` to match the Kubernetes API.
 
 ### Pluggable HTTP clients
-`BaseClient` is an ABC. Implementations (`HttpxClient`, `AioHttpClient`) are lazily imported. The `create_client()` factory auto-detects which library is installed (prefers aiohttp, falls back to httpx). `BaseClient` also exposes `connect_websocket(request, subprotocols)` returning a `WebSocketConnection` (defined in `kubex/client/websocket.py`); the default raises `NotImplementedError`. `HttpxClient` implements it via `httpx-ws` (lazy import — raises `ConfgiurationError` if missing); `AioHttpClient` uses aiohttp's built-in `ws_connect`. Both adapters prefer `Request.query_param_pairs` over `Request.query_params` when building the upgrade URL so exec's repeated `command=` entries are preserved. `create_client()` also accepts `options: ClientOptions | None` — a `ClientOptions` instance carrying the client-level `timeout` default, `log_api_warnings` flag, and the following connection-pool / proxy / WebSocket knobs: `proxy` (str or per-scheme dict), `keep_alive` (bool), `keep_alive_timeout` (float|None|...), `buffer_size` (int|None|...), `ws_max_message_size` (int|None|...), `pool_size` (int|None|...), `pool_size_per_host` (int|None|...). When `None`, a `ClientOptions()` with library defaults is used. Both `HttpxClient` and `AioHttpClient` expose an `options` property. `HttpxClient._create_inner_client()` maps these into `httpx.Limits(...)`, `proxy=`, and `mounts=`; `AioHttpClient._create_inner_client()` maps them into `TCPConnector(limit=, limit_per_host=, keepalive_timeout=, force_close=)` and `ClientSession(read_bufsize=, proxy=)`. Backend asymmetries (httpx ignores `buffer_size` and `pool_size_per_host`; aiohttp warns on `keep_alive_timeout=None` and `proxy=dict` with non-matching schemes) emit a `UserWarning` at client construction time.
+`BaseClient` is an ABC. Implementations (`HttpxClient`, `AioHttpClient`) are lazily imported. The `create_client()` factory auto-detects which library is installed (prefers aiohttp, falls back to httpx). `BaseClient` also exposes `connect_websocket(request, subprotocols)` returning a `WebSocketConnection` (defined in `kubex/client/websocket.py`); the default raises `NotImplementedError`. `HttpxClient` implements it via `httpx-ws` (lazy import — raises `ConfgiurationError` if missing); `AioHttpClient` uses aiohttp's built-in `ws_connect`. Both adapters prefer `Request.query_param_pairs` over `Request.query_params` when building the upgrade URL so exec's repeated `command=` entries are preserved. `create_client()` also accepts `options: ClientOptions | None` — a `ClientOptions` instance carrying the client-level `timeout` default, `log_api_warnings` flag, and the following connection-pool / proxy / WebSocket knobs: `proxy` (str or per-scheme dict), `keep_alive` (bool), `keep_alive_timeout` (float|None|...), `buffer_size` (int|None|...), `ws_max_message_size` (int|None|...), `pool_size` (int|None|...), `pool_size_per_host` (int|None|...), `trust_env` (bool, default `False` — opts into HTTP_PROXY/HTTPS_PROXY/NO_PROXY env vars and ~/.netrc proxy-credential lookup on both backends; setting `trust_env=True` alongside an explicit `proxy` emits a `UserWarning` and force-disables env reads). When `None`, a `ClientOptions()` with library defaults is used. Both `HttpxClient` and `AioHttpClient` expose an `options` property. `HttpxClient._create_inner_client()` maps these into `httpx.Limits(...)`, `proxy=`, and `mounts=`; `AioHttpClient._create_inner_client()` maps them into `TCPConnector(limit=, limit_per_host=, keepalive_timeout=, force_close=)` and `ClientSession(read_bufsize=, proxy=)`. Backend asymmetries (httpx ignores `buffer_size` and `pool_size_per_host`; aiohttp warns on `keep_alive_timeout=None` and `proxy=dict` with non-matching schemes; `trust_env=True` on httpx: when a proxy env var is found at construction, kubex materialises it into a concrete `httpx.Proxy(auth=...)` (snapshot — subsequent env mutations have no effect); when no proxy env var is found at construction, httpx receives `trust_env=True` directly and re-reads env vars per-request. aiohttp always retains its native per-request env lookup) emit a `UserWarning` at client construction time where relevant.
 
 ### Configuration auto-loading
 `create_client()` → tries kubeconfig file first → falls back to in-cluster pod environment.
@@ -312,6 +324,7 @@ Resources declare capabilities via multiple inheritance from marker classes: `Na
 - E2E tests are parameterized over both HTTP clients (`httpx`, `aiohttp`) and async backends (`asyncio`, `trio` — trio only with httpx)
 - Mark async tests with `@pytest.mark.anyio`
 - The `conftest.py` provides session-scoped K3S cluster, per-test client fixtures, and a temporary namespace fixture that creates/cleans up namespaces
+- The `test/e2e/proxy/` sub-suite spins up a **separate** K3S cluster (`k3s_in_network`) on a shared Docker network alongside a Squid forward proxy. Namespace and pod provisioning fixtures connect to `k3s_in_network` directly (bypassing the proxy) so that test infrastructure does not depend on the code under test. For exec/attach/portforward tests via bearer token, use `kubernetes_admin_token_config_via_proxy` (admin ClusterRole); the standard `kubernetes_token_config_via_proxy` uses `view`, which lacks `pods/exec` permission.
 
 ## CI/CD
 

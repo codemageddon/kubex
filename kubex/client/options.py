@@ -48,6 +48,19 @@ class ClientOptions(BaseModel):
       The entry whose key matches the API server's URL scheme is used; all other
       entries are dropped with a warning. httpx applies all dict entries via
       ``mounts=``.
+    - ``WS_PROXY`` / ``WSS_PROXY``: these env vars are read by aiohttp only.
+      On httpx, ``wss://`` upgrades use ``HTTPS_PROXY``.
+    - ``SSL_CERT_FILE`` / ``SSL_CERT_DIR``: read by httpx only (when no custom
+      CA is configured). aiohttp does not read these.
+    - netrc for the target API server host: when ``trust_env=True`` on the aiohttp
+      backend, aiohttp looks up the target request URL in ``~/.netrc`` and, if
+      found, treats the result as Basic auth. If the K8s API server hostname
+      appears in ``~/.netrc`` AND bearer-token auth is active, aiohttp raises
+      :class:`ValueError` (conflicting ``Authorization`` header and netrc-derived
+      auth). Avoid adding K8s API server credentials to ``~/.netrc`` when
+      ``trust_env=True`` is used on the aiohttp backend. This restriction does
+      not apply to the httpx backend, which resolves netrc only for the proxy
+      host. See ``trust_env`` for details.
     """
 
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
@@ -171,6 +184,53 @@ class ClientOptions(BaseModel):
     **Backend asymmetry**: httpx has no per-host pool limit. This field is
     ignored on httpx and a :class:`UserWarning` is emitted if it is not ``...``.
     """
+
+    trust_env: bool = False
+    """Honor standard HTTP environment variables (and ~/.netrc for proxy creds) for outbound requests.
+
+    When ``True``, kubex enables environment-driven configuration on both backends:
+
+    - **Proxy URL**: ``HTTP_PROXY`` / ``HTTPS_PROXY`` / ``ALL_PROXY`` (lowercase
+      variants too) select an outbound proxy.
+    - **Proxy exclusions**: ``NO_PROXY`` excludes hosts from proxy routing.
+    - **Proxy credentials**: ``~/.netrc`` (or ``$NETRC``) supplies basic-auth
+      credentials for the **proxy host** when the env proxy URL has no embedded
+      ``user:pass``.
+
+    Default is ``False``. This matches aiohttp's library default and overrides
+    httpx's library default of ``True`` so behavior is symmetric across both
+    backends out of the box.
+
+    **Auth precedence**: kubex's per-request bearer ``Authorization`` header
+    always wins over any netrc-derived target Basic auth. Netrc support here is
+    for **proxy credentials only**.
+
+    **Conflict with options.proxy**: when both ``trust_env=True`` and
+    ``options.proxy`` are set, the explicit ``options.proxy`` wins and a
+    :class:`UserWarning` is emitted at client construction.
+
+    **Backend asymmetries**:
+
+    - ``WS_PROXY`` / ``WSS_PROXY`` env vars are read by aiohttp only. On httpx,
+      ``wss://`` upgrades use ``HTTPS_PROXY``.
+    - ``SSL_CERT_FILE`` / ``SSL_CERT_DIR`` env vars are read by httpx only
+      (when no custom CA is configured). aiohttp does not read these.
+
+    **Snapshot semantics (httpx only)**: when a proxy URL is found in the
+    environment at construction time, kubex materialises it into a concrete
+    ``httpx.Proxy`` object so subsequent env-var mutations do NOT affect the
+    httpx backend. When no proxy env var is set at construction time, httpx
+    receives ``trust_env=True`` directly and re-reads env vars on every request
+    (same as httpx's own default behaviour). The aiohttp backend always retains
+    aiohttp's native per-request env lookup.
+    """
+
+    @field_validator("trust_env", mode="before")
+    @classmethod
+    def _normalize_trust_env(cls, value: object) -> object:
+        if not isinstance(value, bool):
+            raise ValueError(f"trust_env must be a bool; got {type(value).__name__!r}")
+        return value
 
     @field_validator("timeout", mode="before")
     @classmethod

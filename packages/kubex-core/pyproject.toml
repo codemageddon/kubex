@@ -1,6 +1,6 @@
 [project]
 name = "kubex-core"
-version = "0.1.0-beta.1"
+version = "0.1.0-beta.2"
 description = "Core model types shared by Kubex and its generated resource packages"
 readme = "README.md"
 requires-python = ">=3.10"
