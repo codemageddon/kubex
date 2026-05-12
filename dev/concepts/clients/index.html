@@ -875,6 +875,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#trust_env" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        trust_env
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -918,6 +929,17 @@
     <span class="md-ellipsis">
       
         Client selection trade-offs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#custom-underlying-http-client" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom underlying HTTP client
       
     </span>
   </a>
@@ -2227,6 +2249,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#trust_env" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        trust_env
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2270,6 +2303,17 @@
     <span class="md-ellipsis">
       
         Client selection trade-offs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#custom-underlying-http-client" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom underlying HTTP client
       
     </span>
   </a>
@@ -2569,6 +2613,64 @@ than <code>...</code> on an httpx-backed client emits a <code>UserWarning</code>
 <p>httpx has no per-host pool limit. Setting <code>pool_size_per_host</code> to anything other
 than <code>...</code> on an httpx-backed client emits a <code>UserWarning</code> and is otherwise ignored.</p>
 </div>
+<h3 id="trust_env"><code>trust_env</code><a class="headerlink" href="#trust_env" title="Permanent link">&para;</a></h3>
+<p>When <code>True</code>, kubex enables environment-driven proxy configuration on both backends:</p>
+<table>
+<thead>
+<tr>
+<th>Env var</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>HTTP_PROXY</code> / <code>HTTPS_PROXY</code> / <code>ALL_PROXY</code></td>
+<td>Select an outbound proxy for matching requests</td>
+</tr>
+<tr>
+<td><code>NO_PROXY</code></td>
+<td>Exclude specific hosts from proxy routing</td>
+</tr>
+<tr>
+<td><code>~/.netrc</code> (or <code>$NETRC</code>)</td>
+<td>Supply basic-auth credentials for the <strong>proxy host</strong> when the env proxy URL carries no embedded <code>user:pass</code></td>
+</tr>
+</tbody>
+</table>
+<p>The default is <code>False</code>. This matches aiohttp's library default and overrides httpx's library default of <code>True</code>, making behavior symmetric across both backends out of the box.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># Read HTTPS_PROXY / HTTP_PROXY / NO_PROXY from the environment</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="n">options</span> <span class="o">=</span> <span class="n">ClientOptions</span><span class="p">(</span><span class="n">trust_env</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</code></pre></div>
+<p><strong>Canonical flow — HTTPS proxy with netrc credentials:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">HTTPS_PROXY</span><span class="o">=</span>http://proxy.corp.example.com:3128
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="c1"># ~/.netrc</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="c1"># machine proxy.corp.example.com</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="c1">#   login alice</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="c1">#   password s3cret</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="n">options</span> <span class="o">=</span> <span class="n">ClientOptions</span><span class="p">(</span><span class="n">trust_env</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="c1"># Kubex reads HTTPS_PROXY, finds no user:pass in the URL, looks up</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="c1"># proxy.corp.example.com in ~/.netrc, and configures the proxy with</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="c1"># auth=(&quot;alice&quot;, &quot;s3cret&quot;).</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="k">async</span> <span class="k">with</span> <span class="k">await</span> <span class="n">create_client</span><span class="p">(</span><span class="n">options</span><span class="o">=</span><span class="n">options</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>    <span class="o">...</span>
+</code></pre></div>
+<p><strong>Netrc scope:</strong> netrc is used for <strong>proxy credentials only</strong>. Kubex's per-request <code>Authorization: Bearer …</code> header always takes priority over any netrc-derived target-host Basic auth.</p>
+<p><strong>Conflict with <code>options.proxy</code>:</strong> when both <code>trust_env=True</code> and <code>options.proxy</code> are set, the explicit <code>options.proxy</code> wins and a <code>UserWarning</code> is emitted at client construction. The effective behavior is <code>trust_env=False</code> passed to the backend, so <code>NO_PROXY</code> cannot silently exempt the explicit proxy.</p>
+<div class="admonition note">
+<p class="admonition-title">Backend asymmetries</p>
+<ul>
+<li><code>WS_PROXY</code> / <code>WSS_PROXY</code> env vars are read by <strong>aiohttp only</strong>. On httpx, <code>wss://</code> upgrades use <code>HTTPS_PROXY</code>.</li>
+<li><code>SSL_CERT_FILE</code> / <code>SSL_CERT_DIR</code> env vars are read by <strong>httpx only</strong> (when no custom CA is configured). aiohttp does not read these.</li>
+</ul>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Snapshot semantics (httpx only)</p>
+<p>When a proxy env var (<code>HTTPS_PROXY</code>, <code>HTTP_PROXY</code>, <code>ALL_PROXY</code>, etc.) <strong>is set</strong> at construction time, Kubex's proxy-netrc resolver materializes it into an explicit <code>httpx.Proxy(auth=...)</code>. Mutations to those env vars after <code>create_client()</code> returns are <strong>not</strong> reflected on the httpx backend.</p>
+<p>When <strong>no</strong> proxy env var is set at construction time, httpx receives <code>trust_env=True</code> directly and re-reads env vars on every request (httpx's own default behavior).</p>
+<p>The aiohttp backend always retains its native per-request env lookup regardless of whether a proxy was found at construction.</p>
+<p>If snapshot behavior is unwanted on httpx, use the <a href="#custom-underlying-http-client">Custom underlying HTTP client</a> escape hatch.</p>
+</div>
 <h2 id="backend-asymmetries">Backend asymmetries<a class="headerlink" href="#backend-asymmetries" title="Permanent link">&para;</a></h2>
 <p>Some <code>ClientOptions</code> fields behave differently (or are unsupported) depending on which HTTP backend is in use. A <code>UserWarning</code> is emitted on first use when a field has no effect.</p>
 <table>
@@ -2620,6 +2722,11 @@ than <code>...</code> on an httpx-backed client emits a <code>UserWarning</code>
 <td><strong>Ignored</strong> — warning emitted</td>
 <td><code>TCPConnector(limit_per_host=int)</code> — <code>None</code> maps to <code>0</code> (unlimited)</td>
 </tr>
+<tr>
+<td><code>trust_env=True</code></td>
+<td>If a proxy env var is found at construction, it is materialized into <code>httpx.Proxy(auth=...)</code> (snapshot). If none is found, httpx receives <code>trust_env=True</code> and re-reads env vars per-request.</td>
+<td>Env vars read per-request (aiohttp native behavior)</td>
+</tr>
 </tbody>
 </table>
 <p>Cross-reference: see <a href="../../operations/timeouts/">Timeouts</a> for the note on <code>Timeout.write</code> and <code>Timeout.pool</code> being httpx-only fields.</p>
@@ -2664,6 +2771,48 @@ than <code>...</code> on an httpx-backed client emits a <code>UserWarning</code>
 </tbody>
 </table>
 <p>For detailed guidance on choosing a client and runtime, see <a href="../../advanced/clients-runtimes/">Clients &amp; Runtimes</a>.</p>
+<h2 id="custom-underlying-http-client">Custom underlying HTTP client<a class="headerlink" href="#custom-underlying-http-client" title="Permanent link">&para;</a></h2>
+<p>Kubex prioritizes predictable defaults over knob coverage. When the built-in <code>ClientOptions</code> wiring is insufficient — for example, you need target-host Basic auth from netrc, a custom retry policy, a custom TLS transport, or per-request env reads on httpx — you can subclass <code>HttpxClient</code> or <code>AioHttpClient</code> and override <code>_create_inner_client()</code>.</p>
+<p>When this escape hatch is used, the subclass is <strong>fully responsible</strong> for mapping all options and configuration. <code>ClientOptions</code> proxy, timeout, pool, and <code>trust_env</code> fields are <strong>no longer applied automatically</strong>.</p>
+<p><strong>httpx example:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">httpx</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.client.httpx</span><span class="w"> </span><span class="kn">import</span> <span class="n">HttpxClient</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.client</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClientOptions</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="k">class</span><span class="w"> </span><span class="nc">MyHttpxClient</span><span class="p">(</span><span class="n">HttpxClient</span><span class="p">):</span>
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_create_inner_client</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">httpx</span><span class="o">.</span><span class="n">AsyncClient</span><span class="p">:</span>
+<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>        <span class="c1"># Full control: target-host NetRCAuth, custom transport, retry policy, etc.</span>
+<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>        <span class="k">return</span> <span class="n">httpx</span><span class="o">.</span><span class="n">AsyncClient</span><span class="p">(</span>
+<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>            <span class="n">base_url</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">base_url</span><span class="p">),</span>
+<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a>            <span class="n">verify</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a>            <span class="n">trust_env</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>                   <span class="c1"># per-request env reads</span>
+<a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a>            <span class="n">auth</span><span class="o">=</span><span class="n">httpx</span><span class="o">.</span><span class="n">NetRCAuth</span><span class="p">(</span><span class="n">file</span><span class="o">=</span><span class="kc">None</span><span class="p">),</span>  <span class="c1"># target-host Basic auth from netrc</span>
+<a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a>        <span class="p">)</span>
+<a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a>
+<a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a><span class="n">client</span> <span class="o">=</span> <span class="n">MyHttpxClient</span><span class="p">(</span><span class="n">configuration</span><span class="o">=</span><span class="n">cfg</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">ClientOptions</span><span class="p">())</span>
+</code></pre></div>
+<p><strong>aiohttp example:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">ssl</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">aiohttp</span>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.client.aiohttp</span><span class="w"> </span><span class="kn">import</span> <span class="n">AioHttpClient</span>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.client</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClientOptions</span>
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="k">class</span><span class="w"> </span><span class="nc">MyAioHttpClient</span><span class="p">(</span><span class="n">AioHttpClient</span><span class="p">):</span>
+<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_create_inner_client</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">aiohttp</span><span class="o">.</span><span class="n">ClientSession</span><span class="p">:</span>
+<a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a>        <span class="n">ssl_context</span> <span class="o">=</span> <span class="n">ssl</span><span class="o">.</span><span class="n">create_default_context</span><span class="p">()</span>
+<a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a>        <span class="n">connector</span> <span class="o">=</span> <span class="n">aiohttp</span><span class="o">.</span><span class="n">TCPConnector</span><span class="p">(</span><span class="n">ssl</span><span class="o">=</span><span class="n">ssl_context</span><span class="p">)</span>
+<a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a>        <span class="k">return</span> <span class="n">aiohttp</span><span class="o">.</span><span class="n">ClientSession</span><span class="p">(</span>
+<a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a>            <span class="n">base_url</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">base_url</span><span class="p">),</span>
+<a id="__codelineno-16-12" name="__codelineno-16-12" href="#__codelineno-16-12"></a>            <span class="n">connector</span><span class="o">=</span><span class="n">connector</span><span class="p">,</span>
+<a id="__codelineno-16-13" name="__codelineno-16-13" href="#__codelineno-16-13"></a>            <span class="n">trust_env</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-16-14" name="__codelineno-16-14" href="#__codelineno-16-14"></a>        <span class="p">)</span>
+<a id="__codelineno-16-15" name="__codelineno-16-15" href="#__codelineno-16-15"></a>
+<a id="__codelineno-16-16" name="__codelineno-16-16" href="#__codelineno-16-16"></a><span class="n">client</span> <span class="o">=</span> <span class="n">MyAioHttpClient</span><span class="p">(</span><span class="n">configuration</span><span class="o">=</span><span class="n">cfg</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">ClientOptions</span><span class="p">())</span>
+</code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Overriding <code>_create_inner_client()</code> means <code>ClientOptions</code> proxy, timeout, pool, and <code>trust_env</code> fields are no longer applied automatically. The subclass is fully responsible for all HTTP client configuration.</p>
+</div>
 
 
 

@@ -1961,6 +1961,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#kubex.client.options.ClientOptions.trust_env" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        trust_env
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#kubex.client.options.ClientOptions.ws_max_message_size" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2453,6 +2464,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#kubex.client.options.ClientOptions.trust_env" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        trust_env
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#kubex.client.options.ClientOptions.ws_max_message_size" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2902,6 +2924,19 @@ is emitted at client construction time):</p>
   The entry whose key matches the API server's URL scheme is used; all other
   entries are dropped with a warning. httpx applies all dict entries via
   <code>mounts=</code>.</li>
+<li><code>WS_PROXY</code> / <code>WSS_PROXY</code>: these env vars are read by aiohttp only.
+  On httpx, <code>wss://</code> upgrades use <code>HTTPS_PROXY</code>.</li>
+<li><code>SSL_CERT_FILE</code> / <code>SSL_CERT_DIR</code>: read by httpx only (when no custom
+  CA is configured). aiohttp does not read these.</li>
+<li>netrc for the target API server host: when <code>trust_env=True</code> on the aiohttp
+  backend, aiohttp looks up the target request URL in <code>~/.netrc</code> and, if
+  found, treats the result as Basic auth. If the K8s API server hostname
+  appears in <code>~/.netrc</code> AND bearer-token auth is active, aiohttp raises
+  :class:<code>ValueError</code> (conflicting <code>Authorization</code> header and netrc-derived
+  auth). Avoid adding K8s API server credentials to <code>~/.netrc</code> when
+  <code>trust_env=True</code> is used on the aiohttp backend. This restriction does
+  not apply to the httpx backend, which resolves netrc only for the proxy
+  host. See <code>trust_env</code> for details.</li>
 </ul>
 
 
@@ -3205,6 +3240,63 @@ warning).</p>
 
 
 
+<h4 id="kubex.client.options.ClientOptions.trust_env" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">trust_env</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small>
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#kubex.client.options.ClientOptions.trust_env" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">trust_env</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Honor standard HTTP environment variables (and ~/.netrc for proxy creds) for outbound requests.</p>
+<p>When <code>True</code>, kubex enables environment-driven configuration on both backends:</p>
+<ul>
+<li><strong>Proxy URL</strong>: <code>HTTP_PROXY</code> / <code>HTTPS_PROXY</code> / <code>ALL_PROXY</code> (lowercase
+  variants too) select an outbound proxy.</li>
+<li><strong>Proxy exclusions</strong>: <code>NO_PROXY</code> excludes hosts from proxy routing.</li>
+<li><strong>Proxy credentials</strong>: <code>~/.netrc</code> (or <code>$NETRC</code>) supplies basic-auth
+  credentials for the <strong>proxy host</strong> when the env proxy URL has no embedded
+  <code>user:pass</code>.</li>
+</ul>
+<p>Default is <code>False</code>. This matches aiohttp's library default and overrides
+httpx's library default of <code>True</code> so behavior is symmetric across both
+backends out of the box.</p>
+<p><strong>Auth precedence</strong>: kubex's per-request bearer <code>Authorization</code> header
+always wins over any netrc-derived target Basic auth. Netrc support here is
+for <strong>proxy credentials only</strong>.</p>
+<p><strong>Conflict with options.proxy</strong>: when both <code>trust_env=True</code> and
+<code>options.proxy</code> are set, the explicit <code>options.proxy</code> wins and a
+:class:<code>UserWarning</code> is emitted at client construction.</p>
+<p><strong>Backend asymmetries</strong>:</p>
+<ul>
+<li><code>WS_PROXY</code> / <code>WSS_PROXY</code> env vars are read by aiohttp only. On httpx,
+  <code>wss://</code> upgrades use <code>HTTPS_PROXY</code>.</li>
+<li><code>SSL_CERT_FILE</code> / <code>SSL_CERT_DIR</code> env vars are read by httpx only
+  (when no custom CA is configured). aiohttp does not read these.</li>
+</ul>
+<p><strong>Snapshot semantics (httpx only)</strong>: when a proxy URL is found in the
+environment at construction time, kubex materialises it into a concrete
+<code>httpx.Proxy</code> object so subsequent env-var mutations do NOT affect the
+httpx backend. When no proxy env var is set at construction time, httpx
+receives <code>trust_env=True</code> directly and re-reads env vars on every request
+(same as httpx's own default behaviour). The aiohttp backend always retains
+aiohttp's native per-request env lookup.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
 <h4 id="kubex.client.options.ClientOptions.ws_max_message_size" class="doc doc-heading">
             <span class="doc doc-object-name doc-attribute-name">ws_max_message_size</span>
 
@@ -3274,29 +3366,29 @@ warning).</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>kubex/client/options.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-279">279</a></span>
-<span class="normal"><a href="#__codelineno-0-280">280</a></span>
-<span class="normal"><a href="#__codelineno-0-281">281</a></span>
-<span class="normal"><a href="#__codelineno-0-282">282</a></span>
-<span class="normal"><a href="#__codelineno-0-283">283</a></span>
-<span class="normal"><a href="#__codelineno-0-284">284</a></span>
-<span class="normal"><a href="#__codelineno-0-285">285</a></span>
-<span class="normal"><a href="#__codelineno-0-286">286</a></span>
-<span class="normal"><a href="#__codelineno-0-287">287</a></span>
-<span class="normal"><a href="#__codelineno-0-288">288</a></span>
-<span class="normal"><a href="#__codelineno-0-289">289</a></span>
-<span class="normal"><a href="#__codelineno-0-290">290</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-279" name="__codelineno-0-279"></a><span class="k">def</span><span class="w"> </span><span class="nf">resolve_ws_max_message_size</span><span class="p">(</span><span class="n">ws_max_message_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">|</span> <span class="n">EllipsisType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-<a id="__codelineno-0-280" name="__codelineno-0-280"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Resolve ``ws_max_message_size`` to a concrete integer for HTTP backends.</span>
-<a id="__codelineno-0-281" name="__codelineno-0-281"></a>
-<a id="__codelineno-0-282" name="__codelineno-0-282"></a><span class="sd">    - ``...`` → ``2**21`` (kubex default; preserves pre-option behavior on both backends)</span>
-<a id="__codelineno-0-283" name="__codelineno-0-283"></a><span class="sd">    - ``None`` → ``0`` (aiohttp treats 0 as &quot;no cap&quot;; httpx does not pass this at all)</span>
-<a id="__codelineno-0-284" name="__codelineno-0-284"></a><span class="sd">    - ``int``  → that int</span>
-<a id="__codelineno-0-285" name="__codelineno-0-285"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-286" name="__codelineno-0-286"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ws_max_message_size</span><span class="p">,</span> <span class="n">EllipsisType</span><span class="p">):</span>
-<a id="__codelineno-0-287" name="__codelineno-0-287"></a>        <span class="k">return</span> <span class="mi">2</span><span class="o">**</span><span class="mi">21</span>
-<a id="__codelineno-0-288" name="__codelineno-0-288"></a>    <span class="k">if</span> <span class="n">ws_max_message_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-289" name="__codelineno-0-289"></a>        <span class="k">return</span> <span class="mi">0</span>
-<a id="__codelineno-0-290" name="__codelineno-0-290"></a>    <span class="k">return</span> <span class="n">ws_max_message_size</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-339">339</a></span>
+<span class="normal"><a href="#__codelineno-0-340">340</a></span>
+<span class="normal"><a href="#__codelineno-0-341">341</a></span>
+<span class="normal"><a href="#__codelineno-0-342">342</a></span>
+<span class="normal"><a href="#__codelineno-0-343">343</a></span>
+<span class="normal"><a href="#__codelineno-0-344">344</a></span>
+<span class="normal"><a href="#__codelineno-0-345">345</a></span>
+<span class="normal"><a href="#__codelineno-0-346">346</a></span>
+<span class="normal"><a href="#__codelineno-0-347">347</a></span>
+<span class="normal"><a href="#__codelineno-0-348">348</a></span>
+<span class="normal"><a href="#__codelineno-0-349">349</a></span>
+<span class="normal"><a href="#__codelineno-0-350">350</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-339" name="__codelineno-0-339"></a><span class="k">def</span><span class="w"> </span><span class="nf">resolve_ws_max_message_size</span><span class="p">(</span><span class="n">ws_max_message_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">|</span> <span class="n">EllipsisType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<a id="__codelineno-0-340" name="__codelineno-0-340"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Resolve ``ws_max_message_size`` to a concrete integer for HTTP backends.</span>
+<a id="__codelineno-0-341" name="__codelineno-0-341"></a>
+<a id="__codelineno-0-342" name="__codelineno-0-342"></a><span class="sd">    - ``...`` → ``2**21`` (kubex default; preserves pre-option behavior on both backends)</span>
+<a id="__codelineno-0-343" name="__codelineno-0-343"></a><span class="sd">    - ``None`` → ``0`` (aiohttp treats 0 as &quot;no cap&quot;; httpx does not pass this at all)</span>
+<a id="__codelineno-0-344" name="__codelineno-0-344"></a><span class="sd">    - ``int``  → that int</span>
+<a id="__codelineno-0-345" name="__codelineno-0-345"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-346" name="__codelineno-0-346"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ws_max_message_size</span><span class="p">,</span> <span class="n">EllipsisType</span><span class="p">):</span>
+<a id="__codelineno-0-347" name="__codelineno-0-347"></a>        <span class="k">return</span> <span class="mi">2</span><span class="o">**</span><span class="mi">21</span>
+<a id="__codelineno-0-348" name="__codelineno-0-348"></a>    <span class="k">if</span> <span class="n">ws_max_message_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-349" name="__codelineno-0-349"></a>        <span class="k">return</span> <span class="mi">0</span>
+<a id="__codelineno-0-350" name="__codelineno-0-350"></a>    <span class="k">return</span> <span class="n">ws_max_message_size</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3471,31 +3563,31 @@ them to bytes.</p>
 
                   <details class="mkdocstrings-source">
                     <summary>Source code in <code>kubex/client/httpx.py</code></summary>
-                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-336">336</a></span>
-<span class="normal"><a href="#__codelineno-0-337">337</a></span>
-<span class="normal"><a href="#__codelineno-0-338">338</a></span>
-<span class="normal"><a href="#__codelineno-0-339">339</a></span>
-<span class="normal"><a href="#__codelineno-0-340">340</a></span>
-<span class="normal"><a href="#__codelineno-0-341">341</a></span>
-<span class="normal"><a href="#__codelineno-0-342">342</a></span>
-<span class="normal"><a href="#__codelineno-0-343">343</a></span>
-<span class="normal"><a href="#__codelineno-0-344">344</a></span>
-<span class="normal"><a href="#__codelineno-0-345">345</a></span>
-<span class="normal"><a href="#__codelineno-0-346">346</a></span>
-<span class="normal"><a href="#__codelineno-0-347">347</a></span>
-<span class="normal"><a href="#__codelineno-0-348">348</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-336" name="__codelineno-0-336"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-<a id="__codelineno-0-337" name="__codelineno-0-337"></a>    <span class="bp">self</span><span class="p">,</span>
-<a id="__codelineno-0-338" name="__codelineno-0-338"></a>    <span class="n">cm</span><span class="p">:</span> <span class="n">AbstractAsyncContextManager</span><span class="p">[</span><span class="n">AsyncWebSocketSession</span><span class="p">],</span>
-<a id="__codelineno-0-339" name="__codelineno-0-339"></a>    <span class="n">session</span><span class="p">:</span> <span class="n">AsyncWebSocketSession</span><span class="p">,</span>
-<a id="__codelineno-0-340" name="__codelineno-0-340"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-341" name="__codelineno-0-341"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_cm</span> <span class="o">=</span> <span class="n">cm</span>
-<a id="__codelineno-0-342" name="__codelineno-0-342"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_session</span> <span class="o">=</span> <span class="n">session</span>
-<a id="__codelineno-0-343" name="__codelineno-0-343"></a>    <span class="c1"># ``_eof`` short-circuits further ``receive_bytes()`` calls once the</span>
-<a id="__codelineno-0-344" name="__codelineno-0-344"></a>    <span class="c1"># peer closes or the transport breaks. ``_cm_exited`` guards the</span>
-<a id="__codelineno-0-345" name="__codelineno-0-345"></a>    <span class="c1"># underlying ``httpx_ws`` context manager so its ``__aexit__`` runs</span>
-<a id="__codelineno-0-346" name="__codelineno-0-346"></a>    <span class="c1"># exactly once — the EOF path must not skip releasing the HTTP stream.</span>
-<a id="__codelineno-0-347" name="__codelineno-0-347"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_eof</span> <span class="o">=</span> <span class="kc">False</span>
-<a id="__codelineno-0-348" name="__codelineno-0-348"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_cm_exited</span> <span class="o">=</span> <span class="kc">False</span>
+                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-518">518</a></span>
+<span class="normal"><a href="#__codelineno-0-519">519</a></span>
+<span class="normal"><a href="#__codelineno-0-520">520</a></span>
+<span class="normal"><a href="#__codelineno-0-521">521</a></span>
+<span class="normal"><a href="#__codelineno-0-522">522</a></span>
+<span class="normal"><a href="#__codelineno-0-523">523</a></span>
+<span class="normal"><a href="#__codelineno-0-524">524</a></span>
+<span class="normal"><a href="#__codelineno-0-525">525</a></span>
+<span class="normal"><a href="#__codelineno-0-526">526</a></span>
+<span class="normal"><a href="#__codelineno-0-527">527</a></span>
+<span class="normal"><a href="#__codelineno-0-528">528</a></span>
+<span class="normal"><a href="#__codelineno-0-529">529</a></span>
+<span class="normal"><a href="#__codelineno-0-530">530</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-518" name="__codelineno-0-518"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<a id="__codelineno-0-519" name="__codelineno-0-519"></a>    <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-0-520" name="__codelineno-0-520"></a>    <span class="n">cm</span><span class="p">:</span> <span class="n">AbstractAsyncContextManager</span><span class="p">[</span><span class="n">AsyncWebSocketSession</span><span class="p">],</span>
+<a id="__codelineno-0-521" name="__codelineno-0-521"></a>    <span class="n">session</span><span class="p">:</span> <span class="n">AsyncWebSocketSession</span><span class="p">,</span>
+<a id="__codelineno-0-522" name="__codelineno-0-522"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-523" name="__codelineno-0-523"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_cm</span> <span class="o">=</span> <span class="n">cm</span>
+<a id="__codelineno-0-524" name="__codelineno-0-524"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_session</span> <span class="o">=</span> <span class="n">session</span>
+<a id="__codelineno-0-525" name="__codelineno-0-525"></a>    <span class="c1"># ``_eof`` short-circuits further ``receive_bytes()`` calls once the</span>
+<a id="__codelineno-0-526" name="__codelineno-0-526"></a>    <span class="c1"># peer closes or the transport breaks. ``_cm_exited`` guards the</span>
+<a id="__codelineno-0-527" name="__codelineno-0-527"></a>    <span class="c1"># underlying ``httpx_ws`` context manager so its ``__aexit__`` runs</span>
+<a id="__codelineno-0-528" name="__codelineno-0-528"></a>    <span class="c1"># exactly once — the EOF path must not skip releasing the HTTP stream.</span>
+<a id="__codelineno-0-529" name="__codelineno-0-529"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_eof</span> <span class="o">=</span> <span class="kc">False</span>
+<a id="__codelineno-0-530" name="__codelineno-0-530"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_cm_exited</span> <span class="o">=</span> <span class="kc">False</span>
 </code></pre></div></td></tr></table></div>
                   </details>
 
@@ -3665,13 +3757,13 @@ them to bytes.</p>
 
                   <details class="mkdocstrings-source">
                     <summary>Source code in <code>kubex/client/aiohttp.py</code></summary>
-                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-396">396</a></span>
-<span class="normal"><a href="#__codelineno-0-397">397</a></span>
-<span class="normal"><a href="#__codelineno-0-398">398</a></span>
-<span class="normal"><a href="#__codelineno-0-399">399</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-396" name="__codelineno-0-396"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ws</span><span class="p">:</span> <span class="n">ClientWebSocketResponse</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-397" name="__codelineno-0-397"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_ws</span> <span class="o">=</span> <span class="n">ws</span>
-<a id="__codelineno-0-398" name="__codelineno-0-398"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_client_closed</span> <span class="o">=</span> <span class="kc">False</span>
-<a id="__codelineno-0-399" name="__codelineno-0-399"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_peer_closed_clean</span> <span class="o">=</span> <span class="kc">False</span>
+                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-410">410</a></span>
+<span class="normal"><a href="#__codelineno-0-411">411</a></span>
+<span class="normal"><a href="#__codelineno-0-412">412</a></span>
+<span class="normal"><a href="#__codelineno-0-413">413</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-410" name="__codelineno-0-410"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ws</span><span class="p">:</span> <span class="n">ClientWebSocketResponse</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-411" name="__codelineno-0-411"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_ws</span> <span class="o">=</span> <span class="n">ws</span>
+<a id="__codelineno-0-412" name="__codelineno-0-412"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_client_closed</span> <span class="o">=</span> <span class="kc">False</span>
+<a id="__codelineno-0-413" name="__codelineno-0-413"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_peer_closed_clean</span> <span class="o">=</span> <span class="kc">False</span>
 </code></pre></div></td></tr></table></div>
                   </details>
 
