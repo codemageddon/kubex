@@ -26,7 +26,7 @@ Each yielded value is a `WatchEvent[ResourceType]`:
 | `event.object` | `ResourceType | Bookmark` | Fully parsed resource (or `Bookmark` for bookmark events) |
 
 ```python
-from kubex_core.models.watch_event import EventType
+from kubex.core.watch_event import EventType
 
 async for event in api.watch():
     match event.type:

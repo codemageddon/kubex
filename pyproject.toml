@@ -16,6 +16,7 @@ dependencies = [
     "pyyaml>=6.0.2",
     "kubex-core",
     'exceptiongroup>=1.2; python_version < "3.11"',
+    "anyio>=4.6.0",
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -97,7 +98,6 @@ docs = [
 ]
 dev = [
     "kubex-k8s-1-35",
-    "anyio>=4.6.0",
     "mypy==1.11.2",
     "pre-commit>=4.0.1",
     "pytest-cov>=5.0.0",

@@ -159,13 +159,10 @@ class RequestBuilder(
         self,
         namespace: str | None,
         options: WatchOptions,
-        resource_version: str | None = None,
         *,
         request_timeout: TimeoutTypes | EllipsisType = ...,
     ) -> Request:
         query_params = options.as_query_params()
-        if resource_version is not None:
-            query_params["resourceVersion"] = resource_version
         return Request(
             method="GET",
             url=self.resource_config.url(namespace),

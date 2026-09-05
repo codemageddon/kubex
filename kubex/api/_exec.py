@@ -75,9 +75,11 @@ def _parse_exit_code(status: Status | None) -> int | None:
         return None
     for cause in details.causes:
         if cause.reason == "ExitCode":
+            if cause.message is None:
+                return None
             try:
                 return int(cause.message)
-            except (TypeError, ValueError):
+            except ValueError:
                 return None
     return None
 

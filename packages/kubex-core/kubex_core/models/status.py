@@ -8,7 +8,7 @@ from .resource_config import ResourceConfig, Scope
 class StatusCause(BaseK8sModel):
     """StatusCause provides more information about an api.Status failure, including cases when multiple errors are encountered."""
 
-    message: str
+    message: str | None = None
     """A human-readable description of the cause of the error. This field may be presented as-is to a reader."""
     field: str | None = None
     """The field of the resource that has caused this error, as named by its JSON serialization. May include dot and postfix notation for nested attributes. Arrays are zero-indexed. Fields may appear more than once in an array of causes due to fields having multiple errors. Optional. Examples: "name" - the field "name" on the current resource "items[0].name" - the field "name" on the first array entry in \"items\"
@@ -49,7 +49,7 @@ class Status(BaseEntity):
     """A human-readable description of the status of this operation."""
     reason: str | None = None
     """A machine-readable description of why this operation is in the "Failure" status. If this value is empty there is no information available. A Reason clarifies an HTTP status code but does not override it."""
-    status: Literal["Success", "Failure"]
+    status: Literal["Success", "Failure"] | None = None
     """Status of the operation. One of: "Success" or "Failure". More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status"""
 
     __RESOURCE_CONFIG__ = ResourceConfig["Status"](

@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from enum import Enum
-from http import HTTPStatus
 from typing import TYPE_CHECKING, Any, AsyncGenerator, NoReturn, Sequence
 
 if TYPE_CHECKING:
@@ -17,7 +16,7 @@ from kubex.client.options import ClientOptions
 from kubex.configuration import ClientConfiguration
 from kubex.configuration.file_config import configure_from_kubeconfig
 from kubex.configuration.incluster_config import configure_from_pod_env
-from kubex.core import exceptions
+from kubex.core.exceptions import build_exception
 from kubex.core.request import Request
 from kubex.core.request_builder.constants import (
     APPLICATION_JSON_MIME_TYPE,
@@ -40,7 +39,7 @@ async def _try_read_configuration() -> ClientConfiguration:
         raise
 
 
-class ClientChoise(str, Enum):
+class ClientChoice(str, Enum):
     HTTPX = "httpx"
     AIOHTTP = "aiohttp"
     AUTO = "auto"
@@ -107,7 +106,7 @@ class BaseClient(ABC):
 
 async def create_client(
     configuration: ClientConfiguration | None = None,
-    client_class: ClientChoise = ClientChoise.AUTO,
+    client_class: ClientChoice = ClientChoice.AUTO,
     options: ClientOptions | None = None,
 ) -> BaseClient:
     if options is not None and not isinstance(options, ClientOptions):
@@ -117,21 +116,21 @@ async def create_client(
     if configuration is None:
         configuration = await _try_read_configuration()
     match client_class:
-        case ClientChoise.HTTPX:
+        case ClientChoice.HTTPX:
             from .httpx import HttpxClient
 
             return HttpxClient(configuration, options)
-        case ClientChoise.AIOHTTP:
+        case ClientChoice.AIOHTTP:
             from .aiohttp import AioHttpClient
 
             return AioHttpClient(configuration, options)
-        case ClientChoise.AUTO:
+        case ClientChoice.AUTO:
             try:
-                return await create_client(configuration, ClientChoise.AIOHTTP, options)
+                return await create_client(configuration, ClientChoice.AIOHTTP, options)
             except ImportError:
                 try:
                     return await create_client(
-                        configuration, ClientChoise.HTTPX, options
+                        configuration, ClientChoice.HTTPX, options
                     )
                 except ImportError:
                     raise ImportError(
@@ -148,26 +147,4 @@ def handle_request_error(response: Response) -> NoReturn:
                 content = Status.model_validate_json(response.content)
             except ValidationError:
                 content = response.text
-    match status_code:
-        case HTTPStatus.BAD_REQUEST:
-            raise exceptions.BadRequest(content=content)
-        case HTTPStatus.UNAUTHORIZED:
-            raise exceptions.Unauthorized(content=content)
-        case HTTPStatus.FORBIDDEN:
-            raise exceptions.Forbidden(content=content)
-        case HTTPStatus.NOT_FOUND:
-            raise exceptions.NotFound(content=content)
-        case HTTPStatus.METHOD_NOT_ALLOWED:
-            raise exceptions.MethodNotAllowed(content=content)
-        case HTTPStatus.CONFLICT:
-            raise exceptions.Conflict(content=content)
-        case HTTPStatus.GONE:
-            raise exceptions.Gone(content=content)
-        case HTTPStatus.UNPROCESSABLE_ENTITY:
-            raise exceptions.UnprocessableEntity(content=content)
-        case status:
-            try:
-                http_status = HTTPStatus(status)
-            except ValueError:
-                http_status = HTTPStatus.INTERNAL_SERVER_ERROR
-            raise exceptions.KubexApiError(content=content, status=http_status)
+    raise build_exception(status_code, content)

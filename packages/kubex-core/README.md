@@ -9,6 +9,6 @@ Contains:
 - `kubex_core.models.interfaces` — marker interfaces (`NamespaceScopedEntity`, `ClusterScopedEntity`, `HasLogs`, `HasStatusSubresource`, `HasScaleSubresource`, `Evictable`).
 - `kubex_core.models.resource_config` — `ResourceConfig` descriptor + `Scope`.
 - `kubex_core.models.metadata` — `ObjectMetadata`, `ListMetadata`, `OwnerReference`.
-- `kubex_core.models.watch_event`, `list_entity`, `partial_object_meta`, `status`, `scale`.
+- `kubex_core.models.list_entity`, `partial_object_meta`, `status`, `scale`.
 
 This package is a runtime dependency of the `kubex` client and every generated resource package. End users generally install `kubex` + one `kubex-k8s-*` of choice; this package is pulled in transitively.

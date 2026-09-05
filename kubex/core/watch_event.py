@@ -1,8 +1,12 @@
 from enum import Enum
 from typing import Any, Generic, Type
 
-from .base_entity import BaseEntity
-from .typing import ResourceType
+from pydantic import ValidationError
+from kubex_core.models.base_entity import BaseEntity
+from kubex_core.models.status import Status
+from kubex_core.models.typing import ResourceType
+
+from .exceptions import build_exception
 
 
 class EventType(str, Enum):
@@ -12,6 +16,7 @@ class EventType(str, Enum):
     MODIFIED = "MODIFIED"
     DELETED = "DELETED"
     BOOKMARK = "BOOKMARK"
+    ERROR = "ERROR"
 
 
 class Bookmark(BaseEntity):
@@ -27,10 +32,17 @@ class WatchEvent(Generic[ResourceType]):
         self._resource_type = resource_type
         self.type = EventType(raw_event["type"])
         self.object: ResourceType | Bookmark
-        if self.type == EventType.BOOKMARK:
-            self.object = Bookmark.model_validate(raw_event["object"])
-        else:
-            self.object = self._resource_type.model_validate(raw_event["object"])
+        match self.type:
+            case EventType.BOOKMARK:
+                self.object = Bookmark.model_validate(raw_event["object"])
+            case EventType.ERROR:
+                try:
+                    status = Status.model_validate(raw_event["object"])
+                except ValidationError:
+                    raise build_exception(0, str(raw_event["object"]))
+                raise build_exception(status.code, status)
+            case _:
+                self.object = self._resource_type.model_validate(raw_event["object"])
 
     def __repr__(self) -> str:
         return f"WatchEvent(type={self.type}, object={self.object})"

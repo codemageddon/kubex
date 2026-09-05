@@ -211,13 +211,13 @@ def test_watch_metadata_url_cluster_scoped(cluster_builder: RequestBuilder) -> N
 def test_watch_metadata_accept_header(ns_builder: RequestBuilder) -> None:
     req = ns_builder.watch_metadata("default", WatchOptions())
     assert req.headers is not None
-    assert req.headers[ACCEPT_HEADER] == APPLICATION_JSON_MIME_TYPE
+    assert req.headers[ACCEPT_HEADER] == METADATA_MIME_TYPE
 
 
 def test_watch_metadata_content_type_header(ns_builder: RequestBuilder) -> None:
     req = ns_builder.watch_metadata("default", WatchOptions())
     assert req.headers is not None
-    assert req.headers[CONTENT_TYPE_HEADER] == METADATA_MIME_TYPE
+    assert req.headers[CONTENT_TYPE_HEADER] == APPLICATION_JSON_MIME_TYPE
 
 
 def test_watch_metadata_query_params_from_options(
@@ -232,25 +232,9 @@ def test_watch_metadata_query_params_from_options(
     req = ns_builder.watch_metadata("default", opts)
     assert req.query_params is not None
     assert req.query_params["labelSelector"] == "app=web"
-    assert req.query_params["allowBookmarks"] == "true"
+    assert req.query_params["allowWatchBookmarks"] == "true"
     assert req.query_params["sendInitialEvents"] == "true"
     assert req.query_params["timeoutSeconds"] == "300"
-
-
-def test_watch_metadata_resource_version_injection(
-    ns_builder: RequestBuilder,
-) -> None:
-    req = ns_builder.watch_metadata("default", WatchOptions(), resource_version="12345")
-    assert req.query_params is not None
-    assert req.query_params["resourceVersion"] == "12345"
-
-
-def test_watch_metadata_resource_version_none_not_injected(
-    ns_builder: RequestBuilder,
-) -> None:
-    req = ns_builder.watch_metadata("default", WatchOptions())
-    assert req.query_params is not None
-    assert "resourceVersion" not in req.query_params
 
 
 @pytest.mark.parametrize("request_timeout,expected", _TIMEOUT_CASES_SHORT)

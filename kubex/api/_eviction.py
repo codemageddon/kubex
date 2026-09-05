@@ -59,9 +59,7 @@ class EvictionAccessor(Generic[ResourceType]):
             EVICTION_SUBRESOURCE,
             name,
             _namespace,
-            data=eviction.model_dump_json(
-                by_alias=True, exclude_unset=True, exclude_none=True
-            ),
+            data=eviction.model_dump_json(by_alias=True, exclude_none=True),
             options=options,
             request_timeout=request_timeout,
         )

@@ -16,6 +16,10 @@ Auto-generated reference for the `kubex.core` module.
 
 ::: kubex.core.params
 
+## Watch events
+
+::: kubex.core.watch_event
+
 ## Patch types
 
 ::: kubex.core.patch

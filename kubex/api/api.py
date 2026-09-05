@@ -27,29 +27,29 @@ from kubex.core.params import (
 )
 from kubex.core.patch import Patch
 from kubex.core.request_builder.builder import RequestBuilder
+from kubex.core.watch_event import WatchEvent
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.status import Status
 from kubex_core.models.typing import (
     ResourceType,
 )
-from kubex_core.models.watch_event import WatchEvent
 
 from ._attach import _AttachDescriptor
 from ._ephemeral_containers import _EphemeralContainersDescriptor
-from ._exec import _ExecDescriptor
 from ._eviction import _EvictionDescriptor
+from ._exec import _ExecDescriptor
 from ._logs import _LogsDescriptor
 from ._metadata import MetadataAccessor
 from ._portforward import _PortforwardDescriptor
-from ._resize import _ResizeDescriptor
-from ._scale import _ScaleDescriptor
-from ._status import _StatusDescriptor
 from ._protocol import (
     ApiNamespaceTypes,
     ApiRequestTimeoutTypes,
     ensure_optional_namespace,
     ensure_required_namespace,
 )
+from ._resize import _ResizeDescriptor
+from ._scale import _ScaleDescriptor
+from ._status import _StatusDescriptor
 
 
 class Api(Generic[ResourceType]):
@@ -214,7 +214,7 @@ class Api(Generic[ResourceType]):
         request = self._request_builder.create(
             _namespace,
             options,
-            data.model_dump_json(by_alias=True, exclude_unset=True, exclude_none=True),
+            data.model_dump_json(by_alias=True, exclude_none=True),
             request_timeout=request_timeout,
         )
         response = await self._client.request(request)
@@ -388,7 +388,7 @@ class Api(Generic[ResourceType]):
             name,
             _namespace,
             options,
-            data.model_dump_json(by_alias=True, exclude_unset=True, exclude_none=True),
+            data.model_dump_json(by_alias=True, exclude_none=True),
             request_timeout=request_timeout,
         )
         response = await self._client.request(request)
@@ -402,8 +402,8 @@ class Api(Generic[ResourceType]):
         field_selector: str | None = None,
         allow_bookmarks: bool | None = None,
         send_initial_events: bool | None = None,
-        timeout_seconds: int | None = None,
         resource_version: ResourceVersionTypes = None,
+        timeout_seconds: int | None = None,
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> AsyncGenerator[WatchEvent[ResourceType], None]:
         """Watch for changes to the specified resource.
@@ -423,12 +423,12 @@ class Api(Generic[ResourceType]):
             field_selector=field_selector,
             allow_bookmarks=allow_bookmarks,
             send_initial_events=send_initial_events,
+            resource_version=resource_version,
             timeout_seconds=timeout_seconds,
         )
         request = self._request_builder.watch(
             _namespace,
             options,
-            resource_version=resource_version,
             request_timeout=request_timeout,
         )
         async for line in self._client.stream_lines(request):

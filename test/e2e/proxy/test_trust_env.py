@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from kubex.api import Api
-from kubex.client.client import ClientChoise, create_client
+from kubex.client.client import ClientChoice, create_client
 from kubex.client.options import ClientOptions
 from kubex.configuration.configuration import ClientConfiguration
 from kubex.core.exceptions import KubexClientException, Unauthorized
@@ -26,7 +26,7 @@ pytestmark = pytest.mark.anyio
 async def test_trust_env_proxy_url_with_embedded_creds_succeeds(
     kubernetes_config_via_proxy: ClientConfiguration,
     proxy_url: str,
-    client_choice: ClientChoise,
+    client_choice: ClientChoice,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """HTTPS_PROXY with embedded user:pass succeeds — no netrc lookup needed."""
@@ -52,7 +52,7 @@ async def test_trust_env_proxy_creds_from_netrc_succeeds(
     kubernetes_config_via_proxy: ClientConfiguration,
     proxy_url: str,
     proxy_netrc: Path,
-    client_choice: ClientChoise,
+    client_choice: ClientChoice,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """HTTPS_PROXY without creds + netrc with creds succeeds.
@@ -78,7 +78,7 @@ async def test_trust_env_proxy_creds_from_netrc_succeeds(
 async def test_trust_env_proxy_missing_creds_fails(
     kubernetes_config_via_proxy: ClientConfiguration,
     proxy_url: str,
-    client_choice: ClientChoise,
+    client_choice: ClientChoice,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -108,7 +108,7 @@ async def test_trust_env_proxy_missing_creds_fails(
 async def test_no_proxy_bypasses_proxy(
     kubernetes_config_via_proxy: ClientConfiguration,
     proxy_url: str,
-    client_choice: ClientChoise,
+    client_choice: ClientChoice,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """NO_PROXY=k3s bypasses the proxy -> direct connection fails with DNS error.
@@ -135,7 +135,7 @@ async def test_no_proxy_bypasses_proxy(
 async def test_trust_env_bearer_token_via_proxy_succeeds(
     kubernetes_token_config_via_proxy: ClientConfiguration,
     proxy_url: str,
-    client_choice: ClientChoise,
+    client_choice: ClientChoice,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """SA bearer token + proxy basic auth: api.list() succeeds end-to-end.
@@ -163,7 +163,7 @@ async def test_trust_env_bearer_token_via_proxy_succeeds(
 async def test_trust_env_bearer_invalid_token_returns_unauthorized(
     kubernetes_token_config_via_proxy: ClientConfiguration,
     proxy_url: str,
-    client_choice: ClientChoise,
+    client_choice: ClientChoice,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A garbage token survives the proxy tunnel and is rejected by K8s as 401."""
@@ -185,7 +185,7 @@ async def test_trust_env_bearer_invalid_token_returns_unauthorized(
 async def test_trust_env_exec_via_proxy_succeeds(
     kubernetes_config_via_proxy: ClientConfiguration,
     proxy_url: str,
-    client_choice: ClientChoise,
+    client_choice: ClientChoice,
     tmp_namespace_name_via_proxy: str,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -212,7 +212,7 @@ async def test_trust_env_exec_via_proxy_succeeds(
 async def test_trust_env_exec_bearer_token_via_proxy_succeeds(
     kubernetes_admin_token_config_via_proxy: ClientConfiguration,
     proxy_url: str,
-    client_choice: ClientChoise,
+    client_choice: ClientChoice,
     tmp_namespace_name_via_proxy: str,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -247,7 +247,7 @@ async def test_trust_env_exec_bearer_token_via_proxy_succeeds(
 async def test_trust_env_exec_missing_proxy_creds_fails(
     kubernetes_config_via_proxy: ClientConfiguration,
     proxy_url: str,
-    client_choice: ClientChoise,
+    client_choice: ClientChoice,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -273,7 +273,7 @@ async def test_trust_env_exec_missing_proxy_creds_fails(
 async def test_trust_env_exec_no_proxy_bypasses_proxy(
     kubernetes_config_via_proxy: ClientConfiguration,
     proxy_url: str,
-    client_choice: ClientChoise,
+    client_choice: ClientChoice,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """NO_PROXY=k3s bypasses the proxy -> direct WS connect to k3s alias fails.

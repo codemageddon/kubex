@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `allowWatchBookmarks` query parameter handling on watch requests.
+- `WatchOptions`: `sendInitialEvents` (whether `true` or `false`) now always pairs with
+  `resourceVersionMatch=NotOlderThan` on the outgoing request, matching the Kubernetes API's
+  `validateWatchOptions` requirement.
+- Watch `ERROR` events. It now raises the correct `KubexApiError` subclass, with the full
+  `Status` — including `message` and `details` — preserved as its content.
+- `api.metadata.watch()` sent `Accept`/`Content-Type` fixed.
+- `anyio` is now a runtime dependency instead of a dev-only one.
+
+### Changed
+
+- **Breaking:** `WatchEvent`, `EventType`, and `Bookmark` moved from
+  `kubex_core.models.watch_event` (the separately published `kubex-core` package) to
+  `kubex.core.watch_event`. Import from the new location; no compatibility re-export is
+  provided.
+- **Breaking:** `VersionMatch.NOT_EXACT` renamed to `VersionMatch.NOT_OLDER_THAN` (the enum
+  value is unchanged, `"NotOlderThan"`).
+- **Breaking:** fixed three typos in public names, with no compatibility
+  aliases: `ConfgiurationError` → `ConfigurationError` (`kubex.core.exceptions`),
+  `ClientChoise` → `ClientChoice` (`kubex.client.client`), and
+  `get_version_and_froup_from_api_version` → `get_version_and_group_from_api_version`
+  (`kubex_core.models.resource_config`).
+- **Breaking:** `resource_version` removed from `RequestBuilder.watch()` and
+  `MetadataRequestBuilder.watch_metadata()` — pass it on `WatchOptions` instead.
+- `create()`/`replace()` and the subresource `replace()` methods (`scale`, `status`, `eviction`,
+  `resize`, `ephemeral_containers`) no longer pass `exclude_unset=True` to `model_dump_json()`.
+  Fields left at their Python-side default are now included on the wire. This has no effect on
+  the generated `kubex-k8s-*`/`kubex_core` models, whose optional fields default to `None` and
+  are still dropped by `exclude_none=True`; for user-defined CRD models with non-`None` field
+  defaults, a `replace()` can now write that default back to the cluster for a field the caller
+  never touched.
+
 ## [0.1.0-beta.2] - 2026-05-12
 
 ### Added

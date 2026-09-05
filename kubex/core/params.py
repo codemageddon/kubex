@@ -77,7 +77,7 @@ TimeoutTypes = Union[Timeout, float, int, None]
 
 class VersionMatch(str, Enum):
     EXACT = "Exact"
-    NOT_EXACT = "NotOlderThan"
+    NOT_OLDER_THAN = "NotOlderThan"
 
 
 class PropagationPolicy(str, Enum):
@@ -165,12 +165,14 @@ class WatchOptions:
         allow_bookmarks: bool | None = None,
         send_initial_events: bool | None = None,
         timeout_seconds: int | None = None,
+        resource_version: ResourceVersionTypes = None,
     ) -> None:
         self.label_selector = label_selector
         self.field_selector = field_selector
         self.allow_bookmarks = allow_bookmarks
         self.send_initial_events = send_initial_events
         self.timeout_seconds = timeout_seconds
+        self.resource_version = resource_version
 
     @classmethod
     def default(cls) -> WatchOptions:
@@ -183,11 +185,15 @@ class WatchOptions:
         if self.field_selector is not None:
             query_params["fieldSelector"] = self.field_selector
         if self.allow_bookmarks is not None:
-            query_params["allowBookmarks"] = "true" if self.allow_bookmarks else "false"
+            query_params["allowWatchBookmarks"] = (
+                "true" if self.allow_bookmarks else "false"
+            )
         if self.send_initial_events is not None:
             query_params["sendInitialEvents"] = (
                 "true" if self.send_initial_events else "false"
             )
+            query_params["resourceVersionMatch"] = VersionMatch.NOT_OLDER_THAN.value
+        query_params["resourceVersion"] = self.resource_version or ""
         if self.timeout_seconds is not None:
             query_params["timeoutSeconds"] = str(self.timeout_seconds)
         return query_params

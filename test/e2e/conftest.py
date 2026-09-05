@@ -6,7 +6,7 @@ from yaml import safe_load
 
 from kubex.api import Api
 from kubex.client.aiohttp import AioHttpClient
-from kubex.client.client import BaseClient, ClientChoise, create_client
+from kubex.client.client import BaseClient, ClientChoice, create_client
 from kubex.client.httpx import HttpxClient
 from kubex.configuration.configuration import ClientConfiguration, KubeConfig
 from kubex.configuration.file_config import configure_from_kubeconfig
@@ -51,8 +51,8 @@ async def aiohttp_client(
 
 @pytest.fixture(
     params=[
-        ClientChoise.HTTPX,
-        ClientChoise.AIOHTTP,
+        ClientChoice.HTTPX,
+        ClientChoice.AIOHTTP,
     ]
 )
 async def client(
@@ -60,7 +60,7 @@ async def client(
     request: pytest.FixtureRequest,
     anyio_backend: str,
 ) -> AsyncGenerator[BaseClient, None]:
-    if anyio_backend == "trio" and request.param != ClientChoise.HTTPX:
+    if anyio_backend == "trio" and request.param != ClientChoice.HTTPX:
         pytest.skip("Skipping AIOHTTP client for trio backend")
     client = await create_client(kubernetes_config, client_class=request.param)
     async with client as client:
@@ -103,21 +103,21 @@ async def kubernetes_token_config(
     return kubernetes_config
 
 
-@pytest.fixture(params=[ClientChoise.HTTPX, ClientChoise.AIOHTTP])
+@pytest.fixture(params=[ClientChoice.HTTPX, ClientChoice.AIOHTTP])
 def client_choice(
     request: pytest.FixtureRequest,
     anyio_backend: str,
-) -> ClientChoise:
-    if anyio_backend == "trio" and request.param != ClientChoise.HTTPX:
+) -> ClientChoice:
+    if anyio_backend == "trio" and request.param != ClientChoice.HTTPX:
         pytest.skip("Skipping AIOHTTP client for trio backend")
-    param: ClientChoise = request.param
+    param: ClientChoice = request.param
     return param
 
 
 @pytest.fixture
 async def token_client(
     kubernetes_token_config: ClientConfiguration,
-    client_choice: ClientChoise,
+    client_choice: ClientChoice,
 ) -> AsyncGenerator[BaseClient, None]:
     client = await create_client(kubernetes_token_config, client_class=client_choice)
     async with client as c:

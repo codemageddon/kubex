@@ -19,13 +19,13 @@ Auto-detection order: **aiohttp** is tried first, then **httpx**. If neither is 
 To force a specific client:
 
 ```python
-from kubex.client import create_client, ClientChoise
+from kubex.client import create_client, ClientChoice
 
 # Force aiohttp
-client = await create_client(client_class=ClientChoise.AIOHTTP)
+client = await create_client(client_class=ClientChoice.AIOHTTP)
 
 # Force httpx
-client = await create_client(client_class=ClientChoise.HTTPX)
+client = await create_client(client_class=ClientChoice.HTTPX)
 ```
 
 Pass a pre-built `ClientConfiguration` to skip the auto-loading of kubeconfig / in-cluster credentials:

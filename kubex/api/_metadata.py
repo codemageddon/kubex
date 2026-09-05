@@ -17,11 +17,11 @@ from kubex.core.params import (
 )
 from kubex.core.patch import Patch
 from kubex.core.request_builder.builder import RequestBuilder
+from kubex.core.watch_event import WatchEvent
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.partial_object_meta import PartialObjectMetadata
 from kubex_core.models.resource_config import Scope
 from kubex_core.models.typing import ResourceType
-from kubex_core.models.watch_event import WatchEvent
 
 from ._protocol import (
     ApiNamespaceTypes,
@@ -130,8 +130,8 @@ class MetadataAccessor(Generic[ResourceType]):
         field_selector: str | None = None,
         allow_bookmarks: bool | None = None,
         send_initial_events: bool | None = None,
-        timeout_seconds: int | None = None,
         resource_version: ResourceVersionTypes = None,
+        timeout_seconds: int | None = None,
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> AsyncGenerator[
         WatchEvent[PartialObjectMetadata],
@@ -145,11 +145,11 @@ class MetadataAccessor(Generic[ResourceType]):
             allow_bookmarks=allow_bookmarks,
             send_initial_events=send_initial_events,
             timeout_seconds=timeout_seconds,
+            resource_version=resource_version,
         )
         request = self._request_builder.watch_metadata(
             _namespace,
             options,
-            resource_version=resource_version,
             request_timeout=request_timeout,
         )
         async for line in self._client.stream_lines(request):
