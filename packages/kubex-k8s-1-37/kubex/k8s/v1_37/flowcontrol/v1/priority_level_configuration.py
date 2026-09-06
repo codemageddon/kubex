@@ -36,8 +36,8 @@ class PriorityLevelConfiguration(ClusterScopedEntity, HasStatusSubresource):
         alias="kind",
         description="Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
     )
-    spec: PriorityLevelConfigurationSpec | None = Field(
-        default=None,
+    spec: PriorityLevelConfigurationSpec = Field(
+        ...,
         alias="spec",
         description='`spec` is the specification of the desired behavior of a "request-priority". More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status',
     )

@@ -121,7 +121,7 @@ packages/                       # Workspace packages
 │       ├── scale.py            # Scale subresource model
 │       ├── eviction.py         # Eviction subresource model (policy/v1)
 │       └── partial_object_meta.py # Partial metadata variant
-└── kubex-k8s-{1-32..1-37}/     # Generated Kubernetes resource models (one package per K8s version)
+└── kubex-k8s-{1-32..1-38}/     # Generated Kubernetes resource models (one package per K8s version)
     └── kubex/k8s/v1_NN/        # ~666 generated model files across ~30 API groups
         ├── core/v1/            # Pod, Namespace, Service, ConfigMap, Secret, etc.
         ├── apps/v1/            # Deployment, StatefulSet, DaemonSet, ReplicaSet
@@ -239,7 +239,7 @@ lychee.toml                     # Link checker configuration
 - **Package manager**: [uv](https://github.com/astral-sh/uv) with workspace support
 - **Build backend**: hatchling
 - **Python**: 3.10, 3.11, 3.12, 3.13, 3.14
-- **Workspace members**: `packages/*` (kubex-core, kubex-k8s-1-32 through kubex-k8s-1-37)
+- **Workspace members**: `packages/*` (kubex-core, kubex-k8s-1-32 through kubex-k8s-1-38)
 - **Core deps**: `pydantic>=2.0,<3`, `pyyaml>=6.0.2`, `kubex-core` (workspace), `exceptiongroup>=1.2` (Python <3.11 only — used by `_BaseChannelSession.__aexit__` to unwrap single-exception `BaseExceptionGroup`s from the anyio task-group cleanup)
 - **Optional deps** (install via `--all-extras` or individually):
   - `httpx>=0.27.2` — primary HTTP client
@@ -341,7 +341,7 @@ Five GitHub Actions workflows:
 1. `pytest .` on Python 3.13 with all extras
 
 **Publish Test** (`publish-test.yaml`) — runs on pull requests to `main`:
-1. Appends `.devN` version suffix to all 8 packages
+1. Appends `.devN` version suffix to all 9 packages
 2. Builds all packages in dependency order
 3. Publishes to Test PyPI using OIDC trusted publishing
 4. Posts a PR comment with Test PyPI links
@@ -367,7 +367,7 @@ To publish a new version to PyPI:
 3. Create and push a git tag matching the `kubex` / `kubex-core` version: `git tag v<VERSION> && git push origin v<VERSION>`
 4. The `publish.yaml` workflow will verify that `kubex` and `kubex-core` versions match the tag, build all packages, and publish to production PyPI
 
-Both publish workflows use PyPI OIDC trusted publishing — no API tokens are stored in the repository. Each of the 8 packages must have a trusted publisher configured in its PyPI (and Test PyPI) project settings. See the comment block at the top of each workflow file for the exact configuration values.
+Both publish workflows use PyPI OIDC trusted publishing — no API tokens are stored in the repository. Each of the 9 packages must have a trusted publisher configured in its PyPI (and Test PyPI) project settings. See the comment block at the top of each workflow file for the exact configuration values.
 
 ## Coding Conventions
 

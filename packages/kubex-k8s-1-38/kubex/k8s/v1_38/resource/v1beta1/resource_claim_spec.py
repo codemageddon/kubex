@@ -1,0 +1,14 @@
+from pydantic import Field
+
+from kubex.k8s.v1_38.resource.v1beta1.device_claim import DeviceClaim
+from kubex_core.models.base import BaseK8sModel
+
+
+class ResourceClaimSpec(BaseK8sModel):
+    """ResourceClaimSpec defines what is being requested in a ResourceClaim and how to configure it."""
+
+    devices: DeviceClaim | None = Field(
+        default=None,
+        alias="devices",
+        description="Devices defines how to request devices.",
+    )

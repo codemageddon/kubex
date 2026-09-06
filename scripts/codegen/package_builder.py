@@ -21,6 +21,7 @@ Produces a directory tree:
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -43,6 +44,7 @@ class RenderInputs:
     package_version: str  # package release version string
     modules: dict[str, EmittedModule]
     shared_enums: list[enum_emitter.EmittedEnum]  # enums destined for _common.py
+    clean: bool = True  # remove the existing module tree before writing (skip for partial/--only-groups runs)
 
 
 def write_package(inputs: RenderInputs) -> Path:
@@ -58,6 +60,8 @@ def write_package(inputs: RenderInputs) -> Path:
     k8s_version_dashed = inputs.k8s_version.replace(".", "-")
     pkg_root = inputs.output_root / f"kubex-k8s-{k8s_version_dashed}"
     src_root = pkg_root / "kubex" / "k8s" / inputs.k8s_version_tag
+    if inputs.clean and src_root.exists():
+        shutil.rmtree(src_root)
     src_root.mkdir(parents=True, exist_ok=True)
 
     # pyproject.toml, README.

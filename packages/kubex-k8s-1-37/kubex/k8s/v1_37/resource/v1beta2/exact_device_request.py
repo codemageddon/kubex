@@ -1,6 +1,9 @@
 from pydantic import Field
 
 from kubex.k8s.v1_37.resource.v1beta2.capacity_requirements import CapacityRequirements
+from kubex.k8s.v1_37.resource.v1beta2.device_derived_attribute import (
+    DeviceDerivedAttribute,
+)
 from kubex.k8s.v1_37.resource.v1beta2.device_selector import DeviceSelector
 from kubex.k8s.v1_37.resource.v1beta2.device_toleration import DeviceToleration
 from kubex_core.models.base import BaseK8sModel
@@ -28,6 +31,11 @@ class ExactDeviceRequest(BaseK8sModel):
         default=None,
         alias="count",
         description='Count is used only when the count mode is "ExactCount". Must be greater than zero. If AllocationMode is ExactCount and this field is not specified, the default is one.',
+    )
+    derived_attributes: list[DeviceDerivedAttribute] | None = Field(
+        default=None,
+        alias="derivedAttributes",
+        description="DerivedAttributes defines a set of virtual attributes computed via CEL expressions for each candidate device. These virtual attributes can be referenced in `.devices.constraints` to align and match different devices (e.g., co-allocating a GPU and a NIC on the same NUMA node) even if their drivers publish different attributes. Derived attributes are not available via `device.attributes` in the CEL environment when evaluating selector expressions. Derived attributes allow you to extract, transform, or normalize topology information (such as extracting a NUMA index from a complex topology string or renaming a vendor-specific attribute) into a common virtual attribute name at scheduling time. The scheduler then evaluates these virtual attributes exactly like static attributes when matching constraints. Every derived attribute defined in this list must be referenced by at least one MatchAttribute or DistinctAttribute constraint in the `.devices.constraints` list. The maximum number of derived attributes is 32. This is an alpha field and requires enabling the DRADerivedAttributes feature gate.",
     )
     device_class_name: str = Field(
         ...,

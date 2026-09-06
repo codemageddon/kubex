@@ -8,7 +8,7 @@ This section covers advanced topics for production use and deeper integration.
 
     ---
 
-    Use separate model packages (`kubex-k8s-1-32` through `kubex-k8s-1-37`) to target specific cluster versions, or mix versions in a single application.
+    Use separate model packages (`kubex-k8s-1-32` through `kubex-k8s-1-38`) to target specific cluster versions, or mix versions in a single application.
 
     [Multi-version K8s](multi-version-k8s.md)
 

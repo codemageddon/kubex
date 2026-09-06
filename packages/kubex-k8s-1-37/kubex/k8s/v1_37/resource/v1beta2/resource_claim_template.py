@@ -33,8 +33,8 @@ class ResourceClaimTemplate(NamespaceScopedEntity):
         alias="kind",
         description="Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
     )
-    spec: ResourceClaimTemplateSpec = Field(
-        ...,
+    spec: ResourceClaimTemplateSpec | None = Field(
+        default=None,
         alias="spec",
         description="Describes the ResourceClaim that is to be generated. This field is immutable. A ResourceClaim will get created by the control plane for a Pod when needed and then not get updated anymore.",
     )

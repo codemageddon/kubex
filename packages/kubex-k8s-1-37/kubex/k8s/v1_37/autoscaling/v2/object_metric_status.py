@@ -19,7 +19,7 @@ class ObjectMetricStatus(BaseK8sModel):
     described_object: CrossVersionObjectReference = Field(
         ...,
         alias="describedObject",
-        description="DescribedObject specifies the descriptions of a object,such as kind,name apiVersion",
+        description="describedObject specifies the descriptions of a object,such as kind,name apiVersion",
     )
     metric: MetricIdentifier = Field(
         ...,

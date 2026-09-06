@@ -1,0 +1,18 @@
+from pydantic import Field
+
+from kubex_core.models.base import BaseK8sModel
+
+
+class ParamKind(BaseK8sModel):
+    """ParamKind is a tuple of Group Kind and Version."""
+
+    api_version: str | None = Field(
+        default=None,
+        alias="apiVersion",
+        description='apiVersion is the API group version the resources belong to. In format of "group/version". Required.',
+    )
+    kind: str | None = Field(
+        default=None,
+        alias="kind",
+        description="kind is the API kind the resources belong to. Required.",
+    )

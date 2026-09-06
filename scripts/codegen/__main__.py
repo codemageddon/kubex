@@ -72,6 +72,7 @@ def run_generate(
             package_version=package_version,
             modules=build.modules,
             shared_enums=build.shared_enums,
+            clean=only_groups is None,
         )
     )
     typer.echo(f"Wrote generated package to {pkg_root}")

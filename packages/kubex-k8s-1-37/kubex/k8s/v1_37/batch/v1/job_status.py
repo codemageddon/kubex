@@ -58,7 +58,7 @@ class JobStatus(BaseK8sModel):
     terminating: int | None = Field(
         default=None,
         alias="terminating",
-        description="The number of pods which are terminating (in phase Pending or Running and have a deletionTimestamp). This field is beta-level. The job controller populates the field when the feature gate JobPodReplacementPolicy is enabled (enabled by default).",
+        description="The number of pods which are terminating (in phase Pending or Running and have a deletionTimestamp).",
     )
     uncounted_terminated_pods: UncountedTerminatedPods | None = Field(
         default=None,

@@ -32,8 +32,8 @@ class ResourceClaim(NamespaceScopedEntity, HasStatusSubresource):
         alias="kind",
         description="Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
     )
-    spec: ResourceClaimSpec = Field(
-        ...,
+    spec: ResourceClaimSpec | None = Field(
+        default=None,
         alias="spec",
         description="Spec describes what is being requested and how to configure it. The spec is immutable.",
     )
