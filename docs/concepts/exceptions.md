@@ -30,7 +30,7 @@ from kubex.core.exceptions import NotFound, KubexApiError
 try:
     pod = await api.get("missing-pod")
 except NotFound as e:
-    print(e.status)   # HTTPStatus.NOT_FOUND
+    print(e.status)  # HTTPStatus.NOT_FOUND
     print(e.content)  # Status object or str with the error message
 ```
 

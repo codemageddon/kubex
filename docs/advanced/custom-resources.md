@@ -94,8 +94,8 @@ Kubex subresource accessors (`api.status`, `api.scale`) are enabled by marker in
 ```python
 from kubex_core.models.interfaces import HasStatusSubresource, NamespaceScopedEntity
 
-class Widget(NamespaceScopedEntity, HasStatusSubresource):
-    ...
+
+class Widget(NamespaceScopedEntity, HasStatusSubresource): ...
 ```
 
 For standard CRDs, only `HasStatusSubresource` and `HasScaleSubresource` are meaningful — the Kubernetes API server exposes `status` and `scale` subresources for CRDs that declare them in the CRD spec. The remaining markers are Pod-only and not available on custom resources. Adding them to a CRD model compiles and type-checks correctly, but the API server will return a `404` or `405` at runtime. `HasLogs`, `HasExec`, `HasAttach`, and `HasPortForward` are kubelet-proxied operations; `Evictable`, `HasEphemeralContainers`, and `HasResize` are ordinary API-server subresources that exist only for Pods.
@@ -128,6 +128,7 @@ from kubex.api import Api
 from kubex.client import create_client
 from kubex.core.patch import ApplyPatch
 from kubex_core.models.metadata import ObjectMetadata
+
 
 async def main() -> None:
     client = await create_client()

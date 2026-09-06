@@ -9,11 +9,11 @@ Only resources with the `HasScaleSubresource` marker interface expose `api.scale
 ```python
 from kubex.k8s.v1_35.apps.v1.deployment import Deployment
 
-deploy_api.scale.get(...)   # OK: Deployment has HasScaleSubresource
+deploy_api.scale.get(...)  # OK: Deployment has HasScaleSubresource
 
 from kubex.k8s.v1_35.core.v1.pod import Pod
 
-pod_api.scale.get(...)      # type error + runtime NotImplementedError
+pod_api.scale.get(...)  # type error + runtime NotImplementedError
 ```
 
 ## Reading the current scale

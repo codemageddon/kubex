@@ -72,11 +72,13 @@ from kubex.api import Api
 from kubex.client import create_client, ClientChoice
 from kubex.k8s.v1_35.core.v1.pod import Pod
 
+
 async def main():
     async with await create_client(client_class=ClientChoice.HTTPX) as client:
         api: Api[Pod] = Api(Pod, client=client, namespace="default")
         pod = await api.get("my-pod")
         print(pod.metadata.name)
+
 
 trio.run(main)
 ```

@@ -82,6 +82,7 @@ Because `stream()` can run indefinitely, wrap it in a timeout for scripts:
 ```python
 import anyio
 
+
 async def timed_stream(api: Api[Pod], pod_name: str) -> None:
     with anyio.fail_after(30):
         async for line in api.logs.stream(pod_name):

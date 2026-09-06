@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from testcontainers.k3s import K3SContainer  # type: ignore[import-untyped]
+from testcontainers.k3s import K3SContainer
 
 from kubex.api import Api
 from kubex.k8s.v1_35.core.v1.container import Container

@@ -9,11 +9,11 @@ Only resources with the `HasStatusSubresource` marker interface expose `api.stat
 ```python
 from kubex.k8s.v1_35.apps.v1.deployment import Deployment
 
-deploy_api.status.get(...)   # OK: Deployment has HasStatusSubresource
+deploy_api.status.get(...)  # OK: Deployment has HasStatusSubresource
 
 from kubex.k8s.v1_35.core.v1.config_map import ConfigMap
 
-cm_api.status.get(...)       # type error + runtime NotImplementedError
+cm_api.status.get(...)  # type error + runtime NotImplementedError
 ```
 
 ## Reading status

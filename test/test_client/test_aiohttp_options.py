@@ -18,6 +18,8 @@ from kubex.client.aiohttp import (  # noqa: E402
 from kubex.client.options import resolve_ws_max_message_size  # noqa: E402
 from kubex.core.request import Request  # noqa: E402
 
+from aiohttp.helpers import DEFAULT_CHUNK_SIZE  # noqa: E402
+
 
 @pytest.fixture
 def anyio_backend() -> str:
@@ -229,7 +231,7 @@ async def test_aiohttp_keep_alive_false_with_timeout_does_not_raise() -> None:
     "buffer_size,expected_bufsize",
     [
         pytest.param(..., 2**21, id="default_kubex_default"),
-        pytest.param(None, 2**16, id="none_aiohttp_default"),
+        pytest.param(None, DEFAULT_CHUNK_SIZE, id="none_aiohttp_default"),
         pytest.param(4096, 4096, id="explicit_int"),
     ],
 )

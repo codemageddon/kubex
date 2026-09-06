@@ -9,7 +9,7 @@ Only resources with the `Evictable` marker interface expose `api.eviction`. In p
 ```python
 from kubex.k8s.v1_35.core.v1.pod import Pod
 
-pod_api.eviction.create(...)   # OK: Pod has Evictable
+pod_api.eviction.create(...)  # OK: Pod has Evictable
 
 from kubex.k8s.v1_35.apps.v1.deployment import Deployment
 

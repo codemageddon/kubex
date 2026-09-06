@@ -128,9 +128,11 @@ from kubex.k8s.v1_35.core.v1.pod import Pod
 from kubex.k8s.v1_35.core.v1.pod_spec import PodSpec
 from kubex_core.models.metadata import ObjectMetadata
 
+
 async def watcher(pod_api: Api[Pod]) -> None:
     async for event in pod_api.watch(allow_bookmarks=True, namespace=None):
         print(event)
+
 
 async def main() -> None:
     client = await create_client()

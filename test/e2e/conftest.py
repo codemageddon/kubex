@@ -1,7 +1,7 @@
 from typing import AsyncGenerator, Generator
 
 import pytest
-from testcontainers.k3s import K3SContainer  # type: ignore[import-untyped]
+from testcontainers.k3s import K3SContainer
 from yaml import safe_load
 
 from kubex.api import Api
