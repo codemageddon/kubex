@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/logo.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -31,7 +31,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -1982,6 +1982,67 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#watch-events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Watch events
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kubex.core.watch_event" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        watch_event
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="watch_event">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#kubex.core.watch_event.Bookmark" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bookmark
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kubex.core.watch_event.EventType" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EventType
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kubex.core.watch_event.WatchEvent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WatchEvent
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#patch-types" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2473,6 +2534,67 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#watch-events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Watch events
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kubex.core.watch_event" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        watch_event
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="watch_event">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#kubex.core.watch_event.Bookmark" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bookmark
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kubex.core.watch_event.EventType" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EventType
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kubex.core.watch_event.WatchEvent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WatchEvent
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#patch-types" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2939,33 +3061,33 @@
 
                   <details class="mkdocstrings-source">
                     <summary>Source code in <code>kubex/core/params.py</code></summary>
-                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-387">387</a></span>
-<span class="normal"><a href="#__codelineno-0-388">388</a></span>
-<span class="normal"><a href="#__codelineno-0-389">389</a></span>
-<span class="normal"><a href="#__codelineno-0-390">390</a></span>
-<span class="normal"><a href="#__codelineno-0-391">391</a></span>
-<span class="normal"><a href="#__codelineno-0-392">392</a></span>
-<span class="normal"><a href="#__codelineno-0-393">393</a></span>
+                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-393">393</a></span>
 <span class="normal"><a href="#__codelineno-0-394">394</a></span>
 <span class="normal"><a href="#__codelineno-0-395">395</a></span>
 <span class="normal"><a href="#__codelineno-0-396">396</a></span>
 <span class="normal"><a href="#__codelineno-0-397">397</a></span>
 <span class="normal"><a href="#__codelineno-0-398">398</a></span>
 <span class="normal"><a href="#__codelineno-0-399">399</a></span>
-<span class="normal"><a href="#__codelineno-0-400">400</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-387" name="__codelineno-0-387"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-<a id="__codelineno-0-388" name="__codelineno-0-388"></a>    <span class="bp">self</span><span class="p">,</span>
-<a id="__codelineno-0-389" name="__codelineno-0-389"></a>    <span class="o">*</span><span class="p">,</span>
-<a id="__codelineno-0-390" name="__codelineno-0-390"></a>    <span class="n">container</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-391" name="__codelineno-0-391"></a>    <span class="n">stdin</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<a id="__codelineno-0-392" name="__codelineno-0-392"></a>    <span class="n">stdout</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-0-393" name="__codelineno-0-393"></a>    <span class="n">stderr</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-0-394" name="__codelineno-0-394"></a>    <span class="n">tty</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<a id="__codelineno-0-395" name="__codelineno-0-395"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-396" name="__codelineno-0-396"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">container</span> <span class="o">=</span> <span class="n">container</span>
-<a id="__codelineno-0-397" name="__codelineno-0-397"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">stdin</span> <span class="o">=</span> <span class="n">stdin</span>
-<a id="__codelineno-0-398" name="__codelineno-0-398"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span> <span class="o">=</span> <span class="n">stdout</span>
-<a id="__codelineno-0-399" name="__codelineno-0-399"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">stderr</span> <span class="o">=</span> <span class="n">stderr</span>
-<a id="__codelineno-0-400" name="__codelineno-0-400"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">tty</span> <span class="o">=</span> <span class="n">tty</span>
+<span class="normal"><a href="#__codelineno-0-400">400</a></span>
+<span class="normal"><a href="#__codelineno-0-401">401</a></span>
+<span class="normal"><a href="#__codelineno-0-402">402</a></span>
+<span class="normal"><a href="#__codelineno-0-403">403</a></span>
+<span class="normal"><a href="#__codelineno-0-404">404</a></span>
+<span class="normal"><a href="#__codelineno-0-405">405</a></span>
+<span class="normal"><a href="#__codelineno-0-406">406</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-393" name="__codelineno-0-393"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<a id="__codelineno-0-394" name="__codelineno-0-394"></a>    <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-0-395" name="__codelineno-0-395"></a>    <span class="o">*</span><span class="p">,</span>
+<a id="__codelineno-0-396" name="__codelineno-0-396"></a>    <span class="n">container</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-397" name="__codelineno-0-397"></a>    <span class="n">stdin</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<a id="__codelineno-0-398" name="__codelineno-0-398"></a>    <span class="n">stdout</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-0-399" name="__codelineno-0-399"></a>    <span class="n">stderr</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-0-400" name="__codelineno-0-400"></a>    <span class="n">tty</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<a id="__codelineno-0-401" name="__codelineno-0-401"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-402" name="__codelineno-0-402"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">container</span> <span class="o">=</span> <span class="n">container</span>
+<a id="__codelineno-0-403" name="__codelineno-0-403"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">stdin</span> <span class="o">=</span> <span class="n">stdin</span>
+<a id="__codelineno-0-404" name="__codelineno-0-404"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span> <span class="o">=</span> <span class="n">stdout</span>
+<a id="__codelineno-0-405" name="__codelineno-0-405"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">stderr</span> <span class="o">=</span> <span class="n">stderr</span>
+<a id="__codelineno-0-406" name="__codelineno-0-406"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">tty</span> <span class="o">=</span> <span class="n">tty</span>
 </code></pre></div></td></tr></table></div>
                   </details>
 
@@ -3030,13 +3152,7 @@ server expects.</p>
 
                   <details class="mkdocstrings-source">
                     <summary>Source code in <code>kubex/core/params.py</code></summary>
-                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-333">333</a></span>
-<span class="normal"><a href="#__codelineno-0-334">334</a></span>
-<span class="normal"><a href="#__codelineno-0-335">335</a></span>
-<span class="normal"><a href="#__codelineno-0-336">336</a></span>
-<span class="normal"><a href="#__codelineno-0-337">337</a></span>
-<span class="normal"><a href="#__codelineno-0-338">338</a></span>
-<span class="normal"><a href="#__codelineno-0-339">339</a></span>
+                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-339">339</a></span>
 <span class="normal"><a href="#__codelineno-0-340">340</a></span>
 <span class="normal"><a href="#__codelineno-0-341">341</a></span>
 <span class="normal"><a href="#__codelineno-0-342">342</a></span>
@@ -3066,43 +3182,49 @@ server expects.</p>
 <span class="normal"><a href="#__codelineno-0-366">366</a></span>
 <span class="normal"><a href="#__codelineno-0-367">367</a></span>
 <span class="normal"><a href="#__codelineno-0-368">368</a></span>
-<span class="normal"><a href="#__codelineno-0-369">369</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-333" name="__codelineno-0-333"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-<a id="__codelineno-0-334" name="__codelineno-0-334"></a>    <span class="bp">self</span><span class="p">,</span>
-<a id="__codelineno-0-335" name="__codelineno-0-335"></a>    <span class="o">*</span><span class="p">,</span>
-<a id="__codelineno-0-336" name="__codelineno-0-336"></a>    <span class="n">command</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-<a id="__codelineno-0-337" name="__codelineno-0-337"></a>    <span class="n">container</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-338" name="__codelineno-0-338"></a>    <span class="n">stdin</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<a id="__codelineno-0-339" name="__codelineno-0-339"></a>    <span class="n">stdout</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-0-340" name="__codelineno-0-340"></a>    <span class="n">stderr</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-0-341" name="__codelineno-0-341"></a>    <span class="n">tty</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<a id="__codelineno-0-342" name="__codelineno-0-342"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-343" name="__codelineno-0-343"></a>    <span class="c1"># ``str`` satisfies ``Sequence[str]`` (each character is itself a</span>
-<a id="__codelineno-0-344" name="__codelineno-0-344"></a>    <span class="c1"># ``str``), so ``list(&quot;sh&quot;)`` would silently produce ``[&quot;s&quot;, &quot;h&quot;]``</span>
-<a id="__codelineno-0-345" name="__codelineno-0-345"></a>    <span class="c1"># and emit a broken request. Reject it explicitly so callers see a</span>
-<a id="__codelineno-0-346" name="__codelineno-0-346"></a>    <span class="c1"># clear local validation error instead of a confusing 400 from the</span>
-<a id="__codelineno-0-347" name="__codelineno-0-347"></a>    <span class="c1"># API server.</span>
-<a id="__codelineno-0-348" name="__codelineno-0-348"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)):</span>
-<a id="__codelineno-0-349" name="__codelineno-0-349"></a>        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-<a id="__codelineno-0-350" name="__codelineno-0-350"></a>            <span class="s2">&quot;command must be a sequence of strings, not a single &quot;</span>
-<a id="__codelineno-0-351" name="__codelineno-0-351"></a>            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">command</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">; pass e.g. [&#39;sh&#39;, &#39;-c&#39;, &#39;echo hi&#39;]&quot;</span>
-<a id="__codelineno-0-352" name="__codelineno-0-352"></a>        <span class="p">)</span>
-<a id="__codelineno-0-353" name="__codelineno-0-353"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">command</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">command</span><span class="p">)</span>
-<a id="__codelineno-0-354" name="__codelineno-0-354"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">command</span><span class="p">:</span>
-<a id="__codelineno-0-355" name="__codelineno-0-355"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;command must be a non-empty sequence of strings&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-356" name="__codelineno-0-356"></a>    <span class="c1"># Each element must be a ``str`` — non-strings would otherwise</span>
-<a id="__codelineno-0-357" name="__codelineno-0-357"></a>    <span class="c1"># serialize via ``__str__`` (or fail at the HTTP layer for ``bytes``)</span>
-<a id="__codelineno-0-358" name="__codelineno-0-358"></a>    <span class="c1"># and produce a confusing 400 from the API server. Validate here so</span>
-<a id="__codelineno-0-359" name="__codelineno-0-359"></a>    <span class="c1"># callers see a clear local error instead.</span>
-<a id="__codelineno-0-360" name="__codelineno-0-360"></a>    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">element</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">command</span><span class="p">):</span>
-<a id="__codelineno-0-361" name="__codelineno-0-361"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">element</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-<a id="__codelineno-0-362" name="__codelineno-0-362"></a>            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-<a id="__codelineno-0-363" name="__codelineno-0-363"></a>                <span class="sa">f</span><span class="s2">&quot;command[</span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s2">] must be str, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">element</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-364" name="__codelineno-0-364"></a>            <span class="p">)</span>
-<a id="__codelineno-0-365" name="__codelineno-0-365"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">container</span> <span class="o">=</span> <span class="n">container</span>
-<a id="__codelineno-0-366" name="__codelineno-0-366"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">stdin</span> <span class="o">=</span> <span class="n">stdin</span>
-<a id="__codelineno-0-367" name="__codelineno-0-367"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span> <span class="o">=</span> <span class="n">stdout</span>
-<a id="__codelineno-0-368" name="__codelineno-0-368"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">stderr</span> <span class="o">=</span> <span class="n">stderr</span>
-<a id="__codelineno-0-369" name="__codelineno-0-369"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">tty</span> <span class="o">=</span> <span class="n">tty</span>
+<span class="normal"><a href="#__codelineno-0-369">369</a></span>
+<span class="normal"><a href="#__codelineno-0-370">370</a></span>
+<span class="normal"><a href="#__codelineno-0-371">371</a></span>
+<span class="normal"><a href="#__codelineno-0-372">372</a></span>
+<span class="normal"><a href="#__codelineno-0-373">373</a></span>
+<span class="normal"><a href="#__codelineno-0-374">374</a></span>
+<span class="normal"><a href="#__codelineno-0-375">375</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-339" name="__codelineno-0-339"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<a id="__codelineno-0-340" name="__codelineno-0-340"></a>    <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-0-341" name="__codelineno-0-341"></a>    <span class="o">*</span><span class="p">,</span>
+<a id="__codelineno-0-342" name="__codelineno-0-342"></a>    <span class="n">command</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+<a id="__codelineno-0-343" name="__codelineno-0-343"></a>    <span class="n">container</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-344" name="__codelineno-0-344"></a>    <span class="n">stdin</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<a id="__codelineno-0-345" name="__codelineno-0-345"></a>    <span class="n">stdout</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-0-346" name="__codelineno-0-346"></a>    <span class="n">stderr</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-0-347" name="__codelineno-0-347"></a>    <span class="n">tty</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<a id="__codelineno-0-348" name="__codelineno-0-348"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-349" name="__codelineno-0-349"></a>    <span class="c1"># ``str`` satisfies ``Sequence[str]`` (each character is itself a</span>
+<a id="__codelineno-0-350" name="__codelineno-0-350"></a>    <span class="c1"># ``str``), so ``list("sh")`` would silently produce ``["s", "h"]``</span>
+<a id="__codelineno-0-351" name="__codelineno-0-351"></a>    <span class="c1"># and emit a broken request. Reject it explicitly so callers see a</span>
+<a id="__codelineno-0-352" name="__codelineno-0-352"></a>    <span class="c1"># clear local validation error instead of a confusing 400 from the</span>
+<a id="__codelineno-0-353" name="__codelineno-0-353"></a>    <span class="c1"># API server.</span>
+<a id="__codelineno-0-354" name="__codelineno-0-354"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)):</span>
+<a id="__codelineno-0-355" name="__codelineno-0-355"></a>        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+<a id="__codelineno-0-356" name="__codelineno-0-356"></a>            <span class="s2">"command must be a sequence of strings, not a single "</span>
+<a id="__codelineno-0-357" name="__codelineno-0-357"></a>            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">command</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">; pass e.g. ['sh', '-c', 'echo hi']"</span>
+<a id="__codelineno-0-358" name="__codelineno-0-358"></a>        <span class="p">)</span>
+<a id="__codelineno-0-359" name="__codelineno-0-359"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">command</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">command</span><span class="p">)</span>
+<a id="__codelineno-0-360" name="__codelineno-0-360"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">command</span><span class="p">:</span>
+<a id="__codelineno-0-361" name="__codelineno-0-361"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"command must be a non-empty sequence of strings"</span><span class="p">)</span>
+<a id="__codelineno-0-362" name="__codelineno-0-362"></a>    <span class="c1"># Each element must be a ``str`` — non-strings would otherwise</span>
+<a id="__codelineno-0-363" name="__codelineno-0-363"></a>    <span class="c1"># serialize via ``__str__`` (or fail at the HTTP layer for ``bytes``)</span>
+<a id="__codelineno-0-364" name="__codelineno-0-364"></a>    <span class="c1"># and produce a confusing 400 from the API server. Validate here so</span>
+<a id="__codelineno-0-365" name="__codelineno-0-365"></a>    <span class="c1"># callers see a clear local error instead.</span>
+<a id="__codelineno-0-366" name="__codelineno-0-366"></a>    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">element</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">command</span><span class="p">):</span>
+<a id="__codelineno-0-367" name="__codelineno-0-367"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">element</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+<a id="__codelineno-0-368" name="__codelineno-0-368"></a>            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+<a id="__codelineno-0-369" name="__codelineno-0-369"></a>                <span class="sa">f</span><span class="s2">"command[</span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s2">] must be str, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">element</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span>
+<a id="__codelineno-0-370" name="__codelineno-0-370"></a>            <span class="p">)</span>
+<a id="__codelineno-0-371" name="__codelineno-0-371"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">container</span> <span class="o">=</span> <span class="n">container</span>
+<a id="__codelineno-0-372" name="__codelineno-0-372"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">stdin</span> <span class="o">=</span> <span class="n">stdin</span>
+<a id="__codelineno-0-373" name="__codelineno-0-373"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span> <span class="o">=</span> <span class="n">stdout</span>
+<a id="__codelineno-0-374" name="__codelineno-0-374"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">stderr</span> <span class="o">=</span> <span class="n">stderr</span>
+<a id="__codelineno-0-375" name="__codelineno-0-375"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">tty</span> <span class="o">=</span> <span class="n">tty</span>
 </code></pre></div></td></tr></table></div>
                   </details>
 
@@ -3156,13 +3278,7 @@ server expects.</p>
 
                   <details class="mkdocstrings-source">
                     <summary>Source code in <code>kubex/core/params.py</code></summary>
-                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-422">422</a></span>
-<span class="normal"><a href="#__codelineno-0-423">423</a></span>
-<span class="normal"><a href="#__codelineno-0-424">424</a></span>
-<span class="normal"><a href="#__codelineno-0-425">425</a></span>
-<span class="normal"><a href="#__codelineno-0-426">426</a></span>
-<span class="normal"><a href="#__codelineno-0-427">427</a></span>
-<span class="normal"><a href="#__codelineno-0-428">428</a></span>
+                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-428">428</a></span>
 <span class="normal"><a href="#__codelineno-0-429">429</a></span>
 <span class="normal"><a href="#__codelineno-0-430">430</a></span>
 <span class="normal"><a href="#__codelineno-0-431">431</a></span>
@@ -3177,28 +3293,34 @@ server expects.</p>
 <span class="normal"><a href="#__codelineno-0-440">440</a></span>
 <span class="normal"><a href="#__codelineno-0-441">441</a></span>
 <span class="normal"><a href="#__codelineno-0-442">442</a></span>
-<span class="normal"><a href="#__codelineno-0-443">443</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-422" name="__codelineno-0-422"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">ports</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-423" name="__codelineno-0-423"></a>    <span class="n">ports_t</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">ports</span><span class="p">)</span>
-<a id="__codelineno-0-424" name="__codelineno-0-424"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">ports_t</span><span class="p">:</span>
-<a id="__codelineno-0-425" name="__codelineno-0-425"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;portforward requires at least one port&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-426" name="__codelineno-0-426"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">ports_t</span><span class="p">))</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ports_t</span><span class="p">):</span>
-<a id="__codelineno-0-427" name="__codelineno-0-427"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;duplicate ports are not allowed&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-428" name="__codelineno-0-428"></a>    <span class="c1"># Channel IDs are a single byte (0..255).  Two channels per port</span>
-<a id="__codelineno-0-429" name="__codelineno-0-429"></a>    <span class="c1"># (data=2i, error=2i+1) means index 127 maps to error channel</span>
-<a id="__codelineno-0-430" name="__codelineno-0-430"></a>    <span class="c1"># 2*127+1 = 255, which collides with the v5 CHANNEL_CLOSE sentinel.</span>
-<a id="__codelineno-0-431" name="__codelineno-0-431"></a>    <span class="c1"># The kubelet portforward currently negotiates v4 only (no</span>
-<a id="__codelineno-0-432" name="__codelineno-0-432"></a>    <span class="c1"># CHANNEL_CLOSE sentinel), but we cap at 127 to stay forward-compatible</span>
-<a id="__codelineno-0-433" name="__codelineno-0-433"></a>    <span class="c1"># with v5 and to keep error-channel ids inside [0, 254].</span>
-<a id="__codelineno-0-434" name="__codelineno-0-434"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ports_t</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">127</span><span class="p">:</span>
-<a id="__codelineno-0-435" name="__codelineno-0-435"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-<a id="__codelineno-0-436" name="__codelineno-0-436"></a>            <span class="sa">f</span><span class="s2">&quot;portforward supports at most 127 ports, got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">ports_t</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-437" name="__codelineno-0-437"></a>        <span class="p">)</span>
-<a id="__codelineno-0-438" name="__codelineno-0-438"></a>    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">ports_t</span><span class="p">:</span>
-<a id="__codelineno-0-439" name="__codelineno-0-439"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
-<a id="__codelineno-0-440" name="__codelineno-0-440"></a>            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;port must be int, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">p</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-441" name="__codelineno-0-441"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="n">p</span> <span class="o">&lt;=</span> <span class="mi">65535</span><span class="p">:</span>
-<a id="__codelineno-0-442" name="__codelineno-0-442"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;port </span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s2"> out of range 1..65535&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-443" name="__codelineno-0-443"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">ports</span> <span class="o">=</span> <span class="n">ports_t</span>
+<span class="normal"><a href="#__codelineno-0-443">443</a></span>
+<span class="normal"><a href="#__codelineno-0-444">444</a></span>
+<span class="normal"><a href="#__codelineno-0-445">445</a></span>
+<span class="normal"><a href="#__codelineno-0-446">446</a></span>
+<span class="normal"><a href="#__codelineno-0-447">447</a></span>
+<span class="normal"><a href="#__codelineno-0-448">448</a></span>
+<span class="normal"><a href="#__codelineno-0-449">449</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-428" name="__codelineno-0-428"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">ports</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-429" name="__codelineno-0-429"></a>    <span class="n">ports_t</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">ports</span><span class="p">)</span>
+<a id="__codelineno-0-430" name="__codelineno-0-430"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">ports_t</span><span class="p">:</span>
+<a id="__codelineno-0-431" name="__codelineno-0-431"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"portforward requires at least one port"</span><span class="p">)</span>
+<a id="__codelineno-0-432" name="__codelineno-0-432"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">ports_t</span><span class="p">))</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ports_t</span><span class="p">):</span>
+<a id="__codelineno-0-433" name="__codelineno-0-433"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"duplicate ports are not allowed"</span><span class="p">)</span>
+<a id="__codelineno-0-434" name="__codelineno-0-434"></a>    <span class="c1"># Channel IDs are a single byte (0..255).  Two channels per port</span>
+<a id="__codelineno-0-435" name="__codelineno-0-435"></a>    <span class="c1"># (data=2i, error=2i+1) means index 127 maps to error channel</span>
+<a id="__codelineno-0-436" name="__codelineno-0-436"></a>    <span class="c1"># 2*127+1 = 255, which collides with the v5 CHANNEL_CLOSE sentinel.</span>
+<a id="__codelineno-0-437" name="__codelineno-0-437"></a>    <span class="c1"># The kubelet portforward currently negotiates v4 only (no</span>
+<a id="__codelineno-0-438" name="__codelineno-0-438"></a>    <span class="c1"># CHANNEL_CLOSE sentinel), but we cap at 127 to stay forward-compatible</span>
+<a id="__codelineno-0-439" name="__codelineno-0-439"></a>    <span class="c1"># with v5 and to keep error-channel ids inside [0, 254].</span>
+<a id="__codelineno-0-440" name="__codelineno-0-440"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ports_t</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">127</span><span class="p">:</span>
+<a id="__codelineno-0-441" name="__codelineno-0-441"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+<a id="__codelineno-0-442" name="__codelineno-0-442"></a>            <span class="sa">f</span><span class="s2">"portforward supports at most 127 ports, got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">ports_t</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+<a id="__codelineno-0-443" name="__codelineno-0-443"></a>        <span class="p">)</span>
+<a id="__codelineno-0-444" name="__codelineno-0-444"></a>    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">ports_t</span><span class="p">:</span>
+<a id="__codelineno-0-445" name="__codelineno-0-445"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+<a id="__codelineno-0-446" name="__codelineno-0-446"></a>            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"port must be int, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">p</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-0-447" name="__codelineno-0-447"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="n">p</span> <span class="o">&lt;=</span> <span class="mi">65535</span><span class="p">:</span>
+<a id="__codelineno-0-448" name="__codelineno-0-448"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"port </span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s2"> out of range 1..65535"</span><span class="p">)</span>
+<a id="__codelineno-0-449" name="__codelineno-0-449"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">ports</span> <span class="o">=</span> <span class="n">ports_t</span>
 </code></pre></div></td></tr></table></div>
                   </details>
 
@@ -3432,7 +3554,7 @@ Only honored by the httpx backend.</p>
 <span class="normal"><a href="#__codelineno-0-51">51</a></span>
 <span class="normal"><a href="#__codelineno-0-52">52</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-45" name="__codelineno-0-45"></a><span class="nd">@classmethod</span>
 <a id="__codelineno-0-46" name="__codelineno-0-46"></a><span class="k">def</span><span class="w"> </span><span class="nf">coerce</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">TimeoutTypes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Timeout</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-47" name="__codelineno-0-47"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Normalize a ``TimeoutTypes`` value to ``Timeout`` or ``None``.&quot;&quot;&quot;</span>
+<a id="__codelineno-0-47" name="__codelineno-0-47"></a><span class="w">    </span><span class="sd">"""Normalize a ``TimeoutTypes`` value to ``Timeout`` or ``None``."""</span>
 <a id="__codelineno-0-48" name="__codelineno-0-48"></a>    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 <a id="__codelineno-0-49" name="__codelineno-0-49"></a>        <span class="k">return</span> <span class="kc">None</span>
 <a id="__codelineno-0-50" name="__codelineno-0-50"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Timeout</span><span class="p">):</span>
@@ -3443,6 +3565,215 @@ Only honored by the httpx backend.</p>
     </div>
 
 </div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div><h2 id="watch-events">Watch events<a class="headerlink" href="#watch-events" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<h2 id="kubex.core.watch_event" class="doc doc-heading">
+            <span class="doc doc-object-name doc-module-name">kubex.core.watch_event</span>
+
+
+<a href="#kubex.core.watch_event" class="headerlink" title="Permanent link">&para;</a></h2>
+
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="kubex.core.watch_event.Bookmark" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">Bookmark</span>
+
+
+<a href="#kubex.core.watch_event.Bookmark" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="BaseEntity (kubex_core.models.base_entity.BaseEntity)" href="../kubex-core/#kubex_core.models.base_entity.BaseEntity">BaseEntity</a></code></p>
+
+
+
+        <p>Bookmark is a pointer to a resource in a stream.</p>
+
+
+
+
+
+
+
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="kubex.core.watch_event.EventType" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">EventType</span>
+
+
+<a href="#kubex.core.watch_event.EventType" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="str">str</span></code>, <code><span title="enum.Enum">Enum</span></code></p>
+
+
+
+        <p>EventType is the type of the watch event.</p>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="kubex.core.watch_event.WatchEvent" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">WatchEvent</span>
+
+
+<a href="#kubex.core.watch_event.WatchEvent" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">WatchEvent</span><span class="p">(</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">resource_type</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">ResourceType</span><span class="p">],</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">raw_event</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="typing.Generic">Generic</span>[<span title="kubex_core.models.typing.ResourceType">ResourceType</span>]</code></p>
+
+
+
+        <p>WatchEvent represents a single event from a watch stream.</p>
+
+
+
+
+
+
+
+
+                  <details class="mkdocstrings-source">
+                    <summary>Source code in <code>kubex/core/watch_event.py</code></summary>
+                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-29">29</a></span>
+<span class="normal"><a href="#__codelineno-0-30">30</a></span>
+<span class="normal"><a href="#__codelineno-0-31">31</a></span>
+<span class="normal"><a href="#__codelineno-0-32">32</a></span>
+<span class="normal"><a href="#__codelineno-0-33">33</a></span>
+<span class="normal"><a href="#__codelineno-0-34">34</a></span>
+<span class="normal"><a href="#__codelineno-0-35">35</a></span>
+<span class="normal"><a href="#__codelineno-0-36">36</a></span>
+<span class="normal"><a href="#__codelineno-0-37">37</a></span>
+<span class="normal"><a href="#__codelineno-0-38">38</a></span>
+<span class="normal"><a href="#__codelineno-0-39">39</a></span>
+<span class="normal"><a href="#__codelineno-0-40">40</a></span>
+<span class="normal"><a href="#__codelineno-0-41">41</a></span>
+<span class="normal"><a href="#__codelineno-0-42">42</a></span>
+<span class="normal"><a href="#__codelineno-0-43">43</a></span>
+<span class="normal"><a href="#__codelineno-0-44">44</a></span>
+<span class="normal"><a href="#__codelineno-0-45">45</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<a id="__codelineno-0-30" name="__codelineno-0-30"></a>    <span class="bp">self</span><span class="p">,</span> <span class="n">resource_type</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">ResourceType</span><span class="p">],</span> <span class="n">raw_event</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+<a id="__codelineno-0-31" name="__codelineno-0-31"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-32" name="__codelineno-0-32"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_resource_type</span> <span class="o">=</span> <span class="n">resource_type</span>
+<a id="__codelineno-0-33" name="__codelineno-0-33"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">EventType</span><span class="p">(</span><span class="n">raw_event</span><span class="p">[</span><span class="s2">"type"</span><span class="p">])</span>
+<a id="__codelineno-0-34" name="__codelineno-0-34"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">object</span><span class="p">:</span> <span class="n">ResourceType</span> <span class="o">|</span> <span class="n">Bookmark</span>
+<a id="__codelineno-0-35" name="__codelineno-0-35"></a>    <span class="k">match</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
+<a id="__codelineno-0-36" name="__codelineno-0-36"></a>        <span class="k">case</span> <span class="n">EventType</span><span class="o">.</span><span class="n">BOOKMARK</span><span class="p">:</span>
+<a id="__codelineno-0-37" name="__codelineno-0-37"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">object</span> <span class="o">=</span> <span class="n">Bookmark</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span><span class="n">raw_event</span><span class="p">[</span><span class="s2">"object"</span><span class="p">])</span>
+<a id="__codelineno-0-38" name="__codelineno-0-38"></a>        <span class="k">case</span> <span class="n">EventType</span><span class="o">.</span><span class="n">ERROR</span><span class="p">:</span>
+<a id="__codelineno-0-39" name="__codelineno-0-39"></a>            <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-40" name="__codelineno-0-40"></a>                <span class="n">status</span> <span class="o">=</span> <span class="n">Status</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span><span class="n">raw_event</span><span class="p">[</span><span class="s2">"object"</span><span class="p">])</span>
+<a id="__codelineno-0-41" name="__codelineno-0-41"></a>            <span class="k">except</span> <span class="n">ValidationError</span><span class="p">:</span>
+<a id="__codelineno-0-42" name="__codelineno-0-42"></a>                <span class="k">raise</span> <span class="n">build_exception</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">raw_event</span><span class="p">[</span><span class="s2">"object"</span><span class="p">]))</span>
+<a id="__codelineno-0-43" name="__codelineno-0-43"></a>            <span class="k">raise</span> <span class="n">build_exception</span><span class="p">(</span><span class="n">status</span><span class="o">.</span><span class="n">code</span><span class="p">,</span> <span class="n">status</span><span class="p">)</span>
+<a id="__codelineno-0-44" name="__codelineno-0-44"></a>        <span class="k">case</span><span class="w"> </span><span class="k">_</span><span class="p">:</span>
+<a id="__codelineno-0-45" name="__codelineno-0-45"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">object</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resource_type</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span><span class="n">raw_event</span><span class="p">[</span><span class="s2">"object"</span><span class="p">])</span>
+</code></pre></div></td></tr></table></div>
+                  </details>
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3512,7 +3843,7 @@ Only honored by the httpx backend.</p>
 
         <p>RFC 6902 JSON Patch document.</p>
 <p>Can be constructed directly or built incrementally via chaining::</p>
-<div class="highlight"><pre><span></span><code>patch = JsonPatch().add(&quot;/a&quot;, 1).remove(&quot;/b&quot;).replace(&quot;/c&quot;, &quot;new&quot;)
+<div class="highlight"><pre><span></span><code>patch = JsonPatch().add("/a", 1).remove("/b").replace("/c", "new")
 </code></pre></div>
 
 
@@ -3566,9 +3897,9 @@ Only honored by the httpx backend.</p>
 or a sequence of reference tokens each prefixed by <code>/</code>.</p>
 <p>Construct from a raw string, from individual tokens, or by chaining
 the <code>/</code> operator::</p>
-<div class="highlight"><pre><span></span><code>ptr = JsonPointer(&quot;/foo/0&quot;)
-ptr = JsonPointer.from_tokens(&quot;foo&quot;, 0)
-ptr = JsonPointer() / &quot;foo&quot; / 0
+<div class="highlight"><pre><span></span><code>ptr = JsonPointer("/foo/0")
+ptr = JsonPointer.from_tokens("foo", 0)
+ptr = JsonPointer() / "foo" / 0
 </code></pre></div>
 
 
@@ -3649,13 +3980,13 @@ ptr = JsonPointer() / &quot;foo&quot; / 0
 <span class="normal"><a href="#__codelineno-0-80">80</a></span>
 <span class="normal"><a href="#__codelineno-0-81">81</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-73" name="__codelineno-0-73"></a><span class="nd">@classmethod</span>
 <a id="__codelineno-0-74" name="__codelineno-0-74"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_tokens</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">tokens</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JsonPointer</span><span class="p">:</span>
-<a id="__codelineno-0-75" name="__codelineno-0-75"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Build a pointer from unescaped reference tokens.</span>
+<a id="__codelineno-0-75" name="__codelineno-0-75"></a><span class="w">    </span><span class="sd">"""Build a pointer from unescaped reference tokens.</span>
 <a id="__codelineno-0-76" name="__codelineno-0-76"></a>
 <a id="__codelineno-0-77" name="__codelineno-0-77"></a><span class="sd">    Tokens are escaped per RFC 6901 (``~`` -&gt; ``~0``, ``/`` -&gt; ``~1``).</span>
-<a id="__codelineno-0-78" name="__codelineno-0-78"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-78" name="__codelineno-0-78"></a><span class="sd">    """</span>
 <a id="__codelineno-0-79" name="__codelineno-0-79"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">tokens</span><span class="p">:</span>
-<a id="__codelineno-0-80" name="__codelineno-0-80"></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-81" name="__codelineno-0-81"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_escape_token</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">))</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tokens</span><span class="p">))</span>
+<a id="__codelineno-0-80" name="__codelineno-0-80"></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+<a id="__codelineno-0-81" name="__codelineno-0-81"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="s2">"/"</span> <span class="o">+</span> <span class="s2">"/"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_escape_token</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">))</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tokens</span><span class="p">))</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3730,7 +4061,7 @@ ptr = JsonPointer() / &quot;foo&quot; / 0
 
         <p>RFC 6902 JSON Patch document.</p>
 <p>Can be constructed directly or built incrementally via chaining::</p>
-<div class="highlight"><pre><span></span><code>patch = JsonPatch().add(&quot;/a&quot;, 1).remove(&quot;/b&quot;).replace(&quot;/c&quot;, &quot;new&quot;)
+<div class="highlight"><pre><span></span><code>patch = JsonPatch().add("/a", 1).remove("/b").replace("/c", "new")
 </code></pre></div>
 
 
@@ -3825,9 +4156,9 @@ ptr = JsonPointer() / &quot;foo&quot; / 0
 or a sequence of reference tokens each prefixed by <code>/</code>.</p>
 <p>Construct from a raw string, from individual tokens, or by chaining
 the <code>/</code> operator::</p>
-<div class="highlight"><pre><span></span><code>ptr = JsonPointer(&quot;/foo/0&quot;)
-ptr = JsonPointer.from_tokens(&quot;foo&quot;, 0)
-ptr = JsonPointer() / &quot;foo&quot; / 0
+<div class="highlight"><pre><span></span><code>ptr = JsonPointer("/foo/0")
+ptr = JsonPointer.from_tokens("foo", 0)
+ptr = JsonPointer() / "foo" / 0
 </code></pre></div>
 
 
@@ -3908,13 +4239,13 @@ ptr = JsonPointer() / &quot;foo&quot; / 0
 <span class="normal"><a href="#__codelineno-0-80">80</a></span>
 <span class="normal"><a href="#__codelineno-0-81">81</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-73" name="__codelineno-0-73"></a><span class="nd">@classmethod</span>
 <a id="__codelineno-0-74" name="__codelineno-0-74"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_tokens</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">tokens</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JsonPointer</span><span class="p">:</span>
-<a id="__codelineno-0-75" name="__codelineno-0-75"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Build a pointer from unescaped reference tokens.</span>
+<a id="__codelineno-0-75" name="__codelineno-0-75"></a><span class="w">    </span><span class="sd">"""Build a pointer from unescaped reference tokens.</span>
 <a id="__codelineno-0-76" name="__codelineno-0-76"></a>
 <a id="__codelineno-0-77" name="__codelineno-0-77"></a><span class="sd">    Tokens are escaped per RFC 6901 (``~`` -&gt; ``~0``, ``/`` -&gt; ``~1``).</span>
-<a id="__codelineno-0-78" name="__codelineno-0-78"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-78" name="__codelineno-0-78"></a><span class="sd">    """</span>
 <a id="__codelineno-0-79" name="__codelineno-0-79"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">tokens</span><span class="p">:</span>
-<a id="__codelineno-0-80" name="__codelineno-0-80"></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-81" name="__codelineno-0-81"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_escape_token</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">))</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tokens</span><span class="p">))</span>
+<a id="__codelineno-0-80" name="__codelineno-0-80"></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+<a id="__codelineno-0-81" name="__codelineno-0-81"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="s2">"/"</span> <span class="o">+</span> <span class="s2">"/"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_escape_token</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">))</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tokens</span><span class="p">))</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -4120,7 +4451,7 @@ ptr = JsonPointer() / &quot;foo&quot; / 0
       <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>
