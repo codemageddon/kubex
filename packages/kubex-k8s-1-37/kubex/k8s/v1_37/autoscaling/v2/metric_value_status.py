@@ -9,7 +9,7 @@ class MetricValueStatus(BaseK8sModel):
     average_utilization: int | None = Field(
         default=None,
         alias="averageUtilization",
-        description="currentAverageUtilization is the current value of the average of the resource metric across all relevant pods, represented as a percentage of the requested value of the resource for the pods.",
+        description="averageUtilization is the current value of the average of the resource metric across all relevant pods, represented as a percentage of the requested value of the resource for the pods.",
     )
     average_value: str | None = Field(
         default=None,

@@ -25,7 +25,7 @@ class ClusterRole(ClusterScopedEntity):
     aggregation_rule: AggregationRule | None = Field(
         default=None,
         alias="aggregationRule",
-        description="AggregationRule is an optional field that describes how to build the Rules for this ClusterRole. If AggregationRule is set, then the Rules are controller managed and direct changes to Rules will be stomped by the controller.",
+        description="aggregationRule is an optional field that describes how to build the Rules for this ClusterRole. If AggregationRule is set, then the Rules are controller managed and direct changes to Rules will be stomped by the controller.",
     )
     api_version: Literal["rbac.authorization.k8s.io/v1"] = Field(
         default="rbac.authorization.k8s.io/v1",
@@ -40,5 +40,5 @@ class ClusterRole(ClusterScopedEntity):
     rules: list[PolicyRule] | None = Field(
         default=None,
         alias="rules",
-        description="Rules holds all the PolicyRules for this ClusterRole",
+        description="rules holds all the PolicyRules for this ClusterRole",
     )

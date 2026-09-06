@@ -52,6 +52,11 @@ class DeviceRequestAllocationResult(BaseK8sModel):
         alias="shareID",
         description="ShareID uniquely identifies an individual allocation share of the device, used when the device supports multiple simultaneous allocations. It serves as an additional map key to differentiate concurrent shares of the same device.",
     )
+    skip_node_operations: list[str] | None = Field(
+        default=None,
+        alias="skipNodeOperations",
+        description="SkipNodeOperations lists node-local resource operations (gRPC calls) that will be skipped for this allocated device when determining whether operations are necessary on the node. If all allocated devices for a driver in a claim skip an operation, that gRPC call will be skipped. It is a copy of the ResourceSlice.spec.skipNodeOperations value at the time when the device was allocated.",
+    )
     tolerations: list[DeviceToleration] | None = Field(
         default=None,
         alias="tolerations",

@@ -32,8 +32,8 @@ class FlowSchema(ClusterScopedEntity, HasStatusSubresource):
         alias="kind",
         description="Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
     )
-    spec: FlowSchemaSpec | None = Field(
-        default=None,
+    spec: FlowSchemaSpec = Field(
+        ...,
         alias="spec",
         description="`spec` is the specification of the desired behavior of a FlowSchema. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status",
     )

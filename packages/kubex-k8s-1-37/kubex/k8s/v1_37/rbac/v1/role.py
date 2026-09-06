@@ -32,5 +32,5 @@ class Role(NamespaceScopedEntity):
     rules: list[PolicyRule] | None = Field(
         default=None,
         alias="rules",
-        description="Rules holds all the PolicyRules for this Role",
+        description="rules holds all the PolicyRules for this Role",
     )

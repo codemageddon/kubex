@@ -3,6 +3,7 @@ from pydantic import Field
 from kubex.k8s.v1_37.core.v1.affinity import Affinity
 from kubex.k8s.v1_37.core.v1.container import Container
 from kubex.k8s.v1_37.core.v1.ephemeral_container import EphemeralContainer
+from kubex.k8s.v1_37.core.v1.eviction_responder import EvictionResponder
 from kubex.k8s.v1_37.core.v1.host_alias import HostAlias
 from kubex.k8s.v1_37.core.v1.local_object_reference import LocalObjectReference
 from kubex.k8s.v1_37.core.v1.pod_dns_config import PodDNSConfig
@@ -62,6 +63,11 @@ class PodSpec(BaseK8sModel):
         alias="ephemeralContainers",
         description="List of ephemeral containers run in this pod. Ephemeral containers may be run in an existing pod to perform user-initiated actions such as debugging. This list cannot be specified when creating a pod, and it cannot be modified by updating the pod spec. In order to add an ephemeral container to an existing pod, use the pod's ephemeralcontainers subresource.",
     )
+    eviction_responders: list[EvictionResponder] | None = Field(
+        default=None,
+        alias="evictionResponders",
+        description="evictionResponders reference responders that react to Evictions based on EvictionRequests. Responders should observe and communicate through the Eviction Resource API to help with the graceful termination of a pod. The responders are selected sequentially, according to their specified priority. Responders should periodically report on an eviction progress by updating the .status.responders[].heartbeatTime field of the Eviction object. If this field is not updated within the heartbeat deadline defined by the Eviction API (currently 20 minutes), the eviction is passed over to the next responder with a lower priority. If there is no other responder, the last default imperative-eviction.k8s.io/evictor responder with a priority of 100 will evict the pod using the imperative Eviction API (pods/<name>/eviction subresource). The maximum length of the responders list is 10. Responders are not supported when the pod is part of a PodGroup (.spec.schedulingGroup is set). This field can only be set on creation and is immutable afterwards.",
+    )
     host_aliases: list[HostAlias] | None = Field(
         default=None,
         alias="hostAliases",
@@ -95,7 +101,7 @@ class PodSpec(BaseK8sModel):
     hostname_override: str | None = Field(
         default=None,
         alias="hostnameOverride",
-        description="HostnameOverride specifies an explicit override for the pod's hostname as perceived by the pod. This field only specifies the pod's hostname and does not affect its DNS records. When this field is set to a non-empty string: - It takes precedence over the values set in `hostname` and `subdomain`. - The Pod's hostname will be set to this value. - `setHostnameAsFQDN` must be nil or set to false. - `hostNetwork` must be set to false. This field must be a valid DNS subdomain as defined in RFC 1123 and contain at most 64 characters. Requires the HostnameOverride feature gate to be enabled.",
+        description="HostnameOverride specifies an explicit override for the pod's hostname as perceived by the pod. This field only specifies the pod's hostname and does not affect its DNS records. When this field is set to a non-empty string: - It takes precedence over the values set in `hostname` and `subdomain`. - The Pod's hostname will be set to this value. - `setHostnameAsFQDN` must be nil or set to false. - `hostNetwork` must be set to false. This field must be a valid DNS subdomain as defined in RFC 1123 and contain at most 64 characters.",
     )
     image_pull_secrets: list[LocalObjectReference] | None = Field(
         default=None,
@@ -130,7 +136,7 @@ class PodSpec(BaseK8sModel):
     preemption_policy: str | None = Field(
         default=None,
         alias="preemptionPolicy",
-        description="PreemptionPolicy is the Policy for preempting pods with lower priority. One of Never, PreemptLowerPriority. Defaults to PreemptLowerPriority if unset.",
+        description="PreemptionPolicy is the Policy for preempting pods with lower priority. One of Never, PreemptLowerPriority. When Priority Admission Controller is enabled, it prevents users from setting this field. The admission controller populates this field from PriorityClassName. Defaults to PreemptLowerPriority if unset.",
     )
     priority: int | None = Field(
         default=None,

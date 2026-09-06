@@ -31,7 +31,7 @@ class LeaseSpec(BaseK8sModel):
     preferred_holder: str | None = Field(
         default=None,
         alias="preferredHolder",
-        description="PreferredHolder signals to a lease holder that the lease has a more optimal holder and should be given up. This field can only be set if Strategy is also set.",
+        description="preferredHolder signals to a lease holder that the lease has a more optimal holder and should be given up. This field can only be set if Strategy is also set.",
     )
     renew_time: datetime.datetime | None = Field(
         default=None,
@@ -41,5 +41,5 @@ class LeaseSpec(BaseK8sModel):
     strategy: str | None = Field(
         default=None,
         alias="strategy",
-        description="Strategy indicates the strategy for picking the leader for coordinated leader election. If the field is not specified, there is no active coordination for this lease. (Alpha) Using this field requires the CoordinatedLeaderElection feature gate to be enabled.",
+        description="strategy indicates the strategy for picking the leader for coordinated leader election. If the field is not specified, there is no active coordination for this lease. (Alpha) Using this field requires the CoordinatedLeaderElection feature gate to be enabled.",
     )

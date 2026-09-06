@@ -36,8 +36,8 @@ class StatefulSet(NamespaceScopedEntity, HasScaleSubresource, HasStatusSubresour
         alias="kind",
         description="Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
     )
-    spec: StatefulSetSpec | None = Field(
-        default=None,
+    spec: StatefulSetSpec = Field(
+        ...,
         alias="spec",
         description="Spec defines the desired identities of pods in this set.",
     )

@@ -10,5 +10,5 @@ class AggregationRule(BaseK8sModel):
     cluster_role_selectors: list[LabelSelector] | None = Field(
         default=None,
         alias="clusterRoleSelectors",
-        description="ClusterRoleSelectors holds a list of selectors which will be used to find ClusterRoles and create the rules. If any of the selectors match, then the ClusterRole's permissions will be added",
+        description="clusterRoleSelectors holds a list of selectors which will be used to find ClusterRoles and create the rules. If any of the selectors match, then the ClusterRole's permissions will be added",
     )

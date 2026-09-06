@@ -28,9 +28,11 @@ class DeploymentCondition(BaseK8sModel):
         alias="reason",
         description="The reason for the condition's last transition.",
     )
-    status: str = Field(
-        ...,
+    status: str | None = Field(
+        default=None,
         alias="status",
         description="Status of the condition, one of True, False, Unknown.",
     )
-    type_: str = Field(..., alias="type", description="Type of deployment condition.")
+    type_: str | None = Field(
+        default=None, alias="type", description="Type of deployment condition."
+    )

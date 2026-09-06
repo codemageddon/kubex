@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   resources created without an explicit `namespace=`. `BaseClient` gained a `configuration`
   property.
 - `PortForwarder.port_error_truncated` flags a truncated per-port error buffer.
+- Preliminary Kubernetes 1.38 support (`kubex-k8s-1-38`).
 
 ### Fixed
 
@@ -61,6 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `create()`/`replace()` and the subresource `replace()` methods no longer pass
   `exclude_unset=True` to `model_dump_json()`; fields left at their Python-side default are now
   included on the wire.
+- `kubex-k8s-1-37` regenerated against the Kubernetes 1.37 release spec.
 
 ## [0.1.0-beta.2] - 2026-05-12
 

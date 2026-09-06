@@ -1,5 +1,8 @@
 from pydantic import Field
 
+from kubex.k8s.v1_37.batch.v1.job_scheduling_configuration import (
+    JobSchedulingConfiguration,
+)
 from kubex.k8s.v1_37.batch.v1.pod_failure_policy import PodFailurePolicy
 from kubex.k8s.v1_37.batch.v1.success_policy import SuccessPolicy
 from kubex.k8s.v1_37.core.v1.pod_template_spec import PodTemplateSpec
@@ -64,6 +67,11 @@ class JobSpec(BaseK8sModel):
         default=None,
         alias="podReplacementPolicy",
         description="podReplacementPolicy specifies when to create replacement Pods. Possible values are: - TerminatingOrFailed means that we recreate pods when they are terminating (has a metadata.deletionTimestamp) or failed. - Failed means to wait until a previously created Pod is fully terminated (has phase Failed or Succeeded) before creating a replacement Pod. When using podFailurePolicy, Failed is the the only allowed value. TerminatingOrFailed and Failed are allowed values when podFailurePolicy is not in use.",
+    )
+    scheduling: JobSchedulingConfiguration | None = Field(
+        default=None,
+        alias="scheduling",
+        description="scheduling defines the Workload-aware Scheduling configuration for this Job. When set, it specifies the scheduling policy (basic or gang), topology constraints, disruption mode, and shared resource claims. When omitted, the Job defaults to the basic scheduling policy, which behaves as standard pod-by-pod scheduling. This field is alpha-level and requires the WorkloadWithJob feature gate. This field is immutable, including whether it is set at all, only policy.gang.minCount may be changed after creation.",
     )
     selector: LabelSelector | None = Field(
         default=None,

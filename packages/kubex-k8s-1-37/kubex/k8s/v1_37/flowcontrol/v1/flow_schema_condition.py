@@ -26,10 +26,8 @@ class FlowSchemaCondition(BaseK8sModel):
     status: str | None = Field(
         default=None,
         alias="status",
-        description="`status` is the status of the condition. Can be True, False, Unknown. Required.",
+        description="`status` is the status of the condition. Should be specified and set to one of True, False, Unknown.",
     )
-    type_: str | None = Field(
-        default=None,
-        alias="type",
-        description="`type` is the type of the condition. Required.",
+    type_: str = Field(
+        ..., alias="type", description="`type` is the type of the condition. Required."
     )

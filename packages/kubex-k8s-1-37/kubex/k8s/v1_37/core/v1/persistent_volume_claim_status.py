@@ -4,6 +4,7 @@ from kubex.k8s.v1_37.core.v1.modify_volume_status import ModifyVolumeStatus
 from kubex.k8s.v1_37.core.v1.persistent_volume_claim_condition import (
     PersistentVolumeClaimCondition,
 )
+from kubex.k8s.v1_37.core.v1.volume_health_status import VolumeHealthStatus
 from kubex_core.models.base import BaseK8sModel
 
 
@@ -39,6 +40,11 @@ class PersistentVolumeClaimStatus(BaseK8sModel):
         default=None,
         alias="currentVolumeAttributesClassName",
         description="currentVolumeAttributesClassName is the current name of the VolumeAttributesClass the PVC is using. When unset, there is no VolumeAttributeClass applied to this PersistentVolumeClaim",
+    )
+    health_status: VolumeHealthStatus | None = Field(
+        default=None,
+        alias="healthStatus",
+        description="healthStatus contains the latest controller-reported health information for the volume bound to this claim.",
     )
     modify_volume_status: ModifyVolumeStatus | None = Field(
         default=None,

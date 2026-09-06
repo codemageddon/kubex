@@ -35,10 +35,10 @@ class ClusterRoleBinding(ClusterScopedEntity):
     role_ref: RoleRef = Field(
         ...,
         alias="roleRef",
-        description="RoleRef can only reference a ClusterRole in the global namespace. If the RoleRef cannot be resolved, the Authorizer must return an error. This field is immutable.",
+        description="roleRef can only reference a ClusterRole in the global namespace. If the RoleRef cannot be resolved, the Authorizer must return an error. This field is immutable.",
     )
     subjects: list[Subject] | None = Field(
         default=None,
         alias="subjects",
-        description="Subjects holds references to the objects the role applies to.",
+        description="subjects holds references to the objects the role applies to.",
     )

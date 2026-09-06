@@ -13,6 +13,7 @@ from kubex.k8s.v1_37.core.v1.pod_extended_resource_claim_status import (
 )
 from kubex.k8s.v1_37.core.v1.pod_ip import PodIP
 from kubex.k8s.v1_37.core.v1.pod_resource_claim_status import PodResourceClaimStatus
+from kubex.k8s.v1_37.core.v1.pod_volume_health import PodVolumeHealth
 from kubex.k8s.v1_37.core.v1.resource_requirements import ResourceRequirements
 from kubex_core.models.base import BaseK8sModel
 
@@ -126,4 +127,9 @@ class PodStatus(BaseK8sModel):
         default=None,
         alias="startTime",
         description="RFC 3339 date and time at which the object was acknowledged by the Kubelet. This is before the Kubelet pulled the container image(s) for the pod.",
+    )
+    volume_health: list[PodVolumeHealth] | None = Field(
+        default=None,
+        alias="volumeHealth",
+        description="volumeHealth contains node-reported health for each volume the pod is using. Populated by the kubelet on the pod's node.",
     )

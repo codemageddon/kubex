@@ -59,6 +59,7 @@ Kubex ships separate model packages per Kubernetes minor version. Install the pa
 | `kubex[k8s-1.35]` | 1.35 |
 | `kubex[k8s-1.36]` | 1.36 |
 | `kubex[k8s-1.37]` | 1.37 |
+| `kubex[k8s-1.38]` | 1.38 |
 
 You can install multiple versions simultaneously when managing clusters at different upgrade stages:
 

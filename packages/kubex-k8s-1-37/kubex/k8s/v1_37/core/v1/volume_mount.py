@@ -6,10 +6,15 @@ from kubex_core.models.base import BaseK8sModel
 class VolumeMount(BaseK8sModel):
     """VolumeMount describes a mounting of a Volume within a container."""
 
+    bind_mount_options: list[str] | None = Field(
+        default=None,
+        alias="bindMountOptions",
+        description="bindMountOptions is the list of additional bind mount options to apply when mounting this volume into the container. Allowed values are noexec, nodev, and nosuid. These are Linux mount options and have no effect on Windows nodes. This field is not supported with image volumes. This is an alpha field and requires enabling the VolumeBindMountOptions feature gate.",
+    )
     mount_path: str = Field(
         ...,
         alias="mountPath",
-        description="Path within the container at which the volume should be mounted. Must not contain ':'.",
+        description="Path within the container at which the volume should be mounted.",
     )
     mount_propagation: str | None = Field(
         default=None,
