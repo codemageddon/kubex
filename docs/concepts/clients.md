@@ -19,13 +19,13 @@ Auto-detection order: **aiohttp** is tried first, then **httpx**. If neither is 
 To force a specific client:
 
 ```python
-from kubex.client import create_client, ClientChoise
+from kubex.client import create_client, ClientChoice
 
 # Force aiohttp
-client = await create_client(client_class=ClientChoise.AIOHTTP)
+client = await create_client(client_class=ClientChoice.AIOHTTP)
 
 # Force httpx
-client = await create_client(client_class=ClientChoise.HTTPX)
+client = await create_client(client_class=ClientChoice.HTTPX)
 ```
 
 Pass a pre-built `ClientConfiguration` to skip the auto-loading of kubeconfig / in-cluster credentials:
@@ -312,15 +312,17 @@ import httpx
 from kubex.client.httpx import HttpxClient
 from kubex.client import ClientOptions
 
+
 class MyHttpxClient(HttpxClient):
     def _create_inner_client(self) -> httpx.AsyncClient:
         # Full control: target-host NetRCAuth, custom transport, retry policy, etc.
         return httpx.AsyncClient(
             base_url=str(self.configuration.base_url),
             verify=True,
-            trust_env=True,                   # per-request env reads
+            trust_env=True,  # per-request env reads
             auth=httpx.NetRCAuth(file=None),  # target-host Basic auth from netrc
         )
+
 
 client = MyHttpxClient(configuration=cfg, options=ClientOptions())
 ```
@@ -333,6 +335,7 @@ import aiohttp
 from kubex.client.aiohttp import AioHttpClient
 from kubex.client import ClientOptions
 
+
 class MyAioHttpClient(AioHttpClient):
     def _create_inner_client(self) -> aiohttp.ClientSession:
         ssl_context = ssl.create_default_context()
@@ -342,6 +345,7 @@ class MyAioHttpClient(AioHttpClient):
             connector=connector,
             trust_env=True,
         )
+
 
 client = MyAioHttpClient(configuration=cfg, options=ClientOptions())
 ```

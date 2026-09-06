@@ -15,7 +15,7 @@ import httpx
 from kubex.client.options import ClientOptions, resolve_ws_max_message_size
 from kubex.client.websocket import WebSocketConnection
 from kubex.configuration import ClientConfiguration
-from kubex.core.exceptions import ConfgiurationError, KubexClientException
+from kubex.core.exceptions import ConfigurationError, KubexClientException
 from kubex.core.params import Timeout
 from kubex.core.request import Request
 from kubex.core.response import HeadersWrapper, Response
@@ -446,7 +446,7 @@ class HttpxClient(BaseClient):
         try:
             import httpx_ws
         except ImportError as exc:
-            raise ConfgiurationError(
+            raise ConfigurationError(
                 "httpx-ws is required for WebSocket connections; "
                 "install kubex[httpx-ws]"
             ) from exc

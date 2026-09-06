@@ -6,7 +6,7 @@ All Kubex exceptions inherit from `KubexException`. The hierarchy mirrors the HT
 
 ```
 KubexException
-├── ConfgiurationError          # bad/missing config (note: intentional typo in class name)
+├── ConfigurationError          # bad/missing config
 └── KubexClientException        # any client-side problem
     └── KubexApiError[C]        # non-2xx HTTP response from the API server
         ├── BadRequest          # 400
@@ -30,7 +30,7 @@ from kubex.core.exceptions import NotFound, KubexApiError
 try:
     pod = await api.get("missing-pod")
 except NotFound as e:
-    print(e.status)   # HTTPStatus.NOT_FOUND
+    print(e.status)  # HTTPStatus.NOT_FOUND
     print(e.content)  # Status object or str with the error message
 ```
 
@@ -60,16 +60,16 @@ except KubexApiError as e:
 
 For a worked example see `examples/error_handling.py`.
 
-## `ConfgiurationError`
+## `ConfigurationError`
 
-Raised when the client cannot be configured — for example, when `httpx-ws` is not installed and you attempt to use `api.exec`, or when required configuration fields are missing. Note: the class name has an intentional typo preserved from the original codebase.
+Raised when the client cannot be configured — for example, when `httpx-ws` is not installed and you attempt to use `api.exec`, or when required configuration fields are missing.
 
 ```python
-from kubex.core.exceptions import ConfgiurationError
+from kubex.core.exceptions import ConfigurationError
 
 try:
     async with api.exec.stream("my-pod", command=["sh"]) as session:
         ...
-except ConfgiurationError as e:
+except ConfigurationError as e:
     print("missing dependency or bad config:", e)
 ```

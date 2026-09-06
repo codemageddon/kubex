@@ -31,8 +31,7 @@ class Pod(
     HasExec,
     HasAttach,
     HasPortForward,
-):
-    ...
+): ...
 ```
 
 ## Type safety

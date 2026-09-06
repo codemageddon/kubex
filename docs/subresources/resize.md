@@ -12,7 +12,7 @@ Only resources with the `HasResize` marker interface expose `api.resize`. In pra
 ```python
 from kubex.k8s.v1_35.core.v1.pod import Pod
 
-pod_api.resize.get(...)   # OK
+pod_api.resize.get(...)  # OK
 
 from kubex.k8s.v1_35.apps.v1.deployment import Deployment
 
@@ -38,7 +38,9 @@ async def main() -> None:
         for container in pod.spec.containers:
             resources = container.resources
             if resources:
-                print(f"{container.name}: requests={resources.requests}, limits={resources.limits}")
+                print(
+                    f"{container.name}: requests={resources.requests}, limits={resources.limits}"
+                )
 ```
 
 ## Replacing resource allocation
@@ -91,19 +93,21 @@ from kubex.core.patch import MergePatch
 
 updated = await api.resize.patch(
     "my-pod",
-    MergePatch({
-        "spec": {
-            "containers": [
-                {
-                    "name": "main",
-                    "resources": {
-                        "requests": {"cpu": "500m", "memory": "256Mi"},
-                        "limits": {"cpu": "1", "memory": "512Mi"},
-                    },
-                }
-            ]
+    MergePatch(
+        {
+            "spec": {
+                "containers": [
+                    {
+                        "name": "main",
+                        "resources": {
+                            "requests": {"cpu": "500m", "memory": "256Mi"},
+                            "limits": {"cpu": "1", "memory": "512Mi"},
+                        },
+                    }
+                ]
+            }
         }
-    }),
+    ),
 )
 ```
 
@@ -127,7 +131,7 @@ After a replace or patch the kubelet may take some time to apply the new resourc
 
 ```python
 pod = await api.resize.get(pod_name)
-for cs in (pod.status.container_statuses or []):
+for cs in pod.status.container_statuses or []:
     print(f"{cs.name}: allocated={cs.resources}")
 ```
 

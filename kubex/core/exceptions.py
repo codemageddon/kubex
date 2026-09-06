@@ -15,7 +15,7 @@ class KubexClientException(KubexException):
 C = TypeVar("C", bound=str | Status)
 
 
-class ConfgiurationError(KubexException):
+class ConfigurationError(KubexException):
     pass
 
 
@@ -71,3 +71,29 @@ class UnprocessableEntity(KubexApiError[C]):
 
 class KubernetesError(KubexApiError[str]):
     status = HTTPStatus.INTERNAL_SERVER_ERROR
+
+
+def build_exception(status_code: int, content: C) -> KubexApiError[C]:
+    match status_code:
+        case HTTPStatus.BAD_REQUEST:
+            return BadRequest(content=content)
+        case HTTPStatus.UNAUTHORIZED:
+            return Unauthorized(content=content)
+        case HTTPStatus.FORBIDDEN:
+            return Forbidden(content=content)
+        case HTTPStatus.NOT_FOUND:
+            return NotFound(content=content)
+        case HTTPStatus.METHOD_NOT_ALLOWED:
+            return MethodNotAllowed(content=content)
+        case HTTPStatus.CONFLICT:
+            return Conflict(content=content)
+        case HTTPStatus.GONE:
+            return Gone(content=content)
+        case HTTPStatus.UNPROCESSABLE_ENTITY:
+            return UnprocessableEntity(content=content)
+        case status:
+            try:
+                http_status = HTTPStatus(status)
+            except ValueError:
+                http_status = HTTPStatus.INTERNAL_SERVER_ERROR
+            return KubexApiError(content=content, status=http_status)

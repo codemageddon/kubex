@@ -20,11 +20,9 @@ Auto-generated reference for the `kubex_core` package — the shared base models
 
 ::: kubex_core.models.metadata
 
-## List and watch
+## List
 
 ::: kubex_core.models.list_entity
-
-::: kubex_core.models.watch_event
 
 ## Subresource models
 

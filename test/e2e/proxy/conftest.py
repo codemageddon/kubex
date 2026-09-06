@@ -7,10 +7,10 @@ from typing import AsyncGenerator, Generator
 from urllib.parse import urlparse
 
 import pytest
-from testcontainers.core.container import DockerContainer  # type: ignore[import-untyped]
-from testcontainers.core.network import Network  # type: ignore[import-untyped]
-from testcontainers.core.waiting_utils import wait_for_logs  # type: ignore[import-untyped]
-from testcontainers.k3s import K3SContainer  # type: ignore[import-untyped]
+from testcontainers.core.container import DockerContainer
+from testcontainers.core.network import Network
+from testcontainers.core.waiting_utils import wait_for_logs
+from testcontainers.k3s import K3SContainer
 from yaml import safe_load
 
 from kubex.api import Api

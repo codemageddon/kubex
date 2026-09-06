@@ -7,10 +7,10 @@ import pytest
 from kubex.api import Api
 from kubex.core.params import FieldValidation, Timeout
 from kubex.core.patch import MergePatch, StrategicMergePatch
+from kubex.core.watch_event import EventType, WatchEvent
 from kubex.k8s.v1_35.core.v1.node import Node
 from kubex.k8s.v1_35.core.v1.pod import Pod
 from kubex_core.models.partial_object_meta import PartialObjectMetadata
-from kubex_core.models.watch_event import EventType, WatchEvent
 from test.stub_client import StubClient
 
 
@@ -446,7 +446,7 @@ async def test_metadata_watch_with_options() -> None:
     assert req.query_params is not None
     assert req.query_params.get("labelSelector") == "app=web"
     assert req.query_params.get("fieldSelector") == "status.phase=Running"
-    assert req.query_params.get("allowBookmarks") == "true"
+    assert req.query_params.get("allowWatchBookmarks") == "true"
     assert req.query_params.get("sendInitialEvents") == "true"
     assert req.query_params.get("timeoutSeconds") == "300"
     assert req.query_params.get("resourceVersion") == "42"
@@ -474,16 +474,16 @@ async def test_metadata_watch_cluster_scoped() -> None:
 
 
 @pytest.mark.anyio
-async def test_metadata_watch_sets_content_type_header() -> None:
+async def test_metadata_watch_sets_accept_header() -> None:
     client = StubClient(stream_lines=[])
     api: Api[Pod] = Api(Pod, client=client, namespace="default")
     async for _ in api.metadata.watch():
         pass
     req = client.last_request
     assert req.headers is not None
-    content_type = req.headers.get("content-type")
-    assert content_type is not None
-    assert "PartialObjectMetadata" in content_type
+    accept = req.headers.get("accept")
+    assert accept is not None
+    assert "PartialObjectMetadata" in accept
 
 
 @pytest.mark.anyio

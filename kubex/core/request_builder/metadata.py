@@ -66,16 +66,13 @@ class MetadataRequestBuilder(RequestBuilderProtocol):
         self,
         namespace: NamespaceTypes,
         options: WatchOptions,
-        resource_version: str | None = None,
         *,
         request_timeout: TimeoutTypes | EllipsisType = ...,
     ) -> Request:
         query_params = options.as_query_params()
-        if resource_version is not None:
-            query_params["resourceVersion"] = resource_version
         headers = {
-            ACCEPT_HEADER: APPLICATION_JSON_MIME_TYPE,
-            CONTENT_TYPE_HEADER: METADATA_MIME_TYPE,
+            ACCEPT_HEADER: METADATA_MIME_TYPE,
+            CONTENT_TYPE_HEADER: APPLICATION_JSON_MIME_TYPE,
         }
         return Request(
             method="GET",

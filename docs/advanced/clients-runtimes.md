@@ -29,7 +29,7 @@ pip install "kubex[httpx,k8s-1.35]"
 pip install "kubex[httpx-ws,k8s-1.35]"
 ```
 
-The plain `kubex[httpx]` extra intentionally omits `httpx-ws` so that non-WebSocket installs stay slim. If you call `api.exec.run()` or `api.attach.stream()` without `httpx-ws` installed, a `ConfgiurationError` is raised at runtime.
+The plain `kubex[httpx]` extra intentionally omits `httpx-ws` so that non-WebSocket installs stay slim. If you call `api.exec.run()` or `api.attach.stream()` without `httpx-ws` installed, a `ConfigurationError` is raised at runtime.
 
 ### Auto-detection
 
@@ -45,9 +45,9 @@ async with await create_client() as client:
 To force a specific backend, pass the `client_class` parameter:
 
 ```python
-from kubex.client import create_client, ClientChoise
+from kubex.client import create_client, ClientChoice
 
-async with await create_client(client_class=ClientChoise.HTTPX) as client:
+async with await create_client(client_class=ClientChoice.HTTPX) as client:
     ...
 ```
 
@@ -69,14 +69,16 @@ Trio is supported only with the `httpx` client. The `aiohttp` backend relies on 
 ```python
 import trio
 from kubex.api import Api
-from kubex.client import create_client, ClientChoise
+from kubex.client import create_client, ClientChoice
 from kubex.k8s.v1_35.core.v1.pod import Pod
 
+
 async def main():
-    async with await create_client(client_class=ClientChoise.HTTPX) as client:
+    async with await create_client(client_class=ClientChoice.HTTPX) as client:
         api: Api[Pod] = Api(Pod, client=client, namespace="default")
         pod = await api.get("my-pod")
         print(pod.metadata.name)
+
 
 trio.run(main)
 ```

@@ -12,7 +12,7 @@ Only resources with the `HasEphemeralContainers` marker interface expose `api.ep
 ```python
 from kubex.k8s.v1_35.core.v1.pod import Pod
 
-pod_api.ephemeral_containers.get(...)   # OK
+pod_api.ephemeral_containers.get(...)  # OK
 
 from kubex.k8s.v1_35.apps.v1.deployment import Deployment
 
@@ -85,13 +85,20 @@ from kubex.core.patch import MergePatch
 
 updated = await api.ephemeral_containers.patch(
     "my-pod",
-    MergePatch({
-        "spec": {
-            "ephemeralContainers": [
-                {"name": "debugger", "image": "busybox:latest", "stdin": True, "tty": True}
-            ]
+    MergePatch(
+        {
+            "spec": {
+                "ephemeralContainers": [
+                    {
+                        "name": "debugger",
+                        "image": "busybox:latest",
+                        "stdin": True,
+                        "tty": True,
+                    }
+                ]
+            }
         }
-    }),
+    ),
 )
 ```
 

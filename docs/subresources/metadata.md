@@ -115,7 +115,7 @@ await api.metadata.patch(
 `api.metadata.watch()` is an async generator that yields `WatchEvent[PartialObjectMetadata]`:
 
 ```python
-from kubex_core.models.watch_event import WatchEvent, EventType
+from kubex.core.watch_event import WatchEvent, EventType
 from kubex_core.models.partial_object_meta import PartialObjectMetadata
 
 async for event in api.metadata.watch(label_selector="app=my-app"):

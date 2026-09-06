@@ -156,7 +156,7 @@ def test_list_query_params_version_match_and_resource_version(
     ns_builder: RequestBuilder,
 ) -> None:
     opts = ListOptions(
-        version_match=VersionMatch.NOT_EXACT,
+        version_match=VersionMatch.NOT_OLDER_THAN,
         resource_version="100",
     )
     req = ns_builder.list("default", opts)
@@ -575,13 +575,57 @@ def test_watch_query_params_label_selector(ns_builder: RequestBuilder) -> None:
 def test_watch_query_params_allow_bookmarks(ns_builder: RequestBuilder) -> None:
     req = ns_builder.watch("default", WatchOptions(allow_bookmarks=True))
     assert req.query_params is not None
-    assert req.query_params["allowBookmarks"] == "true"
+    assert req.query_params["allowWatchBookmarks"] == "true"
 
 
 def test_watch_query_params_send_initial_events(ns_builder: RequestBuilder) -> None:
     req = ns_builder.watch("default", WatchOptions(send_initial_events=True))
     assert req.query_params is not None
     assert req.query_params["sendInitialEvents"] == "true"
+
+
+def test_watch_query_params_send_initial_events_true_sets_resource_version_match(
+    ns_builder: RequestBuilder,
+) -> None:
+    """Kubernetes' validateWatchOptions requires resourceVersionMatch=NotOlderThan
+    whenever sendInitialEvents is set; NotOlderThan is the only value it accepts
+    for a watch."""
+    req = ns_builder.watch("default", WatchOptions(send_initial_events=True))
+    assert req.query_params is not None
+    assert req.query_params["resourceVersionMatch"] == VersionMatch.NOT_OLDER_THAN.value
+    assert req.query_params["resourceVersion"] == ""
+
+
+def test_watch_query_params_send_initial_events_false_sets_resource_version_match(
+    ns_builder: RequestBuilder,
+) -> None:
+    """sendInitialEvents=False must still carry resourceVersionMatch=NotOlderThan —
+    the server rejects sendInitialEvents without it regardless of its value."""
+    req = ns_builder.watch("default", WatchOptions(send_initial_events=False))
+    assert req.query_params is not None
+    assert req.query_params["sendInitialEvents"] == "false"
+    assert req.query_params["resourceVersionMatch"] == VersionMatch.NOT_OLDER_THAN.value
+    assert req.query_params["resourceVersion"] == ""
+
+
+def test_watch_query_params_send_initial_events_keeps_explicit_resource_version(
+    ns_builder: RequestBuilder,
+) -> None:
+    req = ns_builder.watch(
+        "default",
+        WatchOptions(send_initial_events=True, resource_version="42"),
+    )
+    assert req.query_params is not None
+    assert req.query_params["resourceVersion"] == "42"
+
+
+def test_watch_query_params_without_send_initial_events_has_no_version_match(
+    ns_builder: RequestBuilder,
+) -> None:
+    req = ns_builder.watch("default", WatchOptions())
+    assert req.query_params is not None
+    assert "resourceVersionMatch" not in req.query_params
+    assert "sendInitialEvents" not in req.query_params
 
 
 def test_watch_query_params_timeout_seconds(ns_builder: RequestBuilder) -> None:
@@ -603,24 +647,12 @@ def test_watch_query_params_all(ns_builder: RequestBuilder) -> None:
         "watch": "true",
         "labelSelector": "app=web",
         "fieldSelector": "metadata.name=my-pod",
-        "allowBookmarks": "true",
+        "allowWatchBookmarks": "true",
         "sendInitialEvents": "false",
+        "resourceVersionMatch": "NotOlderThan",
+        "resourceVersion": "",
         "timeoutSeconds": "60",
     }
-
-
-def test_watch_resource_version_injection(ns_builder: RequestBuilder) -> None:
-    req = ns_builder.watch("default", WatchOptions(), resource_version="12345")
-    assert req.query_params is not None
-    assert req.query_params["resourceVersion"] == "12345"
-
-
-def test_watch_resource_version_none_not_injected(
-    ns_builder: RequestBuilder,
-) -> None:
-    req = ns_builder.watch("default", WatchOptions())
-    assert req.query_params is not None
-    assert "resourceVersion" not in req.query_params
 
 
 @pytest.mark.parametrize("request_timeout,expected", _TIMEOUT_CASES_SHORT)

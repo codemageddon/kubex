@@ -20,7 +20,7 @@ pip install "kubex[httpx-ws]"
 pip install "kubex[aiohttp]"
 ```
 
-Missing the WebSocket dependency raises `ConfgiurationError` at call time, not at import time.
+Missing the WebSocket dependency raises `ConfigurationError` at call time, not at import time.
 
 ## Availability
 
@@ -219,7 +219,7 @@ Exiting the `async with api.exec.stream(...)` block cancels the read loop before
 
 ## Error handling
 
-WebSocket handshake failures, abnormal close codes, and per-call timeouts surface as `KubexClientException`. A missing WebSocket dependency raises `ConfgiurationError`.
+WebSocket handshake failures, abnormal close codes, and per-call timeouts surface as `KubexClientException`. A missing WebSocket dependency raises `ConfigurationError`.
 
 ```python
 from kubex.core.exceptions import KubexClientException

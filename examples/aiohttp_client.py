@@ -1,5 +1,5 @@
 from kubex.api import Api
-from kubex.client import ClientChoise, create_client
+from kubex.client import ClientChoice, create_client
 from kubex.k8s.v1_35.core.v1.container import Container
 from kubex.k8s.v1_35.core.v1.pod import Pod
 from kubex.k8s.v1_35.core.v1.pod_spec import PodSpec
@@ -9,7 +9,7 @@ NAMESPACE = "default"
 
 
 async def main() -> None:
-    client = await create_client(client_class=ClientChoise.AIOHTTP)
+    client = await create_client(client_class=ClientChoice.AIOHTTP)
     async with client:
         api: Api[Pod] = Api(Pod, client=client, namespace=NAMESPACE)
 

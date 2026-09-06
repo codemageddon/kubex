@@ -23,8 +23,8 @@ from kubex.configuration import ClientConfiguration
 
 config = ClientConfiguration(
     url="https://my-cluster:6443",
-    token="my-bearer-token",          # or token_file="/path/to/token"
-    server_ca_file="/path/to/ca.crt", # or insecure_skip_tls_verify=True
+    token="my-bearer-token",  # or token_file="/path/to/token"
+    server_ca_file="/path/to/ca.crt",  # or insecure_skip_tls_verify=True
     namespace="default",
 )
 ```

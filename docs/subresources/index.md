@@ -14,9 +14,9 @@ async with await create_client() as client:
     pod_api: Api[Pod] = Api(Pod, client=client, namespace="default")
     deploy_api: Api[Deployment] = Api(Deployment, client=client, namespace="default")
 
-    await pod_api.logs.get("my-pod")          # OK — Pod has HasLogs
-    await deploy_api.scale.get("my-deploy")   # OK — Deployment has HasScaleSubresource
-    await pod_api.scale.get("my-pod")         # runtime NotImplementedError + type error
+    await pod_api.logs.get("my-pod")  # OK — Pod has HasLogs
+    await deploy_api.scale.get("my-deploy")  # OK — Deployment has HasScaleSubresource
+    await pod_api.scale.get("my-pod")  # runtime NotImplementedError + type error
 ```
 
 See [Subresources](../concepts/subresources.md) in the Concepts section for a full explanation of the descriptor pattern and marker interfaces.

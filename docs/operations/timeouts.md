@@ -12,8 +12,8 @@ Kubex separates two independent timeout concepts:
 ```python
 from kubex.core.params import Timeout
 
-t = Timeout(total=30.0)                          # 30 s total
-t = Timeout(connect=5.0, read=60.0)              # separate connect / read
+t = Timeout(total=30.0)  # 30 s total
+t = Timeout(connect=5.0, read=60.0)  # separate connect / read
 t = Timeout(total=30.0, connect=5.0, read=25.0)  # granular override
 ```
 

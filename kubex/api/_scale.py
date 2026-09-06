@@ -80,9 +80,7 @@ class ScaleAccessor(Generic[ResourceType]):
             SCALE_SUBRESOURCE,
             name,
             _namespace,
-            data=scale.model_dump_json(
-                by_alias=True, exclude_unset=True, exclude_none=True
-            ),
+            data=scale.model_dump_json(by_alias=True, exclude_none=True),
             options=options,
             request_timeout=request_timeout,
         )

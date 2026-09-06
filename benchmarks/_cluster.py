@@ -51,7 +51,7 @@ async def k3s_cluster(image: str = DEFAULT_K3S_IMAGE) -> AsyncIterator[str]:
 
     Uses the existing testcontainers wrapper already in the repo's dev deps.
     """
-    from testcontainers.k3s import K3SContainer  # type: ignore[import-untyped]
+    from testcontainers.k3s import K3SContainer
 
     container = K3SContainer(image=image, enable_cgroup_mount=False)
     container.start()

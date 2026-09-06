@@ -1,4 +1,4 @@
-from .client import BaseClient, ClientChoise, create_client
+from .client import BaseClient, ClientChoice, create_client
 from .options import ClientOptions
 
-__all__ = ["create_client", "BaseClient", "ClientChoise", "ClientOptions"]
+__all__ = ["create_client", "BaseClient", "ClientChoice", "ClientOptions"]

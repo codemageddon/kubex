@@ -31,7 +31,9 @@ merge_patch = MergePatch(
             selector=LabelSelector(match_labels={"app": "example"}),
             template=PodTemplateSpec(
                 metadata=ObjectMetadata(labels={"app": "example"}),
-                spec=PodSpec(containers=[Container(name="nginx", image="nginx:latest")]),
+                spec=PodSpec(
+                    containers=[Container(name="nginx", image="nginx:latest")]
+                ),
             ),
         )
     )
@@ -117,10 +119,12 @@ You can also construct a `JsonPatch` from a list of operation objects directly:
 from kubex.core.patch import JsonPatch
 from kubex.core.json_patch import JsonPatchAdd, JsonPatchRemove
 
-patch = JsonPatch([
-    JsonPatchAdd(path="/metadata/labels/env", value="staging"),
-    JsonPatchRemove(path="/metadata/labels/old-env"),
-])
+patch = JsonPatch(
+    [
+        JsonPatchAdd(path="/metadata/labels/env", value="staging"),
+        JsonPatchRemove(path="/metadata/labels/old-env"),
+    ]
+)
 ```
 
 ## Patch options
@@ -159,6 +163,7 @@ from kubex.k8s.v1_35.core.v1.pod_template_spec import PodTemplateSpec
 from kubex.k8s.v1_35.meta.v1.label_selector import LabelSelector
 from kubex_core.models.metadata import ObjectMetadata
 
+
 async def main() -> None:
     client = await create_client()
     async with client:
@@ -166,13 +171,17 @@ async def main() -> None:
 
         deployment = await api.create(
             Deployment(
-                metadata=ObjectMetadata(name="example-deploy", labels={"app": "example"}),
+                metadata=ObjectMetadata(
+                    name="example-deploy", labels={"app": "example"}
+                ),
                 spec=DeploymentSpec(
                     replicas=1,
                     selector=LabelSelector(match_labels={"app": "example"}),
                     template=PodTemplateSpec(
                         metadata=ObjectMetadata(labels={"app": "example"}),
-                        spec=PodSpec(containers=[Container(name="nginx", image="nginx:latest")]),
+                        spec=PodSpec(
+                            containers=[Container(name="nginx", image="nginx:latest")]
+                        ),
                     ),
                 ),
             ),
@@ -188,20 +197,30 @@ async def main() -> None:
                         selector=LabelSelector(match_labels={"app": "example"}),
                         template=PodTemplateSpec(
                             metadata=ObjectMetadata(labels={"app": "example"}),
-                            spec=PodSpec(containers=[Container(name="nginx", image="nginx:latest")]),
+                            spec=PodSpec(
+                                containers=[
+                                    Container(name="nginx", image="nginx:latest")
+                                ]
+                            ),
                         ),
                     )
                 )
             )
             patched = await api.patch(name, merge_patch)
-            print(f"After MergePatch: replicas={patched.spec and patched.spec.replicas}")
+            print(
+                f"After MergePatch: replicas={patched.spec and patched.spec.replicas}"
+            )
 
             # StrategicMergePatch — add an annotation
             strategic_patch = StrategicMergePatch(
-                Deployment(metadata=ObjectMetadata(annotations={"example.com/patched": "true"}))
+                Deployment(
+                    metadata=ObjectMetadata(annotations={"example.com/patched": "true"})
+                )
             )
             patched = await api.patch(name, strategic_patch)
-            print(f"After StrategicMergePatch: annotations={patched.metadata.annotations}")
+            print(
+                f"After StrategicMergePatch: annotations={patched.metadata.annotations}"
+            )
 
             # JsonPatch — add a label
             json_patch = JsonPatch().add("/metadata/labels/version", "v1")

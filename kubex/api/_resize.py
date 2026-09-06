@@ -79,9 +79,7 @@ class ResizeAccessor(Generic[ResourceType]):
             RESIZE_SUBRESOURCE,
             name,
             _namespace,
-            data=data.model_dump_json(
-                by_alias=True, exclude_unset=True, exclude_none=True
-            ),
+            data=data.model_dump_json(by_alias=True, exclude_none=True),
             options=options,
             request_timeout=request_timeout,
         )

@@ -46,7 +46,7 @@ class ResourceConfig(Generic[ResourceType]):
         if self._version is None or self._group is None:
             if api_version_field := owner.model_fields.get("api_version"):
                 if api_version_field.default is not None:
-                    self._version, self._group = get_version_and_froup_from_api_version(
+                    self._version, self._group = get_version_and_group_from_api_version(
                         api_version_field.default
                     )
             else:
@@ -148,7 +148,7 @@ def create_list_model(
     return cast("Type[ListEntity[ResourceType]]", list_model)
 
 
-def get_version_and_froup_from_api_version(api_version: str | None) -> tuple[str, str]:
+def get_version_and_group_from_api_version(api_version: str | None) -> tuple[str, str]:
     """get_version_and_group_from_api_version returns the version and group from the apiVersion."""
     if api_version is None:
         raise ValueError("api_version is not set")

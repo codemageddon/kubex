@@ -35,7 +35,9 @@ Filter with `label_selector=` (e.g. `"app=nginx"`) or `field_selector=` (e.g. `"
 ```python
 page = await api.list(label_selector="app=nginx", limit=100)
 while page.metadata.continue_:
-    page = await api.list(label_selector="app=nginx", limit=100, continue_token=page.metadata.continue_)
+    page = await api.list(
+        label_selector="app=nginx", limit=100, continue_token=page.metadata.continue_
+    )
 ```
 
 Pass `namespace=None` to list across all namespaces even when the `Api` instance has a default namespace set:
@@ -128,6 +130,7 @@ from kubex.k8s.v1_35.core.v1.pod import Pod
 from kubex.k8s.v1_35.core.v1.pod_spec import PodSpec
 from kubex_core.models.metadata import ObjectMetadata
 
+
 async def main() -> None:
     client = await create_client()
     async with client:
@@ -142,7 +145,9 @@ async def main() -> None:
                         generate_name=f"example-delete-collection-{i}-",
                         labels={"app": f"example-batch-{run_id}"},
                     ),
-                    spec=PodSpec(containers=[Container(name="nginx", image="nginx:latest")]),
+                    spec=PodSpec(
+                        containers=[Container(name="nginx", image="nginx:latest")]
+                    ),
                 ),
             )
 
