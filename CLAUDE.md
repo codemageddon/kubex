@@ -57,10 +57,13 @@ kubex/                          # Main package — PEP 420 namespace package (no
 │   ├── api.py                  # Api[ResourceType] generic class + create_api() factory
 │   ├── _logs.py                # LogsAccessor + _LogsDescriptor — api.logs.get() and api.logs.stream()
 │   ├── _scale.py               # ScaleAccessor + _ScaleDescriptor — api.scale.get(), replace(), patch()
-│   ├── _status.py              # StatusAccessor + _StatusDescriptor — api.status.get(), replace(), patch()
+│   ├── _status.py              # StatusAccessor(ResourceSubresourceAccessor) + _StatusDescriptor — api.status.get(), replace(), patch()
 │   ├── _eviction.py            # EvictionAccessor + _EvictionDescriptor — api.eviction.create()
-│   ├── _ephemeral_containers.py # EphemeralContainersAccessor + _EphemeralContainersDescriptor — api.ephemeral_containers.get(), replace(), patch()
-│   ├── _resize.py              # ResizeAccessor + _ResizeDescriptor — api.resize.get(), replace(), patch()
+│   ├── _ephemeral_containers.py # EphemeralContainersAccessor(ResourceSubresourceAccessor) + _EphemeralContainersDescriptor — api.ephemeral_containers.get(), replace(), patch()
+│   ├── _resize.py              # ResizeAccessor(ResourceSubresourceAccessor) + _ResizeDescriptor — api.resize.get(), replace(), patch()
+│   ├── _subresource_accessor.py # ResourceSubresourceAccessor — shared get/replace/patch body for subresources whose
+│                               #   wire shape is a full ResourceType (status, resize, ephemeral containers); subclasses
+│                               #   set a ClassVar `_subresource` name. Not scale/eviction, which have their own body shapes.
 │   ├── _exec.py                # ExecAccessor + _ExecDescriptor + ExecResult — api.exec.run(), api.exec.stream()
 │   ├── _attach.py              # AttachAccessor + _AttachDescriptor — api.attach.stream() (no run(); attaches to existing container process)
 │   ├── _stream_session.py      # _BaseChannelSession (shared lifecycle base) + StreamSession — multiplexes Kubernetes channel-protocol streams over WebSocketConnection (used by exec and attach)
@@ -298,7 +301,8 @@ KubexException
         ├── MethodNotAllowed
         ├── Conflict
         ├── Gone
-        └── UnprocessableEntity
+        ├── UnprocessableEntity
+        └── KubernetesError  (500)
 ```
 
 ### Descriptor-based subresource APIs

@@ -37,7 +37,32 @@ class ResourceConfig(Generic[ResourceType]):
         self._list_model = list_model
 
     def __get__(self, instance: Any, owner: Type[ResourceType]) -> Self:
-        """Fill in the missing values from the owner."""
+        """Return the resource config for `owner`, filling in missing values from it.
+
+        `owner` is not necessarily the class that declared this descriptor: a
+        `BaseEntity` subclass that omits its own `__RESOURCE_CONFIG__` inherits
+        this one from `BaseEntity` and shares it with every other such
+        subclass. Filling it in used to mutate that shared instance in place,
+        so whichever subclass resolved it first silently won for all the
+        others. Instead, a private copy is cached on `owner.__dict__` (a
+        no-op when `owner` already declares its own instance, since it is
+        then found there directly) so each owner gets its own config.
+        """
+        config = owner.__dict__.get("__RESOURCE_CONFIG__")
+        if config is None:
+            config = ResourceConfig(
+                version=self._version,
+                kind=self._kind,
+                plural=self._plural,
+                scope=self._scope,
+                group=self._group,
+                list_model=self._list_model,
+            )
+            setattr(owner, "__RESOURCE_CONFIG__", config)
+        return cast(Self, config._fill_from(owner))
+
+    def _fill_from(self, owner: Type[ResourceType]) -> Self:
+        """Fill in the missing values from the owner, in place."""
         if kind_field := owner.model_fields.get("kind"):
             if kind_field.default is not None:
                 self._kind = kind_field.default

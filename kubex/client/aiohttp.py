@@ -31,6 +31,24 @@ from .client import (
 )
 
 
+def _split_base_url(base_url: str) -> tuple[str, str]:
+    """Split a configured server URL into an origin and a path prefix.
+
+    ``aiohttp.ClientSession(base_url=...)`` treats the request path as
+    absolute and replaces the base URL's own path entirely (unlike httpx,
+    which joins it as a real prefix) — so a kubeconfig server URL that itself
+    has a path component, e.g. a Rancher-style gateway
+    (``https://host/k8s/clusters/c-xxxxx``), silently loses that prefix on
+    every request. Passing only the origin as ``base_url`` and prepending the
+    path prefix onto each request's (root-relative) URL ourselves sidesteps
+    aiohttp's join and matches httpx's behavior.
+    """
+    parsed = urlparse(base_url)
+    origin = f"{parsed.scheme}://{parsed.netloc}"
+    path_prefix = parsed.path.rstrip("/")
+    return origin, path_prefix
+
+
 def _to_aiohttp_timeout(timeout: Timeout | None) -> ClientTimeout:
     """Translate a ``Timeout`` (or explicit ``None``) to ``ClientTimeout``.
 
@@ -97,16 +115,18 @@ class AioHttpClient(BaseClient):
             constants.ACCEPT_HEADER: constants.APPLICATION_JSON_MIME_TYPE,
         }
         self._resolved_proxy: str | None = None
+        self._origin, self._path_prefix = _split_base_url(str(configuration.base_url))
         super().__init__(configuration, options)
 
-    @property
-    def configuration(self) -> ClientConfiguration:
-        return self._configuration
-
-    def _get_headers(self) -> dict[str, str]:
-        if self.configuration.token is None:
+    async def _get_headers(self) -> dict[str, str]:
+        header = await self.configuration.get_authorization_header()
+        if header is None:
             return {}
-        return {"Authorization": f"Bearer {self.configuration.token}"}
+        return {"Authorization": header}
+
+    def _full_path(self, path: str) -> str:
+        """Prepend the server URL's path prefix (if any) onto a request path."""
+        return self._path_prefix + path
 
     def _create_inner_client(self) -> ClientSession:
         ssl_context = ssl.create_default_context(
@@ -156,14 +176,12 @@ class AioHttpClient(BaseClient):
         connector = TCPConnector(**connector_kwargs)
 
         kwargs: dict[str, Any] = {
-            "base_url": str(self.configuration.base_url),
+            "base_url": self._origin,
             "connector": connector,
             "headers": self._default_headers,
         }
 
-        _apply_aiohttp_proxy(
-            kwargs, self.options.proxy, str(self.configuration.base_url)
-        )
+        _apply_aiohttp_proxy(kwargs, self.options.proxy, self._origin)
         self._resolved_proxy = cast("str | None", kwargs.get("proxy"))
 
         if self.options.trust_env and self._resolved_proxy is not None:
@@ -202,7 +220,7 @@ class AioHttpClient(BaseClient):
         those are handled by the persistent session or added at the call site.
         """
         kwargs: dict[str, Any] = {
-            "base_url": str(self._configuration.base_url),
+            "base_url": self._origin,
             "connector": self._inner_client.connector,
             "connector_owner": False,
             "headers": self._default_headers,
@@ -213,7 +231,7 @@ class AioHttpClient(BaseClient):
         return kwargs
 
     async def request(self, request: Request) -> Response:
-        headers = self._get_headers()
+        headers = await self._get_headers()
         if request.headers:
             headers.update(request.headers)
         extra: dict[str, Any] = {}
@@ -221,7 +239,7 @@ class AioHttpClient(BaseClient):
             extra["timeout"] = _to_aiohttp_timeout(request.timeout)
         _response = await self._inner_client.request(
             method=request.method,
-            url=request.url,
+            url=self._full_path(request.url),
             params=request.query_params,
             data=request.body,
             headers=headers,
@@ -244,7 +262,7 @@ class AioHttpClient(BaseClient):
         return response
 
     async def stream_lines(self, request: Request) -> AsyncGenerator[str, None]:
-        headers = self._get_headers()
+        headers = await self._get_headers()
         if request.headers:
             headers.update(request.headers)
         extra: dict[str, Any] = {}
@@ -252,7 +270,7 @@ class AioHttpClient(BaseClient):
             extra["timeout"] = _to_aiohttp_timeout(request.timeout)
         _response = await self._inner_client.request(
             method=request.method,
-            url=request.url,
+            url=self._full_path(request.url),
             params=request.query_params,
             data=request.body,
             headers=headers,
@@ -276,7 +294,10 @@ class AioHttpClient(BaseClient):
                             stacklevel=2,
                         )
             while line := await _response.content.readline():
-                yield line.decode("utf-8")
+                # readline() includes the trailing terminator; httpx's
+                # aiter_lines() strips it, so match that here for parity
+                # between the two backends (api.logs.stream(), etc.).
+                yield line.decode("utf-8").rstrip("\r\n")
         finally:
             _response.close()
 
@@ -288,7 +309,7 @@ class AioHttpClient(BaseClient):
         request: Request,
         subprotocols: Sequence[str],
     ) -> WebSocketConnection:
-        headers = self._get_headers()
+        headers = await self._get_headers()
         if request.headers:
             headers.update(request.headers)
         # The session's default ``Accept: application/json`` is appropriate for
@@ -351,7 +372,7 @@ class AioHttpClient(BaseClient):
         try:
             with timeout_scope:
                 ws = await upgrade_session.ws_connect(
-                    request.url,
+                    self._full_path(request.url),
                     protocols=tuple(subprotocols),
                     headers=headers,
                     params=params,

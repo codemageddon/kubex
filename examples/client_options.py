@@ -33,7 +33,9 @@ async def main() -> None:
         # (ignored on httpx — UserWarning emitted; aiohttp default is 2**21)
         buffer_size=4 * 1024 * 1024,
         # Max WebSocket frame for exec/attach/portforward: 8 MiB
-        # Pass None for no cap; default is 2**21 on both backends.
+        # None means no cap on aiohttp; on httpx it is unsupported and falls back
+        # to the httpx-ws default (64 KiB), with a UserWarning. Default is 2**21
+        # on both backends.
         ws_max_message_size=8 * 1024 * 1024,
         # Total connection pool: 50 connections across all hosts
         # Pass None for unlimited; library default is 100.

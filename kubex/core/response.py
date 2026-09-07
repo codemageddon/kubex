@@ -12,9 +12,10 @@ class HeadersWrapper(Mapping[str, str]):
     def get_all(self, key: str) -> list[str]:
         if hasattr(self._headers, "get_list"):  # httpx Headers
             return self._headers.get_list(key)  # type: ignore
-        if hasattr(self._headers, "get_all"):  # aiohttp CMultiDictProxy
-            return self._headers.get_all(key)  # type: ignore
-        return [self._headers[key]]
+        if hasattr(self._headers, "getall"):  # multidict CIMultiDictProxy (aiohttp)
+            return self._headers.getall(key, [])  # type: ignore
+        value = self._headers.get(key)
+        return [] if value is None else [value]
 
     def keys(self) -> KeysView[str]:
         return self._headers.keys()

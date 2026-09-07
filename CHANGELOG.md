@@ -7,39 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `KUBECONFIG` supports an `os.pathsep`-separated list of files, merged with `kubectl`'s
+  precedence.
+- `configure_from_kubeconfig()` now authenticates via `users[].user.token`/`tokenFile`, `exec`,
+  and `oidc` auth-providers (`ExecAuthProvider`/`OIDCAuthProvider`, both credential-refreshing
+  and OIDC requiring `https` endpoints), and forwards `namespace` and
+  `insecure-skip-tls-verify`.
+- `Api`/`create_api()` fall back to `client.configuration.namespace` for namespace-scoped
+  resources created without an explicit `namespace=`. `BaseClient` gained a `configuration`
+  property.
+- `PortForwarder.port_error_truncated` flags a truncated per-port error buffer.
+
 ### Fixed
 
 - `allowWatchBookmarks` query parameter handling on watch requests.
-- `WatchOptions`: `sendInitialEvents` (whether `true` or `false`) now always pairs with
-  `resourceVersionMatch=NotOlderThan` on the outgoing request, matching the Kubernetes API's
-  `validateWatchOptions` requirement.
-- Watch `ERROR` events. It now raises the correct `KubexApiError` subclass, with the full
-  `Status` — including `message` and `details` — preserved as its content.
-- `api.metadata.watch()` sent `Accept`/`Content-Type` fixed.
-- `anyio` is now a runtime dependency instead of a dev-only one.
+- `sendInitialEvents` now pairs with `resourceVersionMatch=NotOlderThan` on watch requests.
+- Watch `ERROR` events now raise the correct `KubexApiError` subclass with the full `Status`.
+- `api.metadata.watch()` `Accept`/`Content-Type` headers.
+- `anyio` is now a runtime dependency.
+- `ResourceConfig.__get__` no longer mutates the shared instance inherited by `BaseEntity`
+  subclasses without their own `__RESOURCE_CONFIG__`.
+- `BaseRefreshableToken`'s concurrency guard fixed (cross-task lock release under concurrent
+  callers).
+- `AioHttpClient` preserves a path component on the configured server URL.
+- `HeadersWrapper.get_all()` on aiohttp no longer raises `KeyError` for an error response
+  missing `Content-Type`.
+- `MergePatch`/`StrategicMergePatch` default `exclude_none=False`, so an explicit `None` field
+  reaches the server as `null`. `ApplyPatch` is unaffected.
+- Codegen regeneration removes the previous `kubex/k8s/v1_NN/` module tree before writing.
+- `ClientConfiguration.try_refresh_token=False` now pins the token to its first read.
+- `ExecAuthProvider` applies the credential plugin's configured `env` entries, preserves its
+  stderr on a non-zero exit, and reports its `expirationTimestamp`.
+- `handle_request_error()` no longer raises `UnicodeDecodeError` on a non-UTF-8 error body.
+- A 500 response now raises `KubernetesError` instead of a bare `KubexApiError`.
+- `AioHttpClient.stream_lines()` strips line terminators, matching the httpx backend.
+- Exec/OIDC credential expiry now derives from the plugin's/id_token's reported expiry instead
+  of a fixed 60-second cadence.
 
 ### Changed
 
+- **Breaking:** In-cluster `Api`/`create_api()` calls without an explicit `namespace=` now
+  scope to the pod's own namespace. `ClientConfiguration(namespace=...)` no longer defaults to
+  `"default"`.
 - **Breaking:** `WatchEvent`, `EventType`, and `Bookmark` moved from
-  `kubex_core.models.watch_event` (the separately published `kubex-core` package) to
-  `kubex.core.watch_event`. Import from the new location; no compatibility re-export is
-  provided.
-- **Breaking:** `VersionMatch.NOT_EXACT` renamed to `VersionMatch.NOT_OLDER_THAN` (the enum
-  value is unchanged, `"NotOlderThan"`).
-- **Breaking:** fixed three typos in public names, with no compatibility
-  aliases: `ConfgiurationError` → `ConfigurationError` (`kubex.core.exceptions`),
-  `ClientChoise` → `ClientChoice` (`kubex.client.client`), and
-  `get_version_and_froup_from_api_version` → `get_version_and_group_from_api_version`
-  (`kubex_core.models.resource_config`).
+  `kubex_core.models.watch_event` to `kubex.core.watch_event`.
+- **Breaking:** `VersionMatch.NOT_EXACT` renamed to `VersionMatch.NOT_OLDER_THAN`.
+- **Breaking:** Fixed typos in public names: `ConfgiurationError` → `ConfigurationError`,
+  `ClientChoise` → `ClientChoice`, `get_version_and_froup_from_api_version` →
+  `get_version_and_group_from_api_version`.
 - **Breaking:** `resource_version` removed from `RequestBuilder.watch()` and
   `MetadataRequestBuilder.watch_metadata()` — pass it on `WatchOptions` instead.
-- `create()`/`replace()` and the subresource `replace()` methods (`scale`, `status`, `eviction`,
-  `resize`, `ephemeral_containers`) no longer pass `exclude_unset=True` to `model_dump_json()`.
-  Fields left at their Python-side default are now included on the wire. This has no effect on
-  the generated `kubex-k8s-*`/`kubex_core` models, whose optional fields default to `None` and
-  are still dropped by `exclude_none=True`; for user-defined CRD models with non-`None` field
-  defaults, a `replace()` can now write that default back to the cluster for a field the caller
-  never touched.
+- `create()`/`replace()` and the subresource `replace()` methods no longer pass
+  `exclude_unset=True` to `model_dump_json()`; fields left at their Python-side default are now
+  included on the wire.
 
 ## [0.1.0-beta.2] - 2026-05-12
 

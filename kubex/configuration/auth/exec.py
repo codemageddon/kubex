@@ -30,6 +30,8 @@ class ExecAuthProvider:
     def __init__(self, config: ExecConfig):
         self.config = config
         self.env = os.environ.copy()
+        for item in config.env or []:
+            self.env[item["name"]] = item["value"]
 
     async def run(self) -> ExecCredential:
         _interactive = False
@@ -56,6 +58,7 @@ class ExecAuthProvider:
             command=args,
             env=self.env,
             input=None,
+            check=False,
         )
         stdout = proc.stdout
         stderr = proc.stderr
@@ -68,8 +71,9 @@ class ExecAuthProvider:
 
         return ExecCredential.model_validate_json(stdout)
 
-    async def refresh_token(self) -> str:
+    async def refresh_token(self) -> tuple[str, str | None]:
+        """Return the credential token and its RFC 3339 `expirationTimestamp`, if the plugin reported one."""
         credential = await self.run()
         if credential.status is None or credential.status.token is None:
             raise ValueError("exec: token not found in response")
-        return credential.status.token
+        return credential.status.token, credential.status.expiration_timestamp

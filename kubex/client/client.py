@@ -60,6 +60,10 @@ class BaseClient(ABC):
     def options(self) -> ClientOptions:
         return self._options
 
+    @property
+    def configuration(self) -> ClientConfiguration:
+        return self._configuration
+
     @abstractmethod
     def _create_inner_client(self) -> Any: ...
 
@@ -140,11 +144,17 @@ async def create_client(
 
 def handle_request_error(response: Response) -> NoReturn:
     status_code = response.status_code
-    content: Status | str = response.text
+    # Decode tolerantly here rather than via the shared (strict-UTF-8)
+    # `Response.text` property: an error body from an intermediary (proxy,
+    # gateway, minimal API server) is not guaranteed to be UTF-8 or even JSON,
+    # and a decode failure here must not shadow the actual API error with an
+    # unrelated UnicodeDecodeError. `Response.text` itself stays strict since
+    # it is also used for legitimate (always-UTF-8) log reads.
+    content: Status | str = response.content.decode("utf-8", errors="replace")
     if content_types := response.headers.get_all(CONTENT_TYPE_HEADER):
         if any(ct.startswith(APPLICATION_JSON_MIME_TYPE) for ct in content_types):
             try:
                 content = Status.model_validate_json(response.content)
             except ValidationError:
-                content = response.text
+                content = response.content.decode("utf-8", errors="replace")
     raise build_exception(status_code, content)

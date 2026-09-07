@@ -26,6 +26,7 @@ from kubex_core.models.metadata import ObjectMetadata
 
 merge_patch = MergePatch(
     Deployment(
+        metadata=ObjectMetadata(),  # required by the model; a patch body doesn't need it set
         spec=DeploymentSpec(
             replicas=3,
             selector=LabelSelector(match_labels={"app": "example"}),
@@ -35,7 +36,7 @@ merge_patch = MergePatch(
                     containers=[Container(name="nginx", image="nginx:latest")]
                 ),
             ),
-        )
+        ),
     )
 )
 patched = await api.patch("example-deploy", merge_patch)
@@ -192,6 +193,7 @@ async def main() -> None:
             # MergePatch — update replicas
             merge_patch = MergePatch(
                 Deployment(
+                    metadata=ObjectMetadata(),
                     spec=DeploymentSpec(
                         replicas=3,
                         selector=LabelSelector(match_labels={"app": "example"}),

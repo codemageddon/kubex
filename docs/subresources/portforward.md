@@ -98,8 +98,15 @@ async def main() -> None:
 |-----------|------|-------------|
 | `streams` | `Mapping[int, PortForwardStream]` | One `anyio.abc.ByteStream` per forwarded port |
 | `errors` | `Mapping[int, MemoryObjectReceiveStream[str]]` | Per-port kubelet error messages (typically empty on success) |
+| `port_data_truncated` | `Mapping[int, bool]` | Per-port: `True` if that port's data buffer overflowed and the stream was closed locally |
+| `port_error_truncated` | `Mapping[int, bool]` | Per-port: `True` if that port's error buffer overflowed and the error stream was closed locally |
 
 `PortForwardStream` is an `anyio.abc.ByteStream`, so you can use `send()` and `receive()` on it directly.
+
+Each port's incoming data — and, independently, its error messages — is buffered up to 128
+frames; if a consumer falls behind and a buffer fills, kubex closes that channel locally rather
+than blocking forever. Check `pf.port_data_truncated[port]`/`pf.port_error_truncated[port]` after
+the corresponding stream ends to tell that apart from a normal EOF.
 
 ### Forwarding multiple ports
 

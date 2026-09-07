@@ -90,23 +90,30 @@ async def resize_pod(pod_name: str) -> None:
 
 ```python
 from kubex.core.patch import MergePatch
+from kubex.k8s.v1_35.core.v1.container import Container
+from kubex.k8s.v1_35.core.v1.pod import Pod
+from kubex.k8s.v1_35.core.v1.pod_spec import PodSpec
+from kubex.k8s.v1_35.core.v1.resource_requirements import ResourceRequirements
+from kubex_core.models.metadata import ObjectMetadata
 
 updated = await api.resize.patch(
     "my-pod",
+    # `metadata=ObjectMetadata()` is required by the model but empty is a no-op merge.
     MergePatch(
-        {
-            "spec": {
-                "containers": [
-                    {
-                        "name": "main",
-                        "resources": {
-                            "requests": {"cpu": "500m", "memory": "256Mi"},
-                            "limits": {"cpu": "1", "memory": "512Mi"},
-                        },
-                    }
+        Pod(
+            metadata=ObjectMetadata(),
+            spec=PodSpec(
+                containers=[
+                    Container(
+                        name="main",
+                        resources=ResourceRequirements(
+                            requests={"cpu": "500m", "memory": "256Mi"},
+                            limits={"cpu": "1", "memory": "512Mi"},
+                        ),
+                    )
                 ]
-            }
-        }
+            ),
+        )
     ),
 )
 ```

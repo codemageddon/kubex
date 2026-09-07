@@ -9,6 +9,7 @@ from kubex.core.exceptions import KubexClientException
 from kubex.core.exec_channels import (
     CHANNEL_CLOSE,
     V5ChannelProtocol,
+    error_channel_for_port_index,
     port_prefix_encode,
 )
 
@@ -212,6 +213,32 @@ async def test_data_buffer_overflow_closes_port_stream_and_sets_truncated_flag()
         await anyio.sleep(0)
 
     assert session._truncated[8080] is True
+
+
+@pytest.mark.anyio
+async def test_error_buffer_overflow_closes_port_error_stream_and_sets_truncated_flag() -> (
+    None
+):
+    """The error channel has its own overflow flag, distinct from the data
+    channel's — a full error buffer must not silently masquerade as a normal
+    end-of-stream on `PortForwarder.port_error_truncated`.
+    """
+    fake = _FakeWebSocket(buffer=2048)
+    error_channel = error_channel_for_port_index(0)
+    fake.feed(_data_frame(error_channel, port_prefix_encode(8080) + b"err1"))
+    fake.feed(_data_frame(error_channel, b"err2"))  # triggers WouldBlock
+    fake.feed_eof()
+
+    async with PortForwardSession(
+        fake, V5ChannelProtocol(), ports=[8080], buffer_size=1
+    ) as session:
+        await anyio.sleep(0)
+        await anyio.sleep(0)
+        await anyio.sleep(0)
+
+    assert session._error_truncated[8080] is True
+    # The data channel is unaffected by the error channel overflowing.
+    assert session._truncated[8080] is False
 
 
 @pytest.mark.anyio

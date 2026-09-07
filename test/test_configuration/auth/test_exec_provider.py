@@ -21,3 +21,13 @@ async def test_exec_provider_run() -> None:
     result = await provider.run()
     assert result.status is not None
     assert result.status.token == "test-token"
+
+
+def test_exec_provider_applies_configured_env() -> None:
+    provider = ExecAuthProvider(
+        config=ExecConfig(
+            command="echo",
+            env=[{"name": "AWS_PROFILE", "value": "prod"}],
+        )
+    )
+    assert provider.env["AWS_PROFILE"] == "prod"

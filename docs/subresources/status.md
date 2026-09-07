@@ -117,10 +117,19 @@ async def main() -> None:
 
 ```python
 from kubex.core.patch import MergePatch
+from kubex.k8s.v1_35.apps.v1.deployment import Deployment
+from kubex.k8s.v1_35.apps.v1.deployment_status import DeploymentStatus
+from kubex_core.models.metadata import ObjectMetadata
 
 updated = await api.status.patch(
     "my-deployment",
-    MergePatch({"status": {"availableReplicas": 3}}),
+    # `metadata=ObjectMetadata()` is required by the model but empty is a no-op merge.
+    MergePatch(
+        Deployment(
+            metadata=ObjectMetadata(),
+            status=DeploymentStatus(available_replicas=3),
+        )
+    ),
 )
 ```
 
@@ -139,10 +148,21 @@ For server-side apply on status, use `ApplyPatch` with `force=True` and a `field
 
 ```python
 from kubex.core.patch import ApplyPatch
+from kubex.k8s.v1_35.apps.v1.deployment import Deployment
+from kubex.k8s.v1_35.apps.v1.deployment_condition import DeploymentCondition
+from kubex.k8s.v1_35.apps.v1.deployment_status import DeploymentStatus
+from kubex_core.models.metadata import ObjectMetadata
 
 updated = await api.status.patch(
     "my-deployment",
-    ApplyPatch({"status": {"conditions": [...]}}),
+    ApplyPatch(
+        Deployment(
+            metadata=ObjectMetadata(),
+            status=DeploymentStatus(
+                conditions=[DeploymentCondition(status="True", type_="Available")]
+            ),
+        )
+    ),
     force=True,
     field_manager="my-controller",
 )

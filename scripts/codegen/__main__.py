@@ -72,6 +72,7 @@ def run_generate(
             package_version=package_version,
             modules=build.modules,
             shared_enums=build.shared_enums,
+            clean=only_groups is None,
         )
     )
     typer.echo(f"Wrote generated package to {pkg_root}")
@@ -138,9 +139,10 @@ def run_verify(package: Path) -> int:
         result = subprocess.run(cmd, check=False)
         if result.returncode != 0:
             rc = result.returncode
-    # mypy must run from within the package directory so it resolves the
-    # `kubex` namespace package correctly (the repo-root `kubex/` with its
-    # own `__init__.py` would otherwise shadow the generated namespace).
+    # `kubex/` below is a relative path, so it only resolves to the generated
+    # package's own kubex.k8s.* tree when mypy's cwd is the package directory;
+    # from the repo root the same argument would type-check the library's own
+    # `kubex/` sources instead.
     mypy_cmd = [
         "uv",
         "run",

@@ -49,6 +49,27 @@ api: Api[Pod] = Api(Pod, client=client, namespace="production")
 pod = await api.get("web-server")  # uses "production"
 ```
 
+Omitting `namespace=` entirely (rather than passing `None`) falls back to the client's configured
+namespace for namespace-scoped resources — set by `configure_from_pod_env()` from the pod's own
+service-account namespace file when running in-cluster, `None` (all-namespaces) otherwise:
+
+```python
+from kubex.client import create_client
+from kubex.configuration.incluster_config import configure_from_pod_env
+
+# In-cluster, no namespace= passed: scoped to this pod's own namespace, not all-namespaces.
+config = await configure_from_pod_env()
+client = await create_client(configuration=config)
+api: Api[Pod] = Api(Pod, client=client)
+pods = await api.list()  # only this pod's namespace
+
+# Pass namespace=None explicitly to opt back into all-namespaces.
+all_pods = await api.list(namespace=None)
+```
+
+Cluster-scoped resources never receive a namespace this way, regardless of what the client has
+configured.
+
 ### Overriding the namespace per-call
 
 Any method that accepts a namespace argument lets you override the default:

@@ -16,7 +16,12 @@ Auto-generated reference for the `kubex.api` module. Private descriptors (e.g. `
 
 ## Status subresource
 
+`StatusAccessor.get`/`replace`/`patch` are inherited from `ResourceSubresourceAccessor`
+(shared with `ResizeAccessor` and `EphemeralContainersAccessor`), hence `inherited_members` below.
+
 ::: kubex.api._status
+    options:
+      inherited_members: true
 
 ## Eviction subresource
 
@@ -25,10 +30,14 @@ Auto-generated reference for the `kubex.api` module. Private descriptors (e.g. `
 ## Ephemeral containers subresource
 
 ::: kubex.api._ephemeral_containers
+    options:
+      inherited_members: true
 
 ## Resize subresource
 
 ::: kubex.api._resize
+    options:
+      inherited_members: true
 
 ## Exec subresource
 

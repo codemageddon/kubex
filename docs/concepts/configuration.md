@@ -39,8 +39,9 @@ Key parameters:
 | `server_ca_file` | `Path | str` | CA certificate for TLS verification |
 | `insecure_skip_tls_verify` | `bool` | Disable TLS verification (not for production) |
 | `client_cert_file` / `client_key_file` | `Path | str` | Mutual TLS client certificate + key |
-| `namespace` | `str` | Default namespace (used by `configure_from_pod_env`) |
+| `namespace` | `str \| None` | Populated by `configure_from_pod_env` from the pod's own namespace. `Api`/`create_api()` fall back to it for namespace-scoped resources created without an explicit `namespace=`; `None` (the default here) leaves their own "all namespaces" default in effect |
 | `try_refresh_token` | `bool` | Re-read `token_file` every 60 s (for projected service-account tokens) |
+| `refreshable_token` | `SupportsAuthorizationHeader` | An exec/OIDC token source (`ExecRefreshableToken` / `OidcRefreshableToken`); set automatically by `configure_from_kubeconfig()`, takes priority over `token`/`token_file` when present |
 
 ## `configure_from_kubeconfig()`
 
@@ -49,13 +50,30 @@ Reads a kubeconfig file and returns a `ClientConfiguration`. Resolves the curren
 - Bearer token (inline or from file)
 - Client certificate + key (inline data or file paths)
 - Exec credential provider (e.g., `aws eks get-token`, `gke-gcloud-auth-plugin`)
+- OIDC (`auth-provider: oidc` only)
+
+A context whose `auth-provider` is set to anything other than `oidc`, or whose `oidc` config
+fails to validate, raises `ConfigurationError` instead of silently returning an unauthenticated
+client. See [Exec credential provider](#exec-credential-provider) below.
 
 ```python
 from kubex.configuration.file_config import configure_from_kubeconfig
 
 config = await configure_from_kubeconfig()
-# or specify a path explicitly:
-config = await configure_from_kubeconfig(path="/home/user/.kube/my-config")
+```
+
+To load a specific file (there is no `path=` parameter — read and parse it yourself, then pass
+the resulting `KubeConfig`):
+
+```python
+from kubex.configuration.configuration import KubeConfig
+from kubex.configuration.file_config import configure_from_kubeconfig
+from pathlib import Path
+from yaml import safe_load
+
+raw = safe_load(Path("/home/user/.kube/my-config").read_text())
+kube_config = KubeConfig.model_validate(raw)
+config = await configure_from_kubeconfig(config=kube_config)
 ```
 
 ## `configure_from_pod_env()`
@@ -72,6 +90,10 @@ This is used automatically when your code runs inside a Pod and kubeconfig is no
 
 ## Exec credential provider
 
-When a kubeconfig context uses an `exec:` credential plugin (common with AWS EKS, GKE, and other managed clusters), `configure_from_kubeconfig()` resolves it by running the configured command and extracting the returned token. Token refresh is handled automatically on expiry.
+When a kubeconfig context uses an `exec:` credential plugin (common with AWS EKS, GKE, and other
+managed clusters), `configure_from_kubeconfig()` resolves it by wrapping `ExecAuthProvider` in an
+`ExecRefreshableToken` and storing it as `ClientConfiguration.refreshable_token`. The exec command
+re-runs whenever the cached token is close to expiring; see [Authentication](../advanced/authentication.md#exec-provider)
+for the refresh-timing caveat.
 
 For full details on the exec provider and OIDC authentication, see [Authentication](../advanced/authentication.md).
