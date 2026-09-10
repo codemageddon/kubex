@@ -12,6 +12,7 @@ Kubex ships a separate model package for each supported Kubernetes minor version
 | `kubex-k8s-1-35` | 1.35 | `kubex[k8s-1.35]` |
 | `kubex-k8s-1-36` | 1.36 | `kubex[k8s-1.36]` |
 | `kubex-k8s-1-37` | 1.37 | `kubex[k8s-1.37]` |
+| `kubex-k8s-1-38` | 1.38 | `kubex[k8s-1.38]` |
 
 Each package is generated from the official Kubernetes OpenAPI spec, so models exactly match the wire schema of the target cluster.
 

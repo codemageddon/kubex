@@ -10,5 +10,5 @@ class IPAddressSpec(BaseK8sModel):
     parent_ref: ParentReference = Field(
         ...,
         alias="parentRef",
-        description="ParentRef references the resource that an IPAddress is attached to. An IPAddress must reference a parent object.",
+        description="parentRef references the resource that an IPAddress is attached to. An IPAddress must reference a parent object.",
     )

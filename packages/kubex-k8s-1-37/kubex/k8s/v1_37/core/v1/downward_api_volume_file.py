@@ -28,3 +28,8 @@ class DownwardAPIVolumeFile(BaseK8sModel):
         alias="resourceFieldRef",
         description="Selects a resource of the container: only resources limits and requests (limits.cpu, limits.memory, requests.cpu and requests.memory) are currently supported.",
     )
+    user: int | None = Field(
+        default=None,
+        alias="user",
+        description="user is Optional: The owner UID of the created file. If specified, the item-level user field takes precedence over defaultUser. (Alpha) This field requires the AtomicWriteVolumeUserFields feature gate to be enabled.",
+    )

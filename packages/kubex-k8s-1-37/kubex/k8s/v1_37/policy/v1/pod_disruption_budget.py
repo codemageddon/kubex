@@ -37,10 +37,10 @@ class PodDisruptionBudget(NamespaceScopedEntity, HasStatusSubresource):
     spec: PodDisruptionBudgetSpec | None = Field(
         default=None,
         alias="spec",
-        description="Specification of the desired behavior of the PodDisruptionBudget.",
+        description="spec is the specification of the desired behavior of the PodDisruptionBudget.",
     )
     status: PodDisruptionBudgetStatus | None = Field(
         default=None,
         alias="status",
-        description="Most recently observed status of the PodDisruptionBudget.",
+        description="status is the most recently observed status of the PodDisruptionBudget.",
     )

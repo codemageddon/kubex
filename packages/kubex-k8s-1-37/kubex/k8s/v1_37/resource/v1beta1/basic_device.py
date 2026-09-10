@@ -7,8 +7,8 @@ from kubex.k8s.v1_37.resource.v1beta1.device_counter_consumption import (
     DeviceCounterConsumption,
 )
 from kubex.k8s.v1_37.resource.v1beta1.device_taint import DeviceTaint
-from kubex.k8s.v1_37.resource.v1beta1.node_allocatable_resource_mapping import (
-    NodeAllocatableResourceMapping,
+from kubex.k8s.v1_37.resource.v1beta1.node_allocatable_resource import (
+    NodeAllocatableResource,
 )
 from kubex_core.models.base import BaseK8sModel
 
@@ -56,12 +56,10 @@ class BasicDevice(BaseK8sModel):
         alias="consumesCounters",
         description="ConsumesCounters defines a list of references to sharedCounters and the set of counters that the device will consume from those counter sets. There can only be a single entry per counterSet. The maximum number of device counter consumptions per device is 2.",
     )
-    node_allocatable_resource_mappings: (
-        dict[str, NodeAllocatableResourceMapping] | None
-    ) = Field(
+    node_allocatable_resources: dict[str, NodeAllocatableResource] | None = Field(
         default=None,
-        alias="nodeAllocatableResourceMappings",
-        description='NodeAllocatableResourceMappings defines the mapping of node resources that are managed by the DRA driver exposing this device. This includes resources currently reported in v1.Node `status.allocatable` that are not extended resources (see https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#extended-resources). Examples include "cpu", "memory", "ephemeral-storage", and hugepages. In addition to standard requests made through the Pod `spec`, these resources can also be requested through claims and allocated by the DRA driver. For example, a CPU DRA driver might allocate exclusive CPUs or auxiliary node memory dependencies of an accelerator device. The keys of this map are the node-allocatable resource names (e.g., "cpu", "memory"). Extended resource names are not permitted as keys.',
+        alias="nodeAllocatableResources",
+        description='NodeAllocatableResources defines the mapping of node resources that are managed by the DRA driver exposing this device. This includes resources currently reported in v1.Node `status.allocatable` that are not extended resources (see https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#extended-resources). Examples include "cpu", "memory", "ephemeral-storage", and hugepages. In addition to standard requests made through the Pod `spec`, these resources can also be requested through claims and allocated by the DRA driver. For example, a CPU DRA driver might allocate exclusive CPUs or auxiliary node memory dependencies of an accelerator device. The keys of this map are the node-allocatable resource names (e.g., "cpu", "memory"). Extended resource names are not permitted as keys.',
     )
     node_name: str | None = Field(
         default=None,

@@ -28,7 +28,7 @@ class EventList(ListEntity[Event]):
     metadata: ListMetadata = Field(
         ...,
         alias="metadata",
-        description="Standard list metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+        description="metadata is the standard list metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
     )
 
 

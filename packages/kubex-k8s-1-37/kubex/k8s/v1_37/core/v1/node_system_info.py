@@ -46,6 +46,11 @@ class NodeSystemInfo(BaseK8sModel):
         alias="osImage",
         description="OS Image reported by the node from /etc/os-release (e.g. Debian GNU/Linux 7 (wheezy)).",
     )
+    running_in_user_namespace: bool | None = Field(
+        default=None,
+        alias="runningInUserNamespace",
+        description="Whether the node is running in a user namespace.",
+    )
     swap: NodeSwapStatus | None = Field(
         default=None, alias="swap", description="Swap Info reported by the node."
     )

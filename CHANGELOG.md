@@ -7,16 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
+### Added
 
-- `allowWatchBookmarks` query parameter handling on watch requests.
-- `WatchOptions`: `sendInitialEvents` (whether `true` or `false`) now always pairs with
-  `resourceVersionMatch=NotOlderThan` on the outgoing request, matching the Kubernetes API's
-  `validateWatchOptions` requirement.
-- Watch `ERROR` events. It now raises the correct `KubexApiError` subclass, with the full
-  `Status` — including `message` and `details` — preserved as its content.
-- `api.metadata.watch()` sent `Accept`/`Content-Type` fixed.
-- `anyio` is now a runtime dependency instead of a dev-only one.
+- Kubernetes 1.38 prelimitary support
 
 ### Changed
 
@@ -40,6 +33,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   are still dropped by `exclude_none=True`; for user-defined CRD models with non-`None` field
   defaults, a `replace()` can now write that default back to the cluster for a field the caller
   never touched.
+- Kubernetes 1.37 release support
+
+### Fixed
+
+- `allowWatchBookmarks` query parameter handling on watch requests.
+- `WatchOptions`: `sendInitialEvents` (whether `true` or `false`) now always pairs with
+  `resourceVersionMatch=NotOlderThan` on the outgoing request, matching the Kubernetes API's
+  `validateWatchOptions` requirement.
+- Watch `ERROR` events. It now raises the correct `KubexApiError` subclass, with the full
+  `Status` — including `message` and `details` — preserved as its content.
+- `api.metadata.watch()` sent `Accept`/`Content-Type` fixed.
+- `anyio` is now a runtime dependency instead of a dev-only one.
 
 ## [0.1.0-beta.2] - 2026-05-12
 

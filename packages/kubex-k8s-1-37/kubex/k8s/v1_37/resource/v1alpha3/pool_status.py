@@ -1,5 +1,9 @@
 from pydantic import Field
 
+from kubex.k8s.v1_37.resource.v1alpha3.partition_type_status import PartitionTypeStatus
+from kubex.k8s.v1_37.resource.v1alpha3.shareable_summary_status import (
+    ShareableSummaryStatus,
+)
 from kubex_core.models.base import BaseK8sModel
 
 
@@ -31,6 +35,11 @@ class PoolStatus(BaseK8sModel):
         alias="nodeName",
         description="NodeName is the node this pool is associated with. When omitted, the pool is not associated with a specific node. Must be a valid DNS subdomain name (RFC1123).",
     )
+    partition_summary: list[PartitionTypeStatus] | None = Field(
+        default=None,
+        alias="partitionSummary",
+        description="PartitionSummary reports allocatability per (attribute, partition type) for a partitionable pool that publishes SharedCounters. Each entry names the grouping attribute it was resolved from: the PartitionTypeAttribute declared by a device's own slice, or for devices whose slice declares none, the default named in the request. A pool that mixes partitions declared under different attributes reports each independently. When no slice declares an attribute and the request names no default, the pool reports no partition summary.",
+    )
     pool_name: str = Field(
         ...,
         alias="poolName",
@@ -40,6 +49,11 @@ class PoolStatus(BaseK8sModel):
         default=None,
         alias="resourceSliceCount",
         description="ResourceSliceCount is the number of ResourceSlices that make up this pool. May be unset when validationError is set.",
+    )
+    shareable_summary: ShareableSummaryStatus | None = Field(
+        default=None,
+        alias="shareableSummary",
+        description="ShareableSummary reports aggregate capacity for a pool that contains devices with AllowMultipleAllocations. It is populated only when at least one device in the pool is shareable.",
     )
     total_devices: int | None = Field(
         default=None,

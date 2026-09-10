@@ -43,7 +43,7 @@ async with await create_client() as client:
 
 ### Multi-version Kubernetes support
 
-Kubex ships separate model packages for Kubernetes 1.32 through 1.37. You can depend on exactly the versions you need, or use multiple versions simultaneously — useful when managing clusters at different upgrade stages:
+Kubex ships separate model packages for Kubernetes 1.32 through 1.38. You can depend on exactly the versions you need, or use multiple versions simultaneously — useful when managing clusters at different upgrade stages:
 
 ```python
 from kubex.k8s.v1_34.apps.v1.deployment import Deployment as Deployment134
