@@ -192,9 +192,15 @@ async def main() -> None:
 | `stdin` | writer | Call `await session.stdin.write(data)` to send bytes to the container |
 | `stdout` | `MemoryObjectReceiveStream[bytes]` | Async iterable yielding stdout chunks |
 | `stderr` | `MemoryObjectReceiveStream[bytes]` | Async iterable yielding stderr chunks |
+| `stdout_truncated` | `bool` | `True` if the stdout buffer overflowed and frames were dropped |
+| `stderr_truncated` | `bool` | `True` if the stderr buffer overflowed and frames were dropped |
 | `resize(width, height)` | coroutine | Send a terminal resize event |
 | `close_stdin()` | coroutine | Half-close the stdin channel (idempotent) |
 | `wait_for_status()` | coroutine | Await the final status frame; returns `Status | None` |
+
+`stdout`/`stderr` are each bounded at 128 buffered frames; if a consumer falls behind and the
+buffer fills, kubex closes that channel locally rather than blocking forever. Check
+`stdout_truncated`/`stderr_truncated` after the iterator ends to tell that apart from a normal EOF.
 
 ### TTY mode and stderr
 

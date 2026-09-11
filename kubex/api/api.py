@@ -16,7 +16,6 @@ from kubex.core.params import (
     FieldValidation,
     GetOptions,
     ListOptions,
-    NamespaceTypes,
     PatchOptions,
     PostOptions,
     Precondition,
@@ -29,6 +28,7 @@ from kubex.core.patch import Patch
 from kubex.core.request_builder.builder import RequestBuilder
 from kubex.core.watch_event import WatchEvent
 from kubex_core.models.list_entity import ListEntity
+from kubex_core.models.resource_config import Scope
 from kubex_core.models.status import Status
 from kubex_core.models.typing import (
     ResourceType,
@@ -71,17 +71,25 @@ class Api(Generic[ResourceType]):
         resource_type: Type[ResourceType],
         client: BaseClient,
         *,
-        namespace: NamespaceTypes = None,
+        namespace: ApiNamespaceTypes = Ellipsis,
     ) -> None:
         self._resource = resource_type
         self._client = client
         self._request_builder = RequestBuilder(
             resource_config=resource_type.__RESOURCE_CONFIG__,
         )
+        scope = self._resource.__RESOURCE_CONFIG__.scope
+        if namespace is Ellipsis:
+            # Unspecified: seed from the client's configured namespace, but only
+            # for namespace-scoped resources -- a cluster-scoped resource must
+            # never receive a namespace, configured or not. An explicit `None`
+            # (rather than omitting the argument) still means "all namespaces"
+            # and is never overridden by the client's configured namespace.
+            namespace = (
+                client.configuration.namespace if scope == Scope.NAMESPACE else None
+            )
         self._namespace = namespace
-        ensure_optional_namespace(
-            namespace, self._namespace, self._resource.__RESOURCE_CONFIG__.scope
-        )
+        ensure_optional_namespace(namespace, self._namespace, scope)
         self.metadata = MetadataAccessor(
             client=self._client,
             request_builder=self._request_builder,
@@ -153,7 +161,9 @@ class Api(Generic[ResourceType]):
                 HTTP client-side timeout, use ``request_timeout``.
             limit: The maximum number of items to return.
             continue_token: The continue token for the list call.
-            version_match: Whether to watch for changes to a resource.
+            version_match: How the API server should interpret ``resource_version``; sent
+                as the Kubernetes ``resourceVersionMatch`` query parameter. See
+                [Resource Version Semantics documentation](https://kubernetes.io/docs/reference/using-api/api-concepts/#semantics-for-get-and-list).
             resource_version: The resource version to list. If not provided,
                 the current resource version will be listed. For details look at
                 [Resource Version Semantics documentation](https://kubernetes.io/docs/reference/using-api/api-concepts/#semantics-for-get-and-list),
@@ -439,7 +449,7 @@ async def create_api(
     resource_type: Type[ResourceType],
     *,
     client: BaseClient | None = None,
-    namespace: NamespaceTypes = None,
+    namespace: ApiNamespaceTypes = Ellipsis,
 ) -> Api[ResourceType]:
     """Create an API for the specified resource type.
 
@@ -450,7 +460,11 @@ async def create_api(
         namespace: The namespace to use for the API. If set all
             operations will be performed in this namespace.
             The Api namespace can be overridden by passing a
-            namespace to the individual methods.
+            namespace to the individual methods. If omitted, a
+            namespace-scoped resource falls back to the client's
+            configured namespace (e.g. the in-cluster pod's own
+            namespace); pass ``None`` explicitly for "all namespaces"
+            instead. Cluster-scoped resources never receive a namespace.
     Returns:
         An Api instance for the specified resource type.
     """

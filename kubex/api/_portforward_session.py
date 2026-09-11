@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Sequence
 import anyio
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 
-from kubex.api._stream_session import _BaseChannelSession
+from kubex.api._stream_session import _BaseChannelSession, _dispatch, _dispatch_nowait
 from kubex.client.websocket import WebSocketConnection
 from kubex.core.exceptions import KubexClientException
 from kubex.core.exec_channels import (
@@ -72,8 +72,9 @@ class PortForwardSession(_BaseChannelSession):
         # Per-port PortForwardStream objects exposing the anyio.abc.ByteStream API.
         self._streams: dict[int, PortForwardStream] = {}
 
-        # Overflow flags: set when a per-port data buffer fills and is closed locally.
+        # Overflow flags: set when a per-port data/error buffer fills and is closed locally.
         self._truncated: dict[int, bool] = {}
+        self._error_truncated: dict[int, bool] = {}
 
         # Whether each port's data / error channel is still accepting inbound frames.
         self._data_open: dict[int, bool] = {}
@@ -103,6 +104,7 @@ class PortForwardSession(_BaseChannelSession):
             self._errors_recv[port] = recv_e
             self._streams[port] = _PortForwardStream(self, port, dc, recv_d)
             self._truncated[port] = False
+            self._error_truncated[port] = False
             self._data_open[port] = True
             self._error_open[port] = True
 
@@ -157,12 +159,12 @@ class PortForwardSession(_BaseChannelSession):
                         payload = payload[2:]
                     if payload:
                         if self._block_on_full:
-                            still_open = await _dispatch_bytes(
+                            still_open = await _dispatch(
                                 self._streams_send[port], payload
                             )
                             self._data_open[port] = still_open
                         else:
-                            still_open, truncated = _dispatch_bytes_nowait(
+                            still_open, truncated = _dispatch_nowait(
                                 self._streams_send[port], payload
                             )
                             self._data_open[port] = still_open
@@ -186,15 +188,17 @@ class PortForwardSession(_BaseChannelSession):
                     if payload:
                         error_text = payload.decode("utf-8", errors="replace")
                         if self._block_on_full:
-                            still_open = await _dispatch_str(
+                            still_open = await _dispatch(
                                 self._errors_send[port], error_text
                             )
                             self._error_open[port] = still_open
                         else:
-                            still_open, _ = _dispatch_str_nowait(
+                            still_open, truncated = _dispatch_nowait(
                                 self._errors_send[port], error_text
                             )
                             self._error_open[port] = still_open
+                            if truncated:
+                                self._error_truncated[port] = True
         finally:
             for port in self._ports:
                 self._streams_send[port].close()
@@ -209,70 +213,3 @@ class PortForwardSession(_BaseChannelSession):
             port = self._error_ch_to_port[target_channel]
             self._errors_send[port].close()
             self._error_open[port] = False
-
-
-def _dispatch_bytes_nowait(
-    send_stream: MemoryObjectSendStream[bytes], payload: bytes
-) -> tuple[bool, bool]:
-    """Push ``payload`` to ``send_stream`` without blocking.
-
-    Returns ``(still_open, truncated)``.  ``still_open`` is ``False`` when the
-    channel is closed; ``truncated`` is ``True`` only when *this* call closed
-    the channel due to a full buffer.  Using ``send_nowait`` here means the
-    read loop never stalls on a single port's consumer, so a slow consumer on
-    port A cannot block frame delivery to port B (no head-of-line blocking).
-    """
-    try:
-        send_stream.send_nowait(payload)
-        return True, False
-    except anyio.WouldBlock:
-        send_stream.close()
-        return False, True
-    except (anyio.BrokenResourceError, anyio.ClosedResourceError):
-        return False, False
-
-
-def _dispatch_str_nowait(
-    send_stream: MemoryObjectSendStream[str], text: str
-) -> tuple[bool, bool]:
-    """Push ``text`` to ``send_stream`` without blocking.
-
-    Returns ``(still_open, truncated)``.
-    """
-    try:
-        send_stream.send_nowait(text)
-        return True, False
-    except anyio.WouldBlock:
-        send_stream.close()
-        return False, True
-    except (anyio.BrokenResourceError, anyio.ClosedResourceError):
-        return False, False
-
-
-async def _dispatch_bytes(
-    send_stream: MemoryObjectSendStream[bytes], payload: bytes
-) -> bool:
-    """Push ``payload`` to ``send_stream``, blocking until space is available.
-
-    Returns ``True`` if the send succeeded, ``False`` if the stream is closed.
-    Blocking naturally propagates backpressure from a slow consumer through the
-    memory buffer to the WebSocket read loop, preventing data loss.  Only used
-    when ``block_on_full=True`` (the ``listen()`` TCP-proxy path).
-    """
-    try:
-        await send_stream.send(payload)
-        return True
-    except (anyio.BrokenResourceError, anyio.ClosedResourceError):
-        return False
-
-
-async def _dispatch_str(send_stream: MemoryObjectSendStream[str], text: str) -> bool:
-    """Push ``text`` to ``send_stream``, blocking until space is available.
-
-    Returns ``True`` if the send succeeded, ``False`` if the stream is closed.
-    """
-    try:
-        await send_stream.send(text)
-        return True
-    except (anyio.BrokenResourceError, anyio.ClosedResourceError):
-        return False

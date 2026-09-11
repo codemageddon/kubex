@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
-from contextlib import asynccontextmanager
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import AsyncGenerator
 
 import anyio
 from pydantic import SecretStr
@@ -16,47 +15,31 @@ def bearer_token(token: SecretStr) -> str:
     return f"Bearer {token.get_secret_value()}"
 
 
-class _AsyncRWLock:
-    def __init__(self) -> None:
-        self._readers = 0
-        self._reader_lock = anyio.Lock()  # Protects the readers count
-        self._writer_lock = anyio.Lock()  # Blocks writers when active
-
-    @asynccontextmanager
-    async def read_lock(self) -> AsyncGenerator[None, None]:
-        """Acquire a read lock. Multiple readers can hold the lock simultaneously.
-        Writers are blocked while any readers hold the lock.
-        """
-        async with self._reader_lock:
-            self._readers += 1
-            if self._readers == 1:
-                await self._writer_lock.acquire()  # Block writers if first reader
-        try:
-            yield
-        finally:
-            async with self._reader_lock:
-                self._readers -= 1
-                if self._readers == 0:
-                    self._writer_lock.release()  # Release writer lock if last reader
-
-    @asynccontextmanager
-    async def write_lock(self) -> AsyncGenerator[None, None]:
-        """
-        Acquire a write lock. Only one writer can hold the lock,
-        and all readers are blocked while the writer holds the lock.
-        """
-        async with self._writer_lock:
-            yield
-
-
 class BaseRefreshableToken(ABC):
     def __init__(self) -> None:
-        self._lock = _AsyncRWLock()
+        self._lock = anyio.Lock()
         self._last_read_token: SecretStr | None = None
         self._expires_at: float = anyio.current_time()
+        self._expires_at_wall: datetime = datetime.now(timezone.utc)
 
     def _is_expiring(self) -> bool:
-        return self._expires_at < anyio.current_time() + 10
+        # Checked against both clocks: `anyio.current_time()` is monotonic and
+        # does not advance across a system suspend, so a suspend spanning a
+        # credential's remaining lifetime would otherwise extend it. Wall-clock
+        # time can jump (NTP, manual changes), which is what the monotonic
+        # check guards against in the normal case.
+        if self._expires_at < anyio.current_time() + 10:
+            return True
+        return self._expires_at_wall <= datetime.now(timezone.utc)
+
+    def _set_expiry(self, deadline: datetime | None) -> None:
+        """Record `deadline` (or the default interval, if unknown) on both clocks."""
+        now = datetime.now(timezone.utc)
+        if deadline is None:
+            deadline = now + timedelta(seconds=TOKEN_REFRESH_INTERVAL)
+        seconds_remaining = max((deadline - now).total_seconds(), 0.0)
+        self._expires_at = anyio.current_time() + seconds_remaining
+        self._expires_at_wall = deadline
 
     def _cached_token(self) -> SecretStr | None:
         if not self._is_expiring():
@@ -67,11 +50,10 @@ class BaseRefreshableToken(ABC):
     async def _id_token(self) -> SecretStr: ...
 
     async def to_header(self) -> str:
-        async with self._lock.read_lock():
-            token = self._cached_token()
+        token = self._cached_token()
         if token is not None:
             return bearer_token(token)
-        async with self._lock.write_lock():
+        async with self._lock:
             token = self._cached_token()
             if token is None:
                 token = await self._id_token()
@@ -89,8 +71,29 @@ class FileRefreshableToken(BaseRefreshableToken):
             if not raw_token:
                 raise ValueError("Token is not set")
             self._last_read_token = SecretStr(raw_token)
-            self._expires_at = anyio.current_time() + TOKEN_REFRESH_INTERVAL
+            self._set_expiry(None)
         return self._last_read_token
+
+
+def _parse_rfc3339(timestamp: str) -> datetime | None:
+    """Parse an RFC 3339 timestamp into an aware UTC `datetime`.
+
+    A timestamp with no UTC offset cannot be interpreted -- it could be local
+    time in any zone -- so it is treated the same as an unparseable one
+    (`None`) rather than guessed as UTC, which would silently over- or
+    under-cache the credential depending on the reader's offset from UTC.
+    The caller falls back to the default refresh interval in either case.
+    """
+    try:
+        parsed = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return None
+    try:
+        return parsed.astimezone(timezone.utc)
+    except (OverflowError, ValueError, OSError):
+        return None
 
 
 class OidcRefreshableToken(BaseRefreshableToken):
@@ -98,16 +101,23 @@ class OidcRefreshableToken(BaseRefreshableToken):
         super().__init__()
         self._provider = provider
 
-    def _get_expiration(self, token: str) -> float:
-        # TODO: Implement this
-        return anyio.current_time() + float(TOKEN_REFRESH_INTERVAL)
+    def _get_expiration(self, exp_claim: float | None) -> datetime | None:
+        if exp_claim is None:
+            return None
+        try:
+            return datetime.fromtimestamp(exp_claim, tz=timezone.utc)
+        except (OverflowError, ValueError, OSError):
+            # Out-of-range or otherwise unusable `exp` (e.g. emitted in
+            # milliseconds by a non-conformant IdP) -- fall back rather than
+            # letting the exception escape and break every subsequent request.
+            return None
 
     async def _id_token(self) -> SecretStr:
         if not self._is_expiring() and self._last_read_token is not None:
             return self._last_read_token
-        raw_token = await self._provider.refresh_token()
+        raw_token, exp_claim = await self._provider.refresh_token()
         self._last_read_token = SecretStr(raw_token)
-        self._expires_at = self._get_expiration(raw_token)
+        self._set_expiry(self._get_expiration(exp_claim))
         return self._last_read_token
 
 
@@ -116,13 +126,15 @@ class ExecRefreshableToken(BaseRefreshableToken):
         super().__init__()
         self._provider = provider
 
-    def _get_expiration(self, token: str) -> float:
-        return anyio.current_time() + float(TOKEN_REFRESH_INTERVAL)
+    def _get_expiration(self, expiration_timestamp: str | None) -> datetime | None:
+        if expiration_timestamp is None:
+            return None
+        return _parse_rfc3339(expiration_timestamp)
 
     async def _id_token(self) -> SecretStr:
         if not self._is_expiring() and self._last_read_token is not None:
             return self._last_read_token
-        raw_token = await self._provider.refresh_token()
+        raw_token, expiration_timestamp = await self._provider.refresh_token()
         self._last_read_token = SecretStr(raw_token)
-        self._expires_at = self._get_expiration(raw_token)
+        self._set_expiry(self._get_expiration(expiration_timestamp))
         return self._last_read_token

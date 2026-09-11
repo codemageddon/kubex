@@ -85,13 +85,3 @@ async with await create_client() as client:
     result = await api.exec.run("my-pod", command=["echo", "hello"])
     print(result.stdout, result.exit_code)
 ```
-
-# Planned Features:
-
-* [x] Fine-tuning of timeouts.
-* [x] Dynamic API object creation to exclude unsupported methods for resources (requires research for mypy compatibility).
-* [x] JsonPatch models.
-* [x] Type-safe subresource APIs (logs, scale, status, eviction, ephemeral containers, resize, exec, attach, portforward).
-* [x] Additional tests and examples.
-* [x] Remaining websocket-based subresources (portforward).
-* [ ] Support for OIDC and other authentication extensions.

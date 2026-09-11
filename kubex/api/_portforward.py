@@ -177,7 +177,8 @@ class PortForwarder:
     ``errors[port]`` is an async iterator of error-text strings sent by the kubelet
     on the error channel for that port.
     ``port_data_truncated[port]`` reflects the live overflow flag — ``True`` when the
-    per-port data buffer filled and the stream was closed locally.
+    per-port data buffer filled and the stream was closed locally. ``port_error_truncated[port]``
+    is the same for the per-port error channel.
     """
 
     def __init__(self, session: PortForwardSession) -> None:
@@ -194,6 +195,10 @@ class PortForwarder:
     @property
     def port_data_truncated(self) -> Mapping[int, bool]:
         return MappingProxyType(self._session._truncated)
+
+    @property
+    def port_error_truncated(self) -> Mapping[int, bool]:
+        return MappingProxyType(self._session._error_truncated)
 
 
 class PortforwardAccessor(Generic[ResourceType]):

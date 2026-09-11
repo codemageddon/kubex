@@ -21,6 +21,7 @@ Produces a directory tree:
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -43,6 +44,9 @@ class RenderInputs:
     package_version: str  # package release version string
     modules: dict[str, EmittedModule]
     shared_enums: list[enum_emitter.EmittedEnum]  # enums destined for _common.py
+    # Remove the existing module tree before writing; skipped for --only-groups,
+    # which regenerates a subset of groups against an existing package.
+    clean: bool = True
 
 
 def write_package(inputs: RenderInputs) -> Path:
@@ -58,6 +62,13 @@ def write_package(inputs: RenderInputs) -> Path:
     k8s_version_dashed = inputs.k8s_version.replace(".", "-")
     pkg_root = inputs.output_root / f"kubex-k8s-{k8s_version_dashed}"
     src_root = pkg_root / "kubex" / "k8s" / inputs.k8s_version_tag
+    if inputs.clean and src_root.exists():
+        # A full regeneration must not leave modules for resources that no
+        # longer exist in the new spec (e.g. a removed API group or type)
+        # importable from a stale previous run. Skipped for --only-groups,
+        # which regenerates only a subset of groups against an existing
+        # package and must leave every other group's files untouched.
+        shutil.rmtree(src_root)
     src_root.mkdir(parents=True, exist_ok=True)
 
     # pyproject.toml, README.
@@ -155,13 +166,25 @@ def write_package(inputs: RenderInputs) -> Path:
     return pkg_root
 
 
+def _escape_string_literal(text: str) -> str:
+    """Escape backslashes and double quotes for embedding in a double-quoted
+    (including triple-double-quoted) string literal.
+
+    Without this, a spec description ending in a quote character produces
+    four consecutive quotes where the docstring closes (a syntax error), or,
+    containing a backslash, silently reinterprets an escape sequence such as
+    a literal backslash-n as a real newline.
+    """
+    return text.replace("\\", "\\\\").replace('"', '\\"')
+
+
 def _render_class(cls: EmittedClass) -> str:
     """Render one Pydantic class to source."""
     lines: list[str] = []
     bases = ", ".join(cls.bases) if cls.bases else "BaseK8sModel"
     lines.append(f"class {cls.class_name}({bases}):")
     if cls.docstring:
-        lines.append(f'    """{cls.docstring}"""')
+        lines.append(f'    """{_escape_string_literal(cls.docstring)}"""')
     if cls.resource_info is not None:
         info = cls.resource_info
         scope = "Scope.NAMESPACE" if info.is_namespaced else "Scope.CLUSTER"
@@ -195,8 +218,7 @@ def _render_field(field_: EmittedField, class_name: str) -> str:
         annotation = f"{field_.type_expression} | None"
     desc_part = ""
     if field_.description:
-        # Escape embedded double quotes.
-        safe = field_.description.replace("\\", "\\\\").replace('"', '\\"')
+        safe = _escape_string_literal(field_.description)
         desc_part = f', description="{safe}"'
     return (
         f"    {field_.python_name}: {annotation} = "
