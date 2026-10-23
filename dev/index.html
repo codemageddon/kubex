@@ -2186,7 +2186,7 @@
 <a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="c1"># pod.spec, pod.status, pod.metadata are all fully typed</span>
 </code></pre></div>
 <h3 id="multi-version-kubernetes-support">Multi-version Kubernetes support<a class="headerlink" href="#multi-version-kubernetes-support" title="Permanent link">&para;</a></h3>
-<p>Kubex ships separate model packages for Kubernetes 1.32 through 1.37. You can depend on exactly the versions you need, or use multiple versions simultaneously — useful when managing clusters at different upgrade stages:</p>
+<p>Kubex ships separate model packages for Kubernetes 1.32 through 1.38. You can depend on exactly the versions you need, or use multiple versions simultaneously — useful when managing clusters at different upgrade stages:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.k8s.v1_34.apps.v1.deployment</span><span class="w"> </span><span class="kn">import</span> <span class="n">Deployment</span> <span class="k">as</span> <span class="n">Deployment134</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.k8s.v1_35.apps.v1.deployment</span><span class="w"> </span><span class="kn">import</span> <span class="n">Deployment</span> <span class="k">as</span> <span class="n">Deployment135</span>
 </code></pre></div>
