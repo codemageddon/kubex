@@ -1,15 +1,11 @@
 from __future__ import annotations
 
 import math
-import sys
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import Any, AsyncIterator, Generic, Sequence, Type, TypeVar, overload
 
 import anyio
-
-if sys.version_info < (3, 11):
-    from exceptiongroup import BaseExceptionGroup
 
 from kubex.api._stream_session import StreamSession, _resolve_protocol
 from kubex.client.client import BaseClient

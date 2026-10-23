@@ -503,12 +503,9 @@ class AioHttpWebSocketConnection(WebSocketConnection):
                 # converts both ``ClientError`` (transport loss) and
                 # ``EofStream`` (transport EOF) into ``WSMsgType.CLOSED``, with
                 # ``ws.close_code`` set to ``1006`` in the former case and
-                # ``1000`` in the latter.
-                # Furthermore, on Python 3.10 + TLS, abrupt websocket drops
-                # are reported via ``EofStream`` (close_code=1000) rather than
-                # ``ClientError`` (aio-libs/aiohttp#8138), so the close code
-                # alone cannot distinguish a clean disconnect from transport
-                # loss. K8s exec always sends a close frame on success, so
+                # ``1000`` in the latter. A transport EOF is still not a clean
+                # close, so ``close_code == 1000`` here must not be trusted
+                # as success. K8s exec always sends a close frame on success, so
                 # treat the whole transport-EOF class as abnormal: this
                 # ensures a broken exec stream is never mistaken for a
                 # successful completion.

@@ -440,18 +440,15 @@ async def test_receive_bytes_surfaces_eofstream_close_as_abnormal() -> None:
     abnormal, not a clean EOF.
 
     aiohttp converts an ``EofStream`` (transport EOF without a WebSocket close
-    frame) into ``WSMsgType.CLOSED`` with ``close_code = 1000`` (OK). On
-    Python 3.10 + TLS, an *abrupt* websocket drop is also reported via this
-    ``EofStream`` pathway rather than as ``ClientError``
-    (aio-libs/aiohttp#8138), so trusting ``close_code == 1000`` here would
-    misclassify transport loss as a successful exec exit. K8s exec always
-    sends a close frame on success, so any CLOSED/CLOSING surfaces a broken
-    stream and must raise ``KubexClientException``.
+    frame) into ``WSMsgType.CLOSED`` with ``close_code = 1000`` (OK), so
+    trusting ``close_code == 1000`` here would misclassify transport loss as
+    a successful exec exit. K8s exec always sends a close frame on success,
+    so any CLOSED/CLOSING surfaces a broken stream and must raise
+    ``KubexClientException``.
 
     This test mocks ``ClientWebSocketResponse`` rather than driving a live
-    server because reproducing the Python 3.10 + TLS aiohttp bug requires a
-    very specific runtime/transport combination; the mock pins the contract
-    that the kubex adapter does not rely on close codes here.
+    server; the mock pins the contract that the kubex adapter does not rely
+    on close codes here.
     """
     from kubex.client.aiohttp import AioHttpWebSocketConnection
 
