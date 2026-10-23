@@ -64,7 +64,7 @@ uv add "kubex[httpx,k8s-1.34,k8s-1.35]"
 
 ## API compatibility across versions
 
-Most Kubernetes APIs are stable across minor versions. Fields added in newer versions are `None` by default in older models, so code written against 1.34 models generally works unchanged against a 1.35 cluster. Fields removed between versions will surface as validation warnings or be silently dropped depending on Pydantic's model configuration.
+Most Kubernetes APIs are stable across minor versions. Fields added in newer versions are `None` by default in older models, so code written against 1.34 models generally works unchanged against a 1.35 cluster. Fields removed between versions are silently ignored — all kubex models inherit Pydantic's default `extra='ignore'`, so unknown keys in an API response never raise or warn.
 
 For strict compatibility, always match the model package version to your cluster version.
 

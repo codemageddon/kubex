@@ -154,14 +154,14 @@ Maximum WebSocket frame size in bytes for `exec`, `attach`, and `portforward`. U
 | Value | Meaning |
 |---|---|
 | `...` (the default) | Kubex default of `2**21` bytes (preserves current behavior on both backends) |
-| `None` | No cap (passes `0` on the wire) |
+| `None` | No cap on aiohttp (passes `0` on the wire); **not supported on httpx** — falls back to the httpx-ws default of 65536 bytes, with a `UserWarning` |
 | `int > 0` | Explicit cap in bytes |
 
 ```python
 # Allow frames up to 8 MiB (for large exec output)
 options = ClientOptions(ws_max_message_size=8 * 1024 * 1024)
 
-# No cap
+# No cap on aiohttp; on httpx this instead falls back to a 64 KiB cap (see above)
 options = ClientOptions(ws_max_message_size=None)
 ```
 
@@ -266,7 +266,7 @@ Some `ClientOptions` fields behave differently (or are unsupported) depending on
 | `keep_alive=False` | `Limits(max_keepalive_connections=0)` | `TCPConnector(force_close=True)` |
 | `keep_alive_timeout` | `Limits(keepalive_expiry=float\|None)` | `TCPConnector(keepalive_timeout=float)` — `None` is unsupported; warning emitted |
 | `buffer_size` | **Ignored** — warning emitted | `ClientSession(read_bufsize=int)` |
-| `ws_max_message_size` | `aconnect_ws(max_message_size_bytes=int)` | `ws_connect(max_msg_size=int)` |
+| `ws_max_message_size` | `aconnect_ws(max_message_size_bytes=int)` — `None` is unsupported: falls back to the httpx-ws default (65536 bytes), warning emitted | `ws_connect(max_msg_size=int)` — `None` maps to `0` (no cap) |
 | `pool_size` | `Limits(max_connections=int\|None)` | `TCPConnector(limit=int)` — `None` maps to `0` (unlimited) |
 | `pool_size_per_host` | **Ignored** — warning emitted | `TCPConnector(limit_per_host=int)` — `None` maps to `0` (unlimited) |
 | `trust_env=True` | If a proxy env var is found at construction, it is materialized into `httpx.Proxy(auth=...)` (snapshot). If none is found, httpx receives `trust_env=True` and re-reads env vars per-request. | Env vars read per-request (aiohttp native behavior) |

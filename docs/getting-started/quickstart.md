@@ -21,6 +21,7 @@ from kubex.client import create_client
 
 async with await create_client() as client:
     # ready to use
+    ...
 ```
 
 | Scenario | Resolution |

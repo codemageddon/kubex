@@ -11,6 +11,7 @@ from kubex.core.exceptions import (
     Conflict,
     Forbidden,
     Gone,
+    KubernetesError,
     KubexApiError,
     KubexClientException,
     KubexException,
@@ -24,13 +25,19 @@ from kubex_core.models.status import Status
 
 
 class _TestHeaders:
-    """Minimal multi-value headers that exposes get_all (matching aiohttp)."""
+    """Minimal multi-value headers that exposes getall (matching aiohttp's
+    multidict.CIMultiDictProxy, not httpx's get_list or a plain get_all)."""
 
     def __init__(self, pairs: list[tuple[str, str]]) -> None:
         self._pairs = pairs
 
-    def get_all(self, key: str) -> list[str]:
-        return [v for k, v in self._pairs if k.lower() == key.lower()]
+    def getall(self, key: str, default: list[str] | None = None) -> list[str]:
+        result = [v for k, v in self._pairs if k.lower() == key.lower()]
+        if result:
+            return result
+        if default is None:
+            raise KeyError(key)
+        return default
 
     def keys(self) -> list[str]:
         return list({k for k, _ in self._pairs})
@@ -90,6 +97,7 @@ STATUS_EXCEPTION_PAIRS = [
     (HTTPStatus.CONFLICT, Conflict),
     (HTTPStatus.GONE, Gone),
     (HTTPStatus.UNPROCESSABLE_ENTITY, UnprocessableEntity),
+    (HTTPStatus.INTERNAL_SERVER_ERROR, KubernetesError),
 ]
 
 _STATUS_IDS = lambda v: v.name if isinstance(v, HTTPStatus) else ""  # noqa: E731
@@ -191,6 +199,55 @@ def test_handle_request_error_no_content_type_header() -> None:
     assert isinstance(exc_info.value.content, str)
 
 
+def test_handle_request_error_non_utf8_body_does_not_raise_unicode_decode_error() -> (
+    None
+):
+    """A non-UTF-8 error body (e.g. from an intermediary) must still surface as a
+    KubexApiError subclass, not an unrelated UnicodeDecodeError that bypasses
+    callers' `except KubexApiError` handling."""
+    response = Response(
+        content=b"\xff\xfe error",
+        headers=HeadersWrapper(
+            _TestHeaders([("content-type", "text/html; charset=iso-8859-1")])  # type: ignore[arg-type]
+        ),
+        status_code=HTTPStatus.BAD_GATEWAY,
+    )
+    with pytest.raises(KubexApiError) as exc_info:
+        handle_request_error(response)
+    assert isinstance(exc_info.value.content, str)
+
+
+def test_handle_request_error_non_utf8_body_no_content_type() -> None:
+    response = Response(
+        content=b"\xff\xfe error",
+        headers=HeadersWrapper(_TestHeaders([])),  # type: ignore[arg-type]
+        status_code=HTTPStatus.BAD_GATEWAY,
+    )
+    with pytest.raises(KubexApiError) as exc_info:
+        handle_request_error(response)
+    assert isinstance(exc_info.value.content, str)
+
+
+def test_handle_request_error_500_raises_kubernetes_error() -> None:
+    response = _make_response(HTTPStatus.INTERNAL_SERVER_ERROR, text="etcd is down")
+    with pytest.raises(KubernetesError) as exc_info:
+        handle_request_error(response)
+    assert isinstance(exc_info.value, KubexApiError)
+    assert exc_info.value.status == HTTPStatus.INTERNAL_SERVER_ERROR
+    assert exc_info.value.content == "etcd is down"
+
+
+def test_handle_request_error_500_json_content_parsed_as_status() -> None:
+    body = _make_status_json(500, message="internal error", reason="InternalError")
+    response = _make_response(
+        HTTPStatus.INTERNAL_SERVER_ERROR, text=body, content_type="application/json"
+    )
+    with pytest.raises(KubernetesError) as exc_info:
+        handle_request_error(response)
+    assert isinstance(exc_info.value.content, Status)
+    assert exc_info.value.content.message == "internal error"
+
+
 def test_handle_request_error_unknown_status_code_valid_http() -> None:
     response = _make_response(HTTPStatus.SERVICE_UNAVAILABLE, text="service down")
     with pytest.raises(KubexApiError) as exc_info:
@@ -250,6 +307,7 @@ def test_exception_attributes_accessible() -> None:
         (Conflict, HTTPStatus.CONFLICT),
         (Gone, HTTPStatus.GONE),
         (UnprocessableEntity, HTTPStatus.UNPROCESSABLE_ENTITY),
+        (KubernetesError, HTTPStatus.INTERNAL_SERVER_ERROR),
     ],
     ids=lambda v: v.__name__ if isinstance(v, type) else "",
 )

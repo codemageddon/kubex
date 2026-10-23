@@ -112,10 +112,13 @@ Use `api.scale.patch()` when you want a partial update rather than a full replac
 
 ```python
 from kubex.core.patch import MergePatch
+from kubex_core.models.metadata import ObjectMetadata
+from kubex_core.models.scale import Scale, ScaleSpec
 
 updated = await api.scale.patch(
     "my-deployment",
-    MergePatch({"spec": {"replicas": 5}}),
+    # `metadata=ObjectMetadata()` is required by the model but empty is a no-op merge.
+    MergePatch(Scale(metadata=ObjectMetadata(), spec=ScaleSpec(replicas=5))),
 )
 print(f"New desired replicas: {updated.spec.replicas}")
 ```

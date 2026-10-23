@@ -69,7 +69,7 @@ class UnprocessableEntity(KubexApiError[C]):
     status = HTTPStatus.UNPROCESSABLE_ENTITY
 
 
-class KubernetesError(KubexApiError[str]):
+class KubernetesError(KubexApiError[C]):
     status = HTTPStatus.INTERNAL_SERVER_ERROR
 
 
@@ -91,6 +91,8 @@ def build_exception(status_code: int, content: C) -> KubexApiError[C]:
             return Gone(content=content)
         case HTTPStatus.UNPROCESSABLE_ENTITY:
             return UnprocessableEntity(content=content)
+        case HTTPStatus.INTERNAL_SERVER_ERROR:
+            return KubernetesError(content=content)
         case status:
             try:
                 http_status = HTTPStatus(status)

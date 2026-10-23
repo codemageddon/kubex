@@ -43,6 +43,7 @@ async def main() -> None:
             # MergePatch — update replicas
             merge_patch = MergePatch(
                 Deployment(
+                    metadata=ObjectMetadata(),
                     spec=DeploymentSpec(
                         replicas=3,
                         selector=LabelSelector(match_labels={"app": "example"}),
@@ -54,7 +55,7 @@ async def main() -> None:
                                 ],
                             ),
                         ),
-                    )
+                    ),
                 )
             )
             patched = await api.patch(name, merge_patch)

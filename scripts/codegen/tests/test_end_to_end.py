@@ -186,6 +186,81 @@ def test_init_has_all(generated_package: Path) -> None:
     assert "from kubex" not in init
 
 
+def test_full_regeneration_removes_stale_modules(tmp_path: Path) -> None:
+    """A resource removed from the spec must not survive a full regeneration.
+
+    Simulates an upstream API group disappearing between two generator runs
+    against the same output directory (as `mise run regenerate-models` does).
+    """
+    spec = spec_loader.load_swagger(FIXTURE)
+    resources = resource_detector.detect_resources(spec.definitions, spec.paths)
+
+    def _write(selected_resources: list[resource_detector.ResourceInfo]) -> Path:
+        build = model_emitter.build_modules(
+            k8s_version_tag="v1_30",
+            definitions=spec.definitions,
+            resources=selected_resources,
+        )
+        return write_package(
+            RenderInputs(
+                output_root=tmp_path,
+                k8s_version="1.30",
+                k8s_version_tag="v1_30",
+                package_version="0.0.0.dev0",
+                modules=build.modules,
+                shared_enums=build.shared_enums,
+            )
+        )
+
+    pkg = _write(resources)
+    src = pkg / "kubex" / "k8s" / "v1_30"
+    assert (src / "apps" / "v1" / "deployment.py").is_file()
+
+    # Regenerate as if the "apps" group no longer exists upstream.
+    remaining = [r for r in resources if r.group != "apps"]
+    _write(remaining)
+
+    assert not (src / "apps").exists()
+    assert (src / "core" / "v1" / "node.py").is_file()
+
+
+def test_only_groups_regeneration_preserves_other_groups(tmp_path: Path) -> None:
+    """clean=False (--only-groups) must not touch groups it wasn't asked to regenerate."""
+    spec = spec_loader.load_swagger(FIXTURE)
+    resources = resource_detector.detect_resources(spec.definitions, spec.paths)
+
+    def _write(
+        selected_resources: list[resource_detector.ResourceInfo], *, clean: bool
+    ) -> Path:
+        build = model_emitter.build_modules(
+            k8s_version_tag="v1_30",
+            definitions=spec.definitions,
+            resources=selected_resources,
+        )
+        return write_package(
+            RenderInputs(
+                output_root=tmp_path,
+                k8s_version="1.30",
+                k8s_version_tag="v1_30",
+                package_version="0.0.0.dev0",
+                modules=build.modules,
+                shared_enums=build.shared_enums,
+                clean=clean,
+            )
+        )
+
+    pkg = _write(resources, clean=True)
+    src = pkg / "kubex" / "k8s" / "v1_30"
+    assert (src / "apps" / "v1" / "deployment.py").is_file()
+
+    # A partial --only-groups run regenerating only "core" must not delete "apps".
+    core_only = [r for r in resources if r.group == "core"]
+    _write(core_only, clean=False)
+
+    assert (src / "apps" / "v1" / "deployment.py").is_file()
+    assert (src / "core" / "v1" / "node.py").is_file()
+
+
 def test_new_marker_bases_emitted() -> None:
     """Verify model_emitter produces correct bases for resources with new subresource flags."""
     from typing import Any

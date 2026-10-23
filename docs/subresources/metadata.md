@@ -67,10 +67,12 @@ Use `api.metadata.patch()` to update labels or annotations without touching the 
 
 ```python
 from kubex.core.patch import MergePatch
+from kubex_core.models.metadata import ObjectMetadata
+from kubex_core.models.partial_object_meta import PartialObjectMetadata
 
 updated = await api.metadata.patch(
     "my-pod",
-    MergePatch({"metadata": {"labels": {"version": "v2"}}}),
+    MergePatch(PartialObjectMetadata(metadata=ObjectMetadata(labels={"version": "v2"}))),
 )
 print(updated.metadata.labels)
 ```
@@ -92,10 +94,14 @@ For server-side apply, use `ApplyPatch` with `force=True`:
 
 ```python
 from kubex.core.patch import ApplyPatch
+from kubex_core.models.metadata import ObjectMetadata
+from kubex_core.models.partial_object_meta import PartialObjectMetadata
 
 await api.metadata.patch(
     "my-pod",
-    ApplyPatch({"metadata": {"labels": {"managed-by": "kubex"}}}),
+    ApplyPatch(
+        PartialObjectMetadata(metadata=ObjectMetadata(labels={"managed-by": "kubex"}))
+    ),
     force=True,
     field_manager="my-controller",
 )

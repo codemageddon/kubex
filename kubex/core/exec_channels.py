@@ -93,6 +93,15 @@ def error_channel_for_port_index(index: int) -> int:
 
 
 def port_prefix_encode(port: int) -> bytes:
+    """Inverse of `port_prefix_decode`.
+
+    Outbound port-forward writes carry no port prefix (the channel id alone
+    addresses the kubelet); only the *first inbound* frame on each channel is
+    prefixed, which `PortForwardSession` strips via `port_prefix_decode`.
+    Kubex itself has no reason to construct a prefix, so this exists for the
+    test suite to build fake inbound frames and round-trip against
+    `port_prefix_decode`.
+    """
     return port.to_bytes(2, byteorder="little")
 
 

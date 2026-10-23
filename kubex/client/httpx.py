@@ -256,14 +256,11 @@ class HttpxClient(BaseClient):
     ) -> None:
         super().__init__(configuration, options)
 
-    @property
-    def configuration(self) -> ClientConfiguration:
-        return self._configuration
-
-    def _get_headers(self) -> dict[str, str]:
-        if self.configuration.token is None:
+    async def _get_headers(self) -> dict[str, str]:
+        header = await self.configuration.get_authorization_header()
+        if header is None:
             return {}
-        return {"Authorization": f"Bearer {self.configuration.token}"}
+        return {"Authorization": header}
 
     def _create_inner_client(self) -> httpx.AsyncClient:
         cafile = (
@@ -369,7 +366,7 @@ class HttpxClient(BaseClient):
         return httpx.AsyncClient(**kwargs)
 
     async def request(self, request: Request) -> Response:
-        headers = self._get_headers()
+        headers = await self._get_headers()
         if request.headers:
             headers.update(request.headers)
         extra: dict[str, Any] = {}
@@ -401,7 +398,7 @@ class HttpxClient(BaseClient):
         return response
 
     async def stream_lines(self, request: Request) -> AsyncGenerator[str, None]:
-        headers = self._get_headers()
+        headers = await self._get_headers()
         if request.headers:
             headers.update(request.headers)
         extra: dict[str, Any] = {}
@@ -451,7 +448,7 @@ class HttpxClient(BaseClient):
                 "install kubex[httpx-ws]"
             ) from exc
 
-        headers = self._get_headers()
+        headers = await self._get_headers()
         if request.headers:
             headers.update(request.headers)
 

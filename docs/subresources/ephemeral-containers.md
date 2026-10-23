@@ -82,22 +82,27 @@ async def inject_debug_container(pod_name: str) -> None:
 
 ```python
 from kubex.core.patch import MergePatch
+from kubex.k8s.v1_35.core.v1.ephemeral_container import EphemeralContainer
+from kubex.k8s.v1_35.core.v1.pod import Pod
+from kubex.k8s.v1_35.core.v1.pod_spec import PodSpec
 
+# Pod.model_construct()/PodSpec.model_construct() bypass validation, since PodSpec.containers
+# is normally required — a patch body has no reason to touch or resend it.
 updated = await api.ephemeral_containers.patch(
     "my-pod",
     MergePatch(
-        {
-            "spec": {
-                "ephemeralContainers": [
-                    {
-                        "name": "debugger",
-                        "image": "busybox:latest",
-                        "stdin": True,
-                        "tty": True,
-                    }
+        Pod.model_construct(
+            spec=PodSpec.model_construct(
+                ephemeral_containers=[
+                    EphemeralContainer(
+                        name="debugger",
+                        image="busybox:latest",
+                        stdin=True,
+                        tty=True,
+                    )
                 ]
-            }
-        }
+            )
+        )
     ),
 )
 ```

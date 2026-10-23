@@ -40,6 +40,14 @@ def _collect_relevant_files(root: Path) -> list[str]:
 _RELEVANT = _collect_relevant_files(GOLDEN_ROOT)
 
 
+def test_golden_tree_is_not_empty() -> None:
+    """A vanished or misconfigured golden tree must fail loudly here, rather
+    than silently collecting zero parametrized cases in
+    `test_generated_matches_golden` below (an empty parametrize list makes
+    pytest report the run as passing with nothing actually checked)."""
+    assert _RELEVANT, f"golden tree is empty: {GOLDEN_ROOT}"
+
+
 def _regenerate(tmp_path: Path) -> Path:
     spec = spec_loader.load_swagger(FIXTURE)
     resources = resource_detector.detect_resources(spec.definitions, spec.paths)
@@ -89,3 +97,25 @@ def test_generated_matches_golden(tmp_path: Path, relative: str) -> None:
             f"--k8s-version 1.30 --output scripts/codegen/tests/golden "
             f"--package-version 0.0.0.dev0\n\n{diff}"
         )
+
+
+def test_generated_file_set_matches_golden(tmp_path: Path) -> None:
+    """Symmetric counterpart to `test_generated_matches_golden` above, which is
+    parametrized over the golden tree's own file list and so can only ever
+    detect a golden file the generator fails to reproduce. A file the
+    generator starts emitting that is *not* in the golden tree (e.g. a stray
+    module from a resource-detector or model-emitter change) would pass that
+    test silently; this one catches it via a plain set comparison.
+    """
+    pkg = _regenerate(tmp_path)
+    generated = set(_collect_relevant_files(pkg))
+    golden = set(_RELEVANT)
+    assert generated == golden, (
+        f"Generated file set differs from the golden tree.\n"
+        f"Only in generated (not in golden): {sorted(generated - golden)}\n"
+        f"Only in golden (not generated): {sorted(golden - generated)}\n"
+        f"Regenerate with: uv run python -m scripts.codegen generate "
+        f"--swagger scripts/codegen/tests/fixtures/mini_swagger.json "
+        f"--k8s-version 1.30 --output scripts/codegen/tests/golden "
+        f"--package-version 0.0.0.dev0"
+    )

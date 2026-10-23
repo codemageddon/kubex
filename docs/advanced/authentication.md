@@ -1,6 +1,6 @@
 # Authentication
 
-Kubex supports three authentication methods: kubeconfig files, in-cluster service account tokens, and exec-provider credentials. Configuration is represented by `ClientConfiguration` and loaded by one of two async factory functions.
+Kubex supports three authentication methods: kubeconfig files, in-cluster service account tokens, and exec-provider/OIDC credentials. Configuration is represented by `ClientConfiguration` and loaded by one of two async factory functions.
 
 ## Auto-detection
 
@@ -60,7 +60,18 @@ Kubeconfig supports:
 - Client certificate + key (`users[].user.client-certificate` / `client-key`)
 - Inline base64 certificate data (decoded to temp files automatically)
 - Exec provider (see below)
-- OIDC (see below)
+- OIDC, `auth-provider: oidc` only (see below)
+- `clusters[].cluster.insecure-skip-tls-verify` (forwarded only when `true`; a cluster that
+  omits it keeps kubex's normal system-trust-store/explicit-CA behavior)
+
+A context whose user sets `auth-provider:` to anything other than `oidc`, or an `oidc`
+`auth-provider` block that fails to validate, raises `ConfigurationError` rather than
+silently returning an unauthenticated client.
+
+`clusters[].cluster.proxy-url` is read but **not** applied — it belongs on `ClientOptions.proxy`,
+which `configure_from_kubeconfig()` has no access to (it only builds a `ClientConfiguration`). A
+cluster that sets it emits a `UserWarning`; pass the equivalent proxy via
+`ClientOptions(proxy=...)` when constructing the client yourself.
 
 ## In-cluster (pod environment)
 
@@ -85,8 +96,8 @@ Token auto-refresh is enabled by default (`try_refresh_token=True`). The token i
 
 ## Exec provider
 
-Exec provider authentication runs an external command to obtain a bearer token. This is the standard mechanism for cloud-provider CLI tools (AWS, GCP, Azure) and other external credential sources.
-
+Exec provider authentication runs an external command to obtain a bearer token — the standard
+mechanism for cloud-provider CLI tools (AWS, GCP, Azure) and other external credential sources.
 The exec provider config lives in the kubeconfig `users[].user.exec` block:
 
 ```yaml
@@ -103,13 +114,33 @@ users:
       - my-cluster
 ```
 
-Kubex reads this via `configure_from_kubeconfig()`. The `ExecAuthProvider` class runs the command using `anyio.run_process`, parses the `ExecCredential` JSON response, and extracts the token. The token is then used as a bearer token in subsequent requests.
+`configure_from_kubeconfig()` resolves this block: it wraps `ExecAuthProvider` (which runs the
+command via `anyio.run_process` and parses the `ExecCredential` JSON response) in an
+`ExecRefreshableToken` and stores it on `ClientConfiguration.refreshable_token`. Both HTTP
+backends call `ClientConfiguration.get_authorization_header()` on every request, which awaits
+`ExecRefreshableToken.to_header()` — the exec command re-runs whenever the cached token is within
+10 seconds of expiring.
 
-`ExecCredential.status.expirationTimestamp` is noted but token refresh on expiry is not yet fully implemented — the token is refreshed on the next call after the current one fails with `Unauthorized` (the auto-retry logic is planned). For long-running processes, re-configure periodically if needed.
+Caveat: `ExecCredential.status.expirationTimestamp` is not read. The cached token is treated as
+expiring after a fixed 60 seconds regardless of what the plugin actually reported, so a plugin
+issuing longer- or shorter-lived tokens re-runs on that fixed cadence rather than the token's real
+lifetime.
 
 ## OIDC
 
-OIDC (`auth-provider: oidc`) is parsed from the kubeconfig `auth-provider` block but token refresh is not yet implemented. OIDC support is listed as a planned feature in the roadmap. For current OIDC clusters, the exec provider (via `kubelogin` or similar) is the recommended workaround.
+OIDC (`auth-provider: oidc`) is resolved the same way: `configure_from_kubeconfig()` wraps
+`OIDCAuthProvider` in an `OidcRefreshableToken`. Only `auth-provider: oidc` is supported — any
+other `auth-provider` name raises `ConfigurationError`. The same fixed-60-second refresh caveat
+as the exec provider applies (the OIDC token response's real expiry is not read either).
+
+If the identity provider rotates refresh tokens (e.g. Auth0, Okta, or Keycloak with rotation
+enabled), a fresh refresh token issued during a kubex refresh is kept only in memory for the
+life of the process — it is **not** written back to the kubeconfig file on disk. Combined with
+the fixed 60-second refresh cadence above, this means the on-disk refresh token is invalidated
+roughly once a minute; a fresh process (or a concurrent `kubectl` invocation reading the same
+kubeconfig) will need to re-authenticate interactively once that has happened. Identity
+providers that do not rotate refresh tokens for the client type in use (e.g. Google's OAuth
+for installed applications) are unaffected.
 
 ## Manual `ClientConfiguration`
 
@@ -141,4 +172,10 @@ config = ClientConfiguration(
 )
 ```
 
-The `namespace` parameter sets the default namespace for all `Api` instances created from this client. It defaults to `"default"` if not specified.
+The `namespace` parameter is populated by `configure_from_pod_env()` from the pod's service-account
+namespace file. `Api`/`create_api()` fall back to it when a **namespace-scoped** resource is
+created without an explicit `namespace=` argument — so running in-cluster and omitting the
+namespace scopes `get()`/`create()`/`list()`/`watch()` to the pod's own namespace, rather than
+"all namespaces". Pass `namespace=None` explicitly to opt back into all-namespaces behavior, or a
+specific string to target a different namespace. Cluster-scoped resources never receive a
+namespace, configured or not.

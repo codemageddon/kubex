@@ -5,7 +5,7 @@ import sys
 from abc import ABC, abstractmethod
 from contextlib import AsyncExitStack
 from types import TracebackType
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeVar
 
 import anyio
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
@@ -54,6 +54,57 @@ def _resolve_protocol(
 # upper bound on client memory growth, which is the safer failure mode for an
 # untrusted remote producer.
 _DEFAULT_CHANNEL_BUFFER = 128
+
+_T = TypeVar("_T")
+
+
+def _dispatch_nowait(
+    send_stream: MemoryObjectSendStream[_T], item: _T
+) -> tuple[bool, bool]:
+    """Push ``item`` to ``send_stream`` without blocking the read loop.
+
+    Shared by ``StreamSession`` (stdout/stderr) and ``PortForwardSession``
+    (per-port data/error channels) -- both bound a channel's memory buffer the
+    same way and only differ in the element type (``bytes`` vs ``str``).
+
+    Returns a ``(still_open, truncated)`` tuple: ``still_open`` is ``False``
+    if the channel has been closed (either by the consumer or because the
+    buffer was full and we just closed it locally to bound memory growth);
+    ``truncated`` is ``True`` only when *this* call closed the channel due to
+    a full buffer (the OOM-prevention drop path). Using ``send_nowait`` means
+    the read loop never stalls on one slow consumer, so it cannot block frame
+    delivery on other channels (notably error / EOF, or sibling ports).
+    """
+    try:
+        send_stream.send_nowait(item)
+        return True, False
+    except anyio.WouldBlock:
+        # Buffer full — close the send side so the consumer observes
+        # end-of-stream instead of silently losing arbitrary frames.
+        # This is the documented data-loss / OOM-prevention trade-off,
+        # surfaced to consumers via the per-channel ``*_truncated`` flags.
+        send_stream.close()
+        return False, True
+    except (anyio.BrokenResourceError, anyio.ClosedResourceError):
+        # Consumer dropped this channel; stop pushing to it but keep
+        # processing other channels.
+        return False, False
+
+
+async def _dispatch(send_stream: MemoryObjectSendStream[_T], item: _T) -> bool:
+    """Push ``item`` to ``send_stream``, blocking until space is available.
+
+    Returns ``True`` if the send succeeded, ``False`` if the stream is closed.
+    Blocking naturally propagates backpressure from a slow consumer through
+    the memory buffer to the WebSocket read loop, preventing data loss. Only
+    used by ``PortForwardSession`` when ``block_on_full=True`` (the
+    ``listen()`` TCP-proxy path, where data loss is unacceptable).
+    """
+    try:
+        await send_stream.send(item)
+        return True
+    except (anyio.BrokenResourceError, anyio.ClosedResourceError):
+        return False
 
 
 class _BaseChannelSession(ABC):
@@ -343,33 +394,6 @@ class StreamSession(_BaseChannelSession):
                 raise RuntimeError("stdin is closed")
             await self._send_locked(CHANNEL_STDIN, data)
 
-    @staticmethod
-    def _dispatch_nowait(
-        send_stream: MemoryObjectSendStream[bytes], payload: bytes
-    ) -> tuple[bool, bool]:
-        """Push ``payload`` to ``send_stream`` without blocking the read loop.
-
-        Returns a ``(still_open, truncated)`` tuple: ``still_open`` is
-        ``False`` if the channel has been closed (either by the consumer or
-        because the buffer was full and we just closed it locally to bound
-        memory growth); ``truncated`` is ``True`` only when *this* call closed
-        the channel due to a full buffer (the OOM-prevention drop path).
-        """
-        try:
-            send_stream.send_nowait(payload)
-            return True, False
-        except anyio.WouldBlock:
-            # Buffer full — close the send side so the consumer observes
-            # end-of-stream instead of silently losing arbitrary frames.
-            # This is the documented data-loss / OOM-prevention trade-off,
-            # surfaced to consumers via the per-channel ``*_truncated`` flags.
-            send_stream.close()
-            return False, True
-        except (anyio.BrokenResourceError, anyio.ClosedResourceError):
-            # Consumer dropped this channel; stop pushing to it but keep
-            # processing other channels (notably error / EOF).
-            return False, False
-
     async def _read_loop(self) -> None:
         try:
             while True:
@@ -382,7 +406,7 @@ class StreamSession(_BaseChannelSession):
                 channel, payload = self._protocol.decode(frame)
                 if channel == CHANNEL_STDOUT:
                     if self._stdout_open:
-                        still_open, truncated = self._dispatch_nowait(
+                        still_open, truncated = _dispatch_nowait(
                             self._stdout_send, payload
                         )
                         self._stdout_open = still_open
@@ -390,7 +414,7 @@ class StreamSession(_BaseChannelSession):
                             self._stdout_truncated = True
                 elif channel == CHANNEL_STDERR:
                     if self._stderr_open:
-                        still_open, truncated = self._dispatch_nowait(
+                        still_open, truncated = _dispatch_nowait(
                             self._stderr_send, payload
                         )
                         self._stderr_open = still_open

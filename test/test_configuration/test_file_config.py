@@ -4,6 +4,8 @@ from collections.abc import Generator
 from typing import Any
 
 import atexit
+import os
+import warnings
 from base64 import b64encode
 from pathlib import Path
 from unittest.mock import patch
@@ -11,13 +13,20 @@ from unittest.mock import patch
 import pytest
 from yaml import dump
 
+from kubex.configuration.auth.refreshable_token import (
+    ExecRefreshableToken,
+    OidcRefreshableToken,
+)
 from kubex.configuration.configuration import KubeConfig
+from kubex.core.exceptions import ConfigurationError
+
 from kubex.configuration.file_config import (
     DEFAULT_KUBE_CONFIG_FILE,
     KUBECONFIG_ENV_VARIABLE,
     _cleanup_temp_files,
     _decode_and_put_to_file,
     _get_kube_config_file,
+    _get_kube_config_files,
     _load_kube_config,
     _temp_files,
     configure_from_kubeconfig,
@@ -50,12 +59,20 @@ def _minimal_kubeconfig(
     client_cert_file: str | None = None,
     client_key_data: str | None = None,
     client_key_file: str | None = None,
+    token: str | None = None,
+    token_file: str | None = None,
+    insecure_skip_tls_verify: bool | None = None,
+    proxy_url: str | None = None,
 ) -> dict[str, Any]:
     cluster: dict[str, Any] = {"server": server}
     if ca_data is not None:
         cluster["certificate-authority-data"] = ca_data
     if ca_file is not None:
         cluster["certificate-authority"] = ca_file
+    if insecure_skip_tls_verify is not None:
+        cluster["insecure-skip-tls-verify"] = insecure_skip_tls_verify
+    if proxy_url is not None:
+        cluster["proxy-url"] = proxy_url
     user: dict[str, Any] = {}
     if client_cert_data is not None:
         user["client-certificate-data"] = client_cert_data
@@ -65,6 +82,10 @@ def _minimal_kubeconfig(
         user["client-key-data"] = client_key_data
     if client_key_file is not None:
         user["client-key"] = client_key_file
+    if token is not None:
+        user["token"] = token
+    if token_file is not None:
+        user["tokenFile"] = token_file
     result: dict[str, Any] = {
         "apiVersion": "v1",
         "kind": "Config",
@@ -108,6 +129,21 @@ def test_get_kube_config_file_env_var_resolves_relative() -> None:
     assert result == Path("./relative/config").resolve()
 
 
+def test_get_kube_config_files_no_env_var_returns_default() -> None:
+    with patch.dict("os.environ", {}, clear=True):
+        result = _get_kube_config_files()
+    assert result == [DEFAULT_KUBE_CONFIG_FILE]
+
+
+def test_get_kube_config_files_splits_pathsep_list(tmp_path: Path) -> None:
+    first = tmp_path / "first-config"
+    second = tmp_path / "second-config"
+    value = os.pathsep.join([str(first), str(second)])
+    with patch.dict("os.environ", {KUBECONFIG_ENV_VARIABLE: value}):
+        result = _get_kube_config_files()
+    assert result == [first.resolve(), second.resolve()]
+
+
 def test_load_kube_config_from_path(tmp_path: Path) -> None:
     data = _minimal_kubeconfig()
     config_file = _write_kubeconfig(tmp_path / "config", data)
@@ -127,8 +163,8 @@ def test_load_kube_config_uses_default_when_no_path(tmp_path: Path) -> None:
     config_file = tmp_path / "config"
     _write_kubeconfig(config_file, data)
     with patch(
-        "kubex.configuration.file_config._get_kube_config_file",
-        return_value=config_file,
+        "kubex.configuration.file_config._get_kube_config_files",
+        return_value=[config_file],
     ):
         config = _load_kube_config()
     assert config.current_context == "test-context"
@@ -146,6 +182,213 @@ def test_load_kube_config_custom_path(tmp_path: Path) -> None:
     assert str(config.clusters[0].cluster.server) == "https://custom:8443/"
 
 
+def test_load_kube_config_resolves_relative_certificate_authority(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    kube_dir = tmp_path / "kube-dir"
+    kube_dir.mkdir()
+    (kube_dir / "ca.crt").write_text("kubeconfig-dir-ca")
+    data = _minimal_kubeconfig(ca_file="ca.crt")
+    config_file = _write_kubeconfig(kube_dir / "config", data)
+
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    # A same-named file in cwd must not be picked instead of the real one.
+    (elsewhere / "ca.crt").write_text("wrong-file-from-cwd")
+    monkeypatch.chdir(elsewhere)
+
+    config = _load_kube_config(config_file)
+    assert config.clusters[0].cluster.certificate_authority is not None
+    assert (
+        config.clusters[0].cluster.certificate_authority.read_text()
+        == "kubeconfig-dir-ca"
+    )
+
+
+def test_load_kube_config_resolves_relative_user_paths(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    kube_dir = tmp_path / "kube-dir"
+    kube_dir.mkdir()
+    (kube_dir / "client.crt").write_text("client-cert")
+    (kube_dir / "client.key").write_text("client-key")
+    (kube_dir / "token").write_text("token-from-file")
+    data = _minimal_kubeconfig(
+        client_cert_file="client.crt",
+        client_key_file="client.key",
+        token_file="token",
+    )
+    config_file = _write_kubeconfig(kube_dir / "config", data)
+
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+
+    config = _load_kube_config(config_file)
+    user = config.users[0].auth_info
+    assert user.client_certificate is not None
+    assert user.client_certificate.read_text() == "client-cert"
+    assert user.client_key is not None
+    assert user.client_key.read_text() == "client-key"
+    assert user.token_file is not None
+    assert user.token_file.read_text() == "token-from-file"
+
+
+def test_load_kube_config_leaves_absolute_paths_untouched(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ca_file = tmp_path / "absolute-ca.crt"
+    ca_file.write_text("absolute-ca")
+    kube_dir = tmp_path / "kube-dir"
+    kube_dir.mkdir()
+    data = _minimal_kubeconfig(ca_file=str(ca_file))
+    config_file = _write_kubeconfig(kube_dir / "config", data)
+
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+
+    config = _load_kube_config(config_file)
+    assert config.clusters[0].cluster.certificate_authority == ca_file.resolve()
+
+
+def test_load_kube_config_merges_multiple_kubeconfig_files(tmp_path: Path) -> None:
+    first = _write_kubeconfig(
+        tmp_path / "first",
+        _minimal_kubeconfig(
+            cluster_name="cluster-a",
+            server="https://a:6443",
+            user_name="user-a",
+            context_name="ctx-a",
+            current_context="ctx-a",
+        ),
+    )
+    second = _write_kubeconfig(
+        tmp_path / "second",
+        _minimal_kubeconfig(
+            cluster_name="cluster-b",
+            server="https://b:6443",
+            user_name="user-b",
+            context_name="ctx-b",
+            current_context="ctx-b",
+        ),
+    )
+    value = os.pathsep.join([str(first), str(second)])
+    with patch.dict("os.environ", {KUBECONFIG_ENV_VARIABLE: value}):
+        config = _load_kube_config()
+
+    assert {c.name for c in config.clusters} == {"cluster-a", "cluster-b"}
+    assert {u.name for u in config.users} == {"user-a", "user-b"}
+    assert {c.name for c in config.contexts} == {"ctx-a", "ctx-b"}
+    # current-context is taken from the first file that sets it.
+    assert config.current_context == "ctx-a"
+
+
+def test_load_kube_config_merge_skips_empty_current_context(tmp_path: Path) -> None:
+    first_data = _minimal_kubeconfig(
+        cluster_name="cluster-a",
+        server="https://a:6443",
+        user_name="user-a",
+        context_name="ctx-a",
+        current_context=None,
+    )
+    # A client-go-written kubeconfig with no selected context has a literal
+    # `current-context: ""`, not an absent key.
+    first_data["current-context"] = ""
+    first = _write_kubeconfig(tmp_path / "first", first_data)
+    second = _write_kubeconfig(
+        tmp_path / "second",
+        _minimal_kubeconfig(
+            cluster_name="cluster-b",
+            server="https://b:6443",
+            user_name="user-b",
+            context_name="ctx-b",
+            current_context="ctx-b",
+        ),
+    )
+    value = os.pathsep.join([str(first), str(second)])
+    with patch.dict("os.environ", {KUBECONFIG_ENV_VARIABLE: value}):
+        config = _load_kube_config()
+
+    # An empty scalar in the first file does not count as "set"; the second
+    # file's value is used instead.
+    assert config.current_context == "ctx-b"
+
+
+def test_load_kube_config_multi_file_first_file_wins_on_name_conflict(
+    tmp_path: Path,
+) -> None:
+    first = _write_kubeconfig(
+        tmp_path / "first",
+        _minimal_kubeconfig(server="https://first:6443"),
+    )
+    second = _write_kubeconfig(
+        tmp_path / "second",
+        _minimal_kubeconfig(server="https://second:6443"),
+    )
+    value = os.pathsep.join([str(first), str(second)])
+    with patch.dict("os.environ", {KUBECONFIG_ENV_VARIABLE: value}):
+        config = _load_kube_config()
+
+    assert len(config.clusters) == 1
+    assert str(config.clusters[0].cluster.server) == "https://first:6443/"
+
+
+def test_load_kube_config_multi_file_skips_missing_files(tmp_path: Path) -> None:
+    real = _write_kubeconfig(tmp_path / "real", _minimal_kubeconfig())
+    missing = tmp_path / "does-not-exist"
+    value = os.pathsep.join([str(missing), str(real)])
+    with patch.dict("os.environ", {KUBECONFIG_ENV_VARIABLE: value}):
+        config = _load_kube_config()
+
+    assert config.current_context == "test-context"
+
+
+def test_load_kube_config_multi_file_all_missing_raises_file_not_found(
+    tmp_path: Path,
+) -> None:
+    value = os.pathsep.join([str(tmp_path / "a"), str(tmp_path / "b")])
+    with patch.dict("os.environ", {KUBECONFIG_ENV_VARIABLE: value}):
+        with pytest.raises(FileNotFoundError):
+            _load_kube_config()
+
+
+def test_load_kube_config_multi_file_skips_empty_file(tmp_path: Path) -> None:
+    empty = tmp_path / "empty.yaml"
+    empty.touch()
+    real = _write_kubeconfig(tmp_path / "real", _minimal_kubeconfig())
+    value = os.pathsep.join([str(real), str(empty)])
+    with patch.dict("os.environ", {KUBECONFIG_ENV_VARIABLE: value}):
+        config = _load_kube_config()
+
+    assert config.current_context == "test-context"
+
+
+def test_load_kube_config_all_files_empty_raises_file_not_found(
+    tmp_path: Path,
+) -> None:
+    first = tmp_path / "first.yaml"
+    first.touch()
+    second = tmp_path / "second.yaml"
+    second.touch()
+    value = os.pathsep.join([str(first), str(second)])
+    with patch.dict("os.environ", {KUBECONFIG_ENV_VARIABLE: value}):
+        with pytest.raises(FileNotFoundError):
+            _load_kube_config()
+
+
+def test_load_kube_config_non_mapping_document_raises_configuration_error(
+    tmp_path: Path,
+) -> None:
+    # A bare YAML list is not an empty document (unlike a `None` parse from an
+    # empty file) and must not be silently dropped and treated as "missing".
+    bad = tmp_path / "not-a-mapping.yaml"
+    bad.write_text("- just\n- a\n- list\n")
+    with patch.dict("os.environ", {KUBECONFIG_ENV_VARIABLE: str(bad)}):
+        with pytest.raises(ConfigurationError, match="expected a kubeconfig mapping"):
+            _load_kube_config()
+
+
 @pytest.mark.anyio
 async def test_configure_from_kubeconfig_happy_path(tmp_path: Path) -> None:
     data = _minimal_kubeconfig()
@@ -153,6 +396,52 @@ async def test_configure_from_kubeconfig_happy_path(tmp_path: Path) -> None:
     kube_config = _load_kube_config(config_file)
     client_config = await configure_from_kubeconfig(config=kube_config)
     assert client_config.base_url == "https://localhost:6443/"
+
+
+@pytest.mark.anyio
+async def test_configure_from_kubeconfig_forwards_context_namespace(
+    tmp_path: Path,
+) -> None:
+    data = _minimal_kubeconfig()
+    data["contexts"][0]["context"]["namespace"] = "staging"
+    config_file = _write_kubeconfig(tmp_path / "config", data)
+    kube_config = _load_kube_config(config_file)
+    client_config = await configure_from_kubeconfig(config=kube_config)
+    assert client_config.namespace == "staging"
+
+
+@pytest.mark.anyio
+async def test_configure_from_kubeconfig_no_context_namespace_stays_none(
+    tmp_path: Path,
+) -> None:
+    data = _minimal_kubeconfig()
+    config_file = _write_kubeconfig(tmp_path / "config", data)
+    kube_config = _load_kube_config(config_file)
+    client_config = await configure_from_kubeconfig(config=kube_config)
+    assert client_config.namespace is None
+
+
+@pytest.mark.anyio
+async def test_configure_from_kubeconfig_invalid_oidc_config_does_not_leak_secret(
+    tmp_path: Path,
+) -> None:
+    data = _minimal_kubeconfig()
+    data["users"][0]["user"]["auth-provider"] = {
+        "name": "oidc",
+        "config": {
+            "client-secret": "SUPERSECRET",
+            "refresh-token": "REFRESHSECRET",
+            # missing required client-id/idp-issuer-url triggers ValidationError
+        },
+    }
+    config_file = _write_kubeconfig(tmp_path / "config", data)
+    kube_config = _load_kube_config(config_file)
+    with pytest.raises(ConfigurationError) as exc_info:
+        await configure_from_kubeconfig(config=kube_config)
+    message = str(exc_info.value)
+    assert "SUPERSECRET" not in message
+    assert "REFRESHSECRET" not in message
+    assert exc_info.value.__cause__ is None
 
 
 @pytest.mark.anyio
@@ -355,3 +644,124 @@ async def test_configure_no_certs() -> None:
     assert client_config.server_ca_file is None
     assert client_config.client_cert_file is None
     assert client_config.client_key_file is None
+
+
+@pytest.mark.anyio
+async def test_configure_insecure_skip_tls_verify_true_forwarded() -> None:
+    data = _minimal_kubeconfig(insecure_skip_tls_verify=True)
+    kube_config = KubeConfig.model_validate(data)
+    client_config = await configure_from_kubeconfig(config=kube_config)
+    assert client_config.insecure_skip_tls_verify is True
+    assert client_config.verify is False
+
+
+@pytest.mark.anyio
+async def test_configure_insecure_skip_tls_verify_absent_does_not_raise() -> None:
+    """Cluster.insecure_skip_tls_verify defaults to False, not None -- forwarding
+    it unconditionally would trip ClientConfiguration's "CA required" guard for
+    the common system-trust-store kubeconfig (no CA, no insecure flag).
+    """
+    data = _minimal_kubeconfig()
+    kube_config = KubeConfig.model_validate(data)
+    client_config = await configure_from_kubeconfig(config=kube_config)
+    assert client_config.insecure_skip_tls_verify is None
+    assert client_config.verify is None
+
+
+@pytest.mark.anyio
+async def test_configure_proxy_url_warns_and_is_not_applied() -> None:
+    data = _minimal_kubeconfig(proxy_url="http://proxy.example:8080")
+    kube_config = KubeConfig.model_validate(data)
+    with pytest.warns(UserWarning, match="proxy-url"):
+        client_config = await configure_from_kubeconfig(config=kube_config)
+    # Not applied anywhere on ClientConfiguration -- it belongs on ClientOptions,
+    # which this function has no access to.
+    assert not hasattr(client_config, "proxy_url")
+
+
+@pytest.mark.anyio
+async def test_configure_no_proxy_url_no_warning() -> None:
+    data = _minimal_kubeconfig()
+    kube_config = KubeConfig.model_validate(data)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        await configure_from_kubeconfig(config=kube_config)
+
+
+@pytest.mark.anyio
+async def test_configure_bearer_token() -> None:
+    data = _minimal_kubeconfig(token="my-secret-bearer-token")
+    kube_config = KubeConfig.model_validate(data)
+    client_config = await configure_from_kubeconfig(config=kube_config)
+    assert client_config.token == "my-secret-bearer-token"
+
+
+@pytest.mark.anyio
+async def test_configure_token_file(tmp_path: Path) -> None:
+    token_file = tmp_path / "token"
+    token_file.write_text("token-from-file")
+    data = _minimal_kubeconfig(token_file=str(token_file))
+    config_file = _write_kubeconfig(tmp_path / "config", data)
+    kube_config = _load_kube_config(config_file)
+    client_config = await configure_from_kubeconfig(config=kube_config)
+    assert client_config.token == "token-from-file"
+    assert client_config.try_refresh_token is True
+
+
+@pytest.mark.anyio
+async def test_configure_exec_wires_refreshable_token() -> None:
+    data = _minimal_kubeconfig()
+    data["users"][0]["user"]["exec"] = {
+        "apiVersion": "client.authentication.k8s.io/v1",
+        "command": "echo",
+        "args": [
+            "-n",
+            '{"apiVersion":"client.authentication.k8s.io/v1",'
+            '"kind":"ExecCredential","status":{"token":"exec-token"}}',
+        ],
+    }
+    kube_config = KubeConfig.model_validate(data)
+    client_config = await configure_from_kubeconfig(config=kube_config)
+    assert isinstance(client_config.refreshable_token, ExecRefreshableToken)
+    assert await client_config.get_authorization_header() == "Bearer exec-token"
+
+
+@pytest.mark.anyio
+async def test_configure_oidc_wires_refreshable_token() -> None:
+    data = _minimal_kubeconfig()
+    data["users"][0]["user"]["auth-provider"] = {
+        "name": "oidc",
+        "config": {
+            "client-id": "id",
+            "client-secret": "secret",
+            "refresh-token": "token",
+            "idp-issuer-url": "https://issuer.example",
+        },
+    }
+    kube_config = KubeConfig.model_validate(data)
+    client_config = await configure_from_kubeconfig(config=kube_config)
+    assert isinstance(client_config.refreshable_token, OidcRefreshableToken)
+
+
+@pytest.mark.anyio
+async def test_configure_unsupported_auth_provider_raises_configuration_error() -> None:
+    data = _minimal_kubeconfig()
+    data["users"][0]["user"]["auth-provider"] = {
+        "name": "gcp",
+        "config": {"access-token": "abc"},
+    }
+    kube_config = KubeConfig.model_validate(data)
+    with pytest.raises(ConfigurationError, match="'gcp' auth-provider"):
+        await configure_from_kubeconfig(config=kube_config)
+
+
+@pytest.mark.anyio
+async def test_configure_invalid_oidc_config_raises_configuration_error() -> None:
+    data = _minimal_kubeconfig()
+    data["users"][0]["user"]["auth-provider"] = {
+        "name": "oidc",
+        "config": {"idp-issuer-url": "https://issuer.example"},
+    }
+    kube_config = KubeConfig.model_validate(data)
+    with pytest.raises(ConfigurationError, match="'oidc' auth-provider"):
+        await configure_from_kubeconfig(config=kube_config)

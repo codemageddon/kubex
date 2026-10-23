@@ -3,9 +3,15 @@ from enum import Enum
 from pathlib import Path
 from time import time
 
-from pydantic import Field, FilePath, HttpUrl, SecretStr
+from pydantic import Field, FilePath, HttpUrl, SecretStr, field_validator
 
 from kubex_core.models.base import BaseK8sModel
+
+
+class SupportsAuthorizationHeader(typing.Protocol):
+    """Structural type for a token source that can format its own Authorization header"""
+
+    async def to_header(self) -> str: ...
 
 
 class RawExtension(BaseK8sModel):
@@ -63,6 +69,13 @@ class OIDCConfig(BaseK8sModel):
     idp_certificate_authority_data: str | None = Field(
         None, alias="idp-certificate-authority-data"
     )
+
+    @field_validator("idp_issuer_url")
+    @classmethod
+    def _idp_issuer_url_must_be_https(cls, value: str) -> str:
+        if not value.startswith("https://"):
+            raise ValueError(f"idp-issuer-url must use the https scheme, got {value!r}")
+        return value
 
 
 class ExecInteractiveMode(str, Enum):
@@ -204,9 +217,11 @@ class ClientConfiguration:
         token: str | None = None,
         namespace: str | None = None,
         try_refresh_token: bool = False,
+        refreshable_token: SupportsAuthorizationHeader | None = None,
     ) -> None:
         if try_refresh_token and token_file is None:
             raise ValueError("Token file must be provided to refresh token")
+        self.refreshable_token = refreshable_token
         self.base_url = url
         if insecure_skip_tls_verify is False:
             if server_ca_file is None:
@@ -221,7 +236,7 @@ class ClientConfiguration:
         if isinstance(client_key_file, str):
             client_key_file = Path(client_key_file)
         self.client_key_file = client_key_file
-        self.namespace = namespace or "default"
+        self.namespace = namespace
 
         if isinstance(token_file, str):
             token_file = Path(token_file)
@@ -259,11 +274,24 @@ class ClientConfiguration:
         if self.token_file is None:
             return None
 
-        if (
-            self._current_token is None
-            or self._last_token_read is None
+        is_expired = (
+            self._last_token_read is None
             or time() - self._last_token_read > TOKEN_REFRESH_INTERVAL
-        ):
+        )
+        if self._current_token is None or (self.try_refresh_token and is_expired):
             self._current_token = self.token_file.read_text().strip()
             self._last_token_read = time()
         return self._current_token
+
+    async def get_authorization_header(self) -> str | None:
+        """Return the `Authorization` header value to send, if any.
+
+        Prefers `refreshable_token` (exec/OIDC credential plugins) over the
+        static `token`/`token_file` path, since a kubeconfig context only
+        ever sets one credential source.
+        """
+        if self.refreshable_token is not None:
+            return await self.refreshable_token.to_header()
+        if self.token is None:
+            return None
+        return f"Bearer {self.token}"
