@@ -10,10 +10,10 @@ class StorageVersionMigrationStatus(BaseK8sModel):
     conditions: list[Condition] | None = Field(
         default=None,
         alias="conditions",
-        description="The latest available observations of the migration's current state.",
+        description="conditions is the latest available observations of the migration's current state.",
     )
     resource_version: str | None = Field(
         default=None,
         alias="resourceVersion",
-        description="ResourceVersion to compare with the GC cache for performing the migration. This is the current resource version of given group, version and resource when kube-controller-manager first observes this StorageVersionMigration resource.",
+        description="resourceVersion is the resource version to compare with the GC cache for performing the migration. This is the current resource version of given group, version and resource when kube-controller-manager first observes this StorageVersionMigration resource.",
     )

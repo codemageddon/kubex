@@ -13,18 +13,18 @@ class SubjectRulesReviewStatus(BaseK8sModel):
         alias="evaluationError",
         description="evaluationError can appear in combination with Rules. It indicates an error occurred during rule evaluation, such as an authorizer that doesn't support rule evaluation, and that ResourceRules and/or NonResourceRules may be incomplete.",
     )
-    incomplete: bool = Field(
-        ...,
+    incomplete: bool | None = Field(
+        default=None,
         alias="incomplete",
         description="incomplete is true when the rules returned by this call are incomplete. This is most commonly encountered when an authorizer, such as an external authorizer, doesn't support rules evaluation.",
     )
-    non_resource_rules: list[NonResourceRule] = Field(
-        ...,
+    non_resource_rules: list[NonResourceRule] | None = Field(
+        default=None,
         alias="nonResourceRules",
         description="nonResourceRules is the list of actions the subject is allowed to perform on non-resources. The list ordering isn't significant, may contain duplicates, and possibly be incomplete.",
     )
-    resource_rules: list[ResourceRule] = Field(
-        ...,
+    resource_rules: list[ResourceRule] | None = Field(
+        default=None,
         alias="resourceRules",
         description="resourceRules is the list of actions the subject is allowed to perform on resources. The list ordering isn't significant, may contain duplicates, and possibly be incomplete.",
     )

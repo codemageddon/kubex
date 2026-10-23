@@ -12,10 +12,10 @@ class PodExtendedResourceClaimStatus(BaseK8sModel):
     request_mappings: list[ContainerExtendedResourceRequest] = Field(
         ...,
         alias="requestMappings",
-        description="RequestMappings identifies the mapping of <container, extended resource backed by DRA> to device request in the generated ResourceClaim.",
+        description="requestMappings identifies the mapping of <container, extended resource backed by DRA> to device request in the generated ResourceClaim.",
     )
     resource_claim_name: str = Field(
         ...,
         alias="resourceClaimName",
-        description="ResourceClaimName is the name of the ResourceClaim that was generated for the Pod in the namespace of the Pod.",
+        description="resourceClaimName is the name of the ResourceClaim that was generated for the Pod in the namespace of the Pod.",
     )

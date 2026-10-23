@@ -20,5 +20,5 @@ class ResourceQuotaSpec(BaseK8sModel):
     scopes: list[str] | None = Field(
         default=None,
         alias="scopes",
-        description="A collection of filters that must match each object tracked by a quota. If not specified, the quota matches all objects.",
+        description="scopes is a collection of filters that must match each object tracked by a quota. If not specified, the quota matches all objects.",
     )

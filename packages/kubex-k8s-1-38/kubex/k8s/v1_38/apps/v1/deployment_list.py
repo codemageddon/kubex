@@ -18,7 +18,7 @@ class DeploymentList(ListEntity[Deployment]):
         description="APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
     )
     items: list[Deployment] = Field(
-        ..., alias="items", description="Items is the list of Deployments."
+        ..., alias="items", description="items is the list of Deployments."
     )
     kind: Literal["DeploymentList"] = Field(
         default="DeploymentList",
@@ -26,7 +26,7 @@ class DeploymentList(ListEntity[Deployment]):
         description="Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
     )
     metadata: ListMetadata = Field(
-        ..., alias="metadata", description="Standard list metadata."
+        ..., alias="metadata", description="metadata is the standard list metadata."
     )
 
 

@@ -9,5 +9,5 @@ class PodSchedulingGate(BaseK8sModel):
     name: str = Field(
         ...,
         alias="name",
-        description="Name of the scheduling gate. Each scheduling gate must have a unique name field.",
+        description="name of the scheduling gate. Each scheduling gate must have a unique name field.",
     )

@@ -11,7 +11,7 @@ from kubex_core.models.resource_config import ResourceConfig, Scope
 
 
 class FlowSchema(ClusterScopedEntity, HasStatusSubresource):
-    """FlowSchema defines the schema of a group of flows. Note that a flow is made up of a set of inbound API requests with similar attributes and is identified by a pair of strings: the name of the FlowSchema and a "flow distinguisher"."""
+    """FlowSchema defines the schema of a group of flows. Note that a flow is made up of a set of inbound API requests with similar attributes and is identified by a pair of strings: the name of the FlowSchema and a \"flow distinguisher\"."""
 
     __RESOURCE_CONFIG__: ClassVar[ResourceConfig["FlowSchema"]] = ResourceConfig[
         "FlowSchema"
@@ -35,10 +35,10 @@ class FlowSchema(ClusterScopedEntity, HasStatusSubresource):
     spec: FlowSchemaSpec = Field(
         ...,
         alias="spec",
-        description="`spec` is the specification of the desired behavior of a FlowSchema. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status",
+        description="spec is the specification of the desired behavior of a FlowSchema. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status",
     )
     status: FlowSchemaStatus | None = Field(
         default=None,
         alias="status",
-        description="`status` is the current status of a FlowSchema. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status",
+        description="status is the current status of a FlowSchema. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status",
     )

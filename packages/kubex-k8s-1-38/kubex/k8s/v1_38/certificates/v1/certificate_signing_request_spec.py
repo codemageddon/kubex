@@ -36,10 +36,10 @@ class CertificateSigningRequestSpec(BaseK8sModel):
         alias="uid",
         description="uid contains the uid of the user that created the CertificateSigningRequest. Populated by the API server on creation and immutable.",
     )
-    usages: list[str] | None = Field(
-        default=None,
+    usages: list[str] = Field(
+        ...,
         alias="usages",
-        description='usages specifies a set of key usages requested in the issued certificate. Requests for TLS client certificates typically request: "digital signature", "key encipherment", "client auth". Requests for TLS serving certificates typically request: "key encipherment", "digital signature", "server auth". Valid values are: "signing", "digital signature", "content commitment", "key encipherment", "key agreement", "data encipherment", "cert sign", "crl sign", "encipher only", "decipher only", "any", "server auth", "client auth", "code signing", "email protection", "s/mime", "ipsec end system", "ipsec tunnel", "ipsec user", "timestamping", "ocsp signing", "microsoft sgc", "netscape sgc"',
+        description='usages specifies a set of key usages requested in the issued certificate. Requests for TLS client certificates typically request: "digital signature", "client auth". Requests for TLS serving certificates typically request: "digital signature", "server auth". Valid values are: "signing", "digital signature", "content commitment", "key encipherment", "key agreement", "data encipherment", "cert sign", "crl sign", "encipher only", "decipher only", "any", "server auth", "client auth", "code signing", "email protection", "s/mime", "ipsec end system", "ipsec tunnel", "ipsec user", "timestamping", "ocsp signing", "microsoft sgc", "netscape sgc" When request contains a x509 certificate signing request signed with an ML-DSA key, usages must contain at least one of "digital signature", "content commitment", "cert sign", or "crl sign" and must not contain "key encipherment", "key agreement", "data encipherment", "encipher only", or "decipher only".',
     )
     username: str | None = Field(
         default=None,

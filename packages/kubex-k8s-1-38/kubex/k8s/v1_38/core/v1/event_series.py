@@ -11,10 +11,10 @@ class EventSeries(BaseK8sModel):
     count: int | None = Field(
         default=None,
         alias="count",
-        description="Number of occurrences in this series up to the last heartbeat time",
+        description="count is the number of occurrences in this series up to the last heartbeat time",
     )
     last_observed_time: datetime.datetime | None = Field(
         default=None,
         alias="lastObservedTime",
-        description="Time of the last occurrence observed",
+        description="lastObservedTime is the time of the last occurrence observed",
     )

@@ -9,5 +9,5 @@ class Counter(BaseK8sModel):
     value: str = Field(
         ...,
         alias="value",
-        description="Value defines how much of a certain device counter is available.",
+        description="value defines how much of a certain device counter is available.",
     )

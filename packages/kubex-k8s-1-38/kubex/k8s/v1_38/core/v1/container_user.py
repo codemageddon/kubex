@@ -10,5 +10,5 @@ class ContainerUser(BaseK8sModel):
     linux: LinuxContainerUser | None = Field(
         default=None,
         alias="linux",
-        description="Linux holds user identity information initially attached to the first process of the containers in Linux. Note that the actual running identity can be changed if the process has enough privilege to do so.",
+        description="linux holds user identity information initially attached to the first process of the containers in Linux. Note that the actual running identity can be changed if the process has enough privilege to do so.",
     )

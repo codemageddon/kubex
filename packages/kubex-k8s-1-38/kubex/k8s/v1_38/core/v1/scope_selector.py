@@ -12,5 +12,5 @@ class ScopeSelector(BaseK8sModel):
     match_expressions: list[ScopedResourceSelectorRequirement] | None = Field(
         default=None,
         alias="matchExpressions",
-        description="A list of scope selector requirements by scope of the resources.",
+        description="matchExpressions is a list of scope selector requirements by scope of the resources.",
     )

@@ -10,13 +10,17 @@ class ContainerState(BaseK8sModel):
     """ContainerState holds a possible state of container. Only one of its members may be specified. If none of them is specified, the default one is ContainerStateWaiting."""
 
     running: ContainerStateRunning | None = Field(
-        default=None, alias="running", description="Details about a running container"
+        default=None,
+        alias="running",
+        description="running is details about a running container",
     )
     terminated: ContainerStateTerminated | None = Field(
         default=None,
         alias="terminated",
-        description="Details about a terminated container",
+        description="terminated is details about a terminated container",
     )
     waiting: ContainerStateWaiting | None = Field(
-        default=None, alias="waiting", description="Details about a waiting container"
+        default=None,
+        alias="waiting",
+        description="waiting is details about a waiting container",
     )

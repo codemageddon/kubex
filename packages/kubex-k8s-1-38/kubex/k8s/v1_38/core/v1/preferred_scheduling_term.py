@@ -10,10 +10,10 @@ class PreferredSchedulingTerm(BaseK8sModel):
     preference: NodeSelectorTerm = Field(
         ...,
         alias="preference",
-        description="A node selector term, associated with the corresponding weight.",
+        description="preference is a node selector term, associated with the corresponding weight.",
     )
     weight: int = Field(
         ...,
         alias="weight",
-        description="Weight associated with matching the corresponding nodeSelectorTerm, in the range 1-100.",
+        description="weight is the weight associated with matching the corresponding nodeSelectorTerm, in the range 1-100.",
     )

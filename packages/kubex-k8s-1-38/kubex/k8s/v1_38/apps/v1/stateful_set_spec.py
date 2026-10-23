@@ -19,7 +19,7 @@ class StatefulSetSpec(BaseK8sModel):
     min_ready_seconds: int | None = Field(
         default=None,
         alias="minReadySeconds",
-        description="Minimum number of seconds for which a newly created pod should be ready without any of its container crashing for it to be considered available. Defaults to 0 (pod will be considered available as soon as it is ready)",
+        description="minReadySeconds is the minimum number of seconds for which a newly created pod should be ready without any of its container crashing for it to be considered available. Defaults to 0 (pod will be considered available as soon as it is ready)",
     )
     ordinals: StatefulSetOrdinals | None = Field(
         default=None,

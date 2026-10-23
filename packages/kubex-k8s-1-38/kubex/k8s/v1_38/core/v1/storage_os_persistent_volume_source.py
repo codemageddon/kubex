@@ -22,8 +22,8 @@ class StorageOSPersistentVolumeSource(BaseK8sModel):
         alias="secretRef",
         description="secretRef specifies the secret to use for obtaining the StorageOS API credentials. If not specified, default values will be attempted.",
     )
-    volume_name: str | None = Field(
-        default=None,
+    volume_name: str = Field(
+        ...,
         alias="volumeName",
         description="volumeName is the human-readable name of the StorageOS volume. Volume names are only unique within a namespace.",
     )

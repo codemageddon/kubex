@@ -13,60 +13,60 @@ class PoolStatus(BaseK8sModel):
     allocated_devices: int | None = Field(
         default=None,
         alias="allocatedDevices",
-        description="AllocatedDevices is the number of devices currently allocated to claims. A value of 0 means no devices are allocated. May be unset when validationError is set.",
+        description="allocatedDevices is the number of devices currently allocated to claims. A value of 0 means no devices are allocated. May be unset when validationError is set.",
     )
     available_devices: int | None = Field(
         default=None,
         alias="availableDevices",
-        description="AvailableDevices is the number of devices available for allocation. This equals TotalDevices - AllocatedDevices - UnavailableDevices. A value of 0 means no devices are currently available. May be unset when validationError is set.",
+        description="availableDevices is the number of devices available for allocation. This equals TotalDevices - AllocatedDevices - UnavailableDevices. A value of 0 means no devices are currently available. May be unset when validationError is set.",
     )
     driver: str = Field(
         ...,
         alias="driver",
-        description='Driver is the DRA driver name for this pool. Must be a DNS subdomain (e.g., "gpu.example.com").',
+        description='driver is the DRA driver name for this pool. Must be a DNS subdomain (e.g., "gpu.example.com").',
     )
     generation: int = Field(
         ...,
         alias="generation",
-        description="Generation is the pool generation observed across all ResourceSlices in this pool. Only the latest generation is reported. During a generation rollout, if not all slices at the latest generation have been published, the pool is included with a validationError and device counts unset.",
+        description="generation is the pool generation observed across all ResourceSlices in this pool. Only the latest generation is reported. During a generation rollout, if not all slices at the latest generation have been published, the pool is included with a validationError and device counts unset.",
     )
     node_name: str | None = Field(
         default=None,
         alias="nodeName",
-        description="NodeName is the node this pool is associated with. When omitted, the pool is not associated with a specific node. Must be a valid DNS subdomain name (RFC1123).",
+        description="nodeName is the node this pool is associated with. When omitted, the pool is not associated with a specific node. Must be a valid DNS subdomain name (RFC1123).",
     )
     partition_summary: list[PartitionTypeStatus] | None = Field(
         default=None,
         alias="partitionSummary",
-        description="PartitionSummary reports allocatability per (attribute, partition type) for a partitionable pool that publishes SharedCounters. Each entry names the grouping attribute it was resolved from: the PartitionTypeAttribute declared by a device's own slice, or for devices whose slice declares none, the default named in the request. A pool that mixes partitions declared under different attributes reports each independently. When no slice declares an attribute and the request names no default, the pool reports no partition summary.",
+        description="partitionSummary reports allocatability per (attribute, partition type) for a partitionable pool that publishes SharedCounters. Each entry names the grouping attribute it was resolved from: the PartitionTypeAttribute declared by a device's own slice, or for devices whose slice declares none, the default named in the request. A pool that mixes partitions declared under different attributes reports each independently. When no slice declares an attribute and the request names no default, the pool reports no partition summary.",
     )
     pool_name: str = Field(
         ...,
         alias="poolName",
-        description='PoolName is the name of the pool. Must be a valid resource pool name (DNS subdomains separated by "/").',
+        description='poolName is the name of the pool. Must be a valid resource pool name (DNS subdomains separated by "/").',
     )
     resource_slice_count: int | None = Field(
         default=None,
         alias="resourceSliceCount",
-        description="ResourceSliceCount is the number of ResourceSlices that make up this pool. May be unset when validationError is set.",
+        description="resourceSliceCount is the number of ResourceSlices that make up this pool. May be unset when validationError is set.",
     )
     shareable_summary: ShareableSummaryStatus | None = Field(
         default=None,
         alias="shareableSummary",
-        description="ShareableSummary reports aggregate capacity for a pool that contains devices with AllowMultipleAllocations. It is populated only when at least one device in the pool is shareable.",
+        description="shareableSummary reports aggregate capacity for a pool that contains devices with AllowMultipleAllocations. It is populated only when at least one device in the pool is shareable.",
     )
     total_devices: int | None = Field(
         default=None,
         alias="totalDevices",
-        description="TotalDevices is the total number of devices in the pool across all slices. A value of 0 means the pool has no devices. May be unset when validationError is set.",
+        description="totalDevices is the total number of devices in the pool across all slices. A value of 0 means the pool has no devices. May be unset when validationError is set.",
     )
     unavailable_devices: int | None = Field(
         default=None,
         alias="unavailableDevices",
-        description="UnavailableDevices is the number of devices that are not available due to taints or other conditions, but are not allocated. A value of 0 means all unallocated devices are available. May be unset when validationError is set.",
+        description="unavailableDevices is the number of devices that are not available due to taints or other conditions, but are not allocated. A value of 0 means all unallocated devices are available. May be unset when validationError is set.",
     )
     validation_error: str | None = Field(
         default=None,
         alias="validationError",
-        description="ValidationError is set when the pool's data could not be fully validated (e.g., incomplete slice publication). When set, device count fields and ResourceSliceCount may be unset.",
+        description="validationError is set when the pool's data could not be fully validated (e.g., incomplete slice publication). When set, device count fields and ResourceSliceCount may be unset.",
     )

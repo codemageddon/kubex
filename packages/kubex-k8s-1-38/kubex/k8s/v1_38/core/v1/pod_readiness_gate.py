@@ -9,5 +9,5 @@ class PodReadinessGate(BaseK8sModel):
     condition_type: str = Field(
         ...,
         alias="conditionType",
-        description="ConditionType refers to a condition in the pod's condition list with matching type.",
+        description="conditionType refers to a condition in the pod's condition list with matching type.",
     )

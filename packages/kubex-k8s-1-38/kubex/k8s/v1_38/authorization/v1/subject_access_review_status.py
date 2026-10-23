@@ -6,10 +6,10 @@ from kubex_core.models.base import BaseK8sModel
 class SubjectAccessReviewStatus(BaseK8sModel):
     """SubjectAccessReviewStatus"""
 
-    allowed: bool = Field(
-        ...,
+    allowed: bool | None = Field(
+        default=None,
         alias="allowed",
-        description="allowed is required. True if the action would be allowed, false otherwise.",
+        description="allowed is set to true if the action is allowed, and should be set to false otherwise.",
     )
     denied: bool | None = Field(
         default=None,

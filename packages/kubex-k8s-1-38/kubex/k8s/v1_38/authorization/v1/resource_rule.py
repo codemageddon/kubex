@@ -21,8 +21,8 @@ class ResourceRule(BaseK8sModel):
         alias="resources",
         description='resources is a list of resources this rule applies to. "*" means all in the specified apiGroups. "*/foo" represents the subresource \'foo\' for all resources in the specified apiGroups.',
     )
-    verbs: list[str] = Field(
-        ...,
+    verbs: list[str] | None = Field(
+        default=None,
         alias="verbs",
         description='verbs is a list of kubernetes resource API verbs, like: get, list, watch, create, update, delete, proxy. "*" means all.',
     )

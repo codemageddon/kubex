@@ -9,10 +9,10 @@ class ServiceAccountSubject(BaseK8sModel):
     name: str = Field(
         ...,
         alias="name",
-        description='`name` is the name of matching ServiceAccount objects, or "*" to match regardless of name. Required.',
+        description='name is the name of matching ServiceAccount objects, or "*" to match regardless of name. Required.',
     )
     namespace: str = Field(
         ...,
         alias="namespace",
-        description="`namespace` is the namespace of matching ServiceAccount objects. Required.",
+        description="namespace is the namespace of matching ServiceAccount objects. Required.",
     )

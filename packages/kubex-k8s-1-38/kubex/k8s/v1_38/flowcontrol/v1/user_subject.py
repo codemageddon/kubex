@@ -9,5 +9,5 @@ class UserSubject(BaseK8sModel):
     name: str = Field(
         ...,
         alias="name",
-        description='`name` is the username that matches, or "*" to match all usernames. Required.',
+        description='name is the username that matches, or "*" to match all usernames. Required.',
     )

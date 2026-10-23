@@ -35,10 +35,10 @@ class Service(NamespaceScopedEntity, HasStatusSubresource):
     spec: ServiceSpec | None = Field(
         default=None,
         alias="spec",
-        description="Spec defines the behavior of a service. https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status",
+        description="spec defines the behavior of a service. https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status",
     )
     status: ServiceStatus | None = Field(
         default=None,
         alias="status",
-        description="Most recently observed status of the service. Populated by the system. Read-only. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status",
+        description="status is the most recently observed status of the service. Populated by the system. Read-only. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status",
     )

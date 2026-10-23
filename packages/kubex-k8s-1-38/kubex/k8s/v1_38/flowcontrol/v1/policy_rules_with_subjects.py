@@ -14,12 +14,12 @@ class PolicyRulesWithSubjects(BaseK8sModel):
     non_resource_rules: list[NonResourcePolicyRule] | None = Field(
         default=None,
         alias="nonResourceRules",
-        description="`nonResourceRules` is a list of NonResourcePolicyRules that identify matching requests according to their verb and the target non-resource URL.",
+        description="nonResourceRules is a list of NonResourcePolicyRules that identify matching requests according to their verb and the target non-resource URL.",
     )
     resource_rules: list[ResourcePolicyRule] | None = Field(
         default=None,
         alias="resourceRules",
-        description="`resourceRules` is a slice of ResourcePolicyRules that identify matching requests according to their verb and the target resource. At least one of `resourceRules` and `nonResourceRules` has to be non-empty.",
+        description="resourceRules is a slice of ResourcePolicyRules that identify matching requests according to their verb and the target resource. At least one of `resourceRules` and `nonResourceRules` has to be non-empty.",
     )
     subjects: list[Subject] = Field(
         ...,

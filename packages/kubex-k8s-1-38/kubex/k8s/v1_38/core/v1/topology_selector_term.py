@@ -12,5 +12,5 @@ class TopologySelectorTerm(BaseK8sModel):
     match_label_expressions: list[TopologySelectorLabelRequirement] | None = Field(
         default=None,
         alias="matchLabelExpressions",
-        description="A list of topology selector requirements by labels.",
+        description="matchLabelExpressions is a list of topology selector requirements by labels. Usage: Fields of type []TopologySelectorTerm must be listType=atomic. A list of topology selector requirements by labels.",
     )

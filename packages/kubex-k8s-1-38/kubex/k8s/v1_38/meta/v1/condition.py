@@ -13,8 +13,8 @@ class Condition(BaseK8sModel):
         alias="lastTransitionTime",
         description="lastTransitionTime is the last time the condition transitioned from one status to another. This should be when the underlying condition changed. If that is not known, then using the time when the API field changed is acceptable.",
     )
-    message: str = Field(
-        ...,
+    message: str | None = Field(
+        default=None,
         alias="message",
         description="message is a human readable message indicating details about the transition. This may be an empty string.",
     )

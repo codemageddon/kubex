@@ -34,5 +34,5 @@ class LimitRange(NamespaceScopedEntity):
     spec: LimitRangeSpec | None = Field(
         default=None,
         alias="spec",
-        description="Spec defines the limits enforced. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status",
+        description="spec defines the limits enforced. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status",
     )

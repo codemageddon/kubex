@@ -36,5 +36,5 @@ class ResourceClaimTemplate(NamespaceScopedEntity):
     spec: ResourceClaimTemplateSpec | None = Field(
         default=None,
         alias="spec",
-        description="Describes the ResourceClaim that is to be generated. This field is immutable. A ResourceClaim will get created by the control plane for a Pod when needed and then not get updated anymore.",
+        description="spec describes the ResourceClaim that is to be generated. This field is immutable. A ResourceClaim will get created by the control plane for a Pod when needed and then not get updated anymore.",
     )

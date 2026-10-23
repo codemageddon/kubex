@@ -28,7 +28,7 @@ class ControllerRevision(NamespaceScopedEntity):
     data: dict[str, Any] = Field(
         ...,
         alias="data",
-        description="Data is the serialized representation of the state.",
+        description="data is the serialized representation of the state.",
     )
     kind: Literal["ControllerRevision"] = Field(
         default="ControllerRevision",
@@ -38,5 +38,5 @@ class ControllerRevision(NamespaceScopedEntity):
     revision: int | None = Field(
         default=None,
         alias="revision",
-        description="Revision indicates the revision of the state represented by Data.",
+        description="revision indicates the revision of the state represented by Data.",
     )

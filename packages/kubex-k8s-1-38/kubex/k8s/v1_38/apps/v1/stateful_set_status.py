@@ -10,7 +10,7 @@ class StatefulSetStatus(BaseK8sModel):
     available_replicas: int | None = Field(
         default=None,
         alias="availableReplicas",
-        description="Total number of available pods (ready for at least minReadySeconds) targeted by this statefulset.",
+        description="availableReplicas is the number of available non-terminating pods (ready for at least minReadySeconds) targeted by this StatefulSet.",
     )
     collision_count: int | None = Field(
         default=None,
@@ -20,7 +20,7 @@ class StatefulSetStatus(BaseK8sModel):
     conditions: list[StatefulSetCondition] | None = Field(
         default=None,
         alias="conditions",
-        description="Represents the latest available observations of a statefulset's current state.",
+        description="conditions lists the latest available observations of a StatefulSet's current state.",
     )
     current_replicas: int | None = Field(
         default=None,
@@ -50,7 +50,7 @@ class StatefulSetStatus(BaseK8sModel):
     update_revision: str | None = Field(
         default=None,
         alias="updateRevision",
-        description="updateRevision, if not empty, indicates the version of the StatefulSet used to generate Pods in the sequence [replicas-updatedReplicas,replicas)",
+        description="updateRevision indicates the version of the StatefulSet used to generate Pods in the sequence [replicas-updatedReplicas,replicas)",
     )
     updated_replicas: int | None = Field(
         default=None,

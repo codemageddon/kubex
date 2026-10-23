@@ -9,5 +9,5 @@ class NamespaceSpec(BaseK8sModel):
     finalizers: list[str] | None = Field(
         default=None,
         alias="finalizers",
-        description="Finalizers is an opaque list of values that must be empty to permanently remove object from storage. More info: https://kubernetes.io/docs/tasks/administer-cluster/namespaces/",
+        description="finalizers is an opaque list of values that must be empty to permanently remove object from storage. More info: https://kubernetes.io/docs/tasks/administer-cluster/namespaces/",
     )

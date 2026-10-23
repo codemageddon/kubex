@@ -39,10 +39,10 @@ class PriorityLevelConfiguration(ClusterScopedEntity, HasStatusSubresource):
     spec: PriorityLevelConfigurationSpec = Field(
         ...,
         alias="spec",
-        description='`spec` is the specification of the desired behavior of a "request-priority". More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status',
+        description='spec is the specification of the desired behavior of a "request-priority". More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status',
     )
     status: PriorityLevelConfigurationStatus | None = Field(
         default=None,
         alias="status",
-        description='`status` is the current status of a "request-priority". More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status',
+        description='status is the current status of a "request-priority". More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status',
     )

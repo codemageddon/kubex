@@ -12,17 +12,17 @@ class NodeSpec(BaseK8sModel):
     config_source: NodeConfigSource | None = Field(
         default=None,
         alias="configSource",
-        description="Deprecated: Previously used to specify the source of the node's configuration for the DynamicKubeletConfig feature. This feature is removed.",
+        description="configSource previously used to specify the source of the node's configuration for the DynamicKubeletConfig feature. Deprecated. This feature is removed.",
     )
     external_id: str | None = Field(
         default=None,
         alias="externalID",
-        description="Deprecated. Not all kubelets will set this field. Remove field after 1.13. see: https://issues.k8s.io/61966",
+        description="externalID is deprecated. Not all kubelets will set this field. Remove field after 1.13. see: https://issues.k8s.io/61966",
     )
     pod_cidr: str | None = Field(
         default=None,
         alias="podCIDR",
-        description="PodCIDR represents the pod IP range assigned to the node.",
+        description="podCIDR represents the pod IP range assigned to the node.",
     )
     pod_cidrs: list[str] | None = Field(
         default=None,
@@ -32,18 +32,20 @@ class NodeSpec(BaseK8sModel):
     pod_preemption_policy: NodePodPreemptionPolicy | None = Field(
         default=None,
         alias="podPreemptionPolicy",
-        description="PodPreemptionPolicy controls the node-level preemption behaviors for pods on this node. This is an alpha field and requires enabling the InPlacePodVerticalScalingSchedulerPreemption feature gate.",
+        description="podPreemptionPolicy controls the node-level preemption behaviors for pods on this node. This is an alpha field and requires enabling the InPlacePodVerticalScalingSchedulerPreemption feature gate.",
     )
     provider_id: str | None = Field(
         default=None,
         alias="providerID",
-        description="ID of the node assigned by the cloud provider in the format: <ProviderName>://<ProviderSpecificNodeID>",
+        description="providerID is the ID of the node assigned by the cloud provider in the format: <ProviderName>://<ProviderSpecificNodeID>",
     )
     taints: list[Taint] | None = Field(
-        default=None, alias="taints", description="If specified, the node's taints."
+        default=None,
+        alias="taints",
+        description="taints if specified, is the node's taints.",
     )
     unschedulable: bool | None = Field(
         default=None,
         alias="unschedulable",
-        description="Unschedulable controls node schedulability of new pods. By default, node is schedulable. More info: https://kubernetes.io/docs/concepts/nodes/node/#manual-node-administration",
+        description="unschedulable controls node schedulability of new pods. By default, node is schedulable. More info: https://kubernetes.io/docs/concepts/nodes/node/#manual-node-administration",
     )

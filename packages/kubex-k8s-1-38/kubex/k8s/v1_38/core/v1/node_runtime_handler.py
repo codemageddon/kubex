@@ -10,10 +10,12 @@ class NodeRuntimeHandler(BaseK8sModel):
     """NodeRuntimeHandler is a set of runtime handler information."""
 
     features: NodeRuntimeHandlerFeatures | None = Field(
-        default=None, alias="features", description="Supported features."
+        default=None,
+        alias="features",
+        description="features is the set of supported features.",
     )
     name: str | None = Field(
         default=None,
         alias="name",
-        description="Runtime handler name. Empty for the default runtime handler.",
+        description="name is the runtime handler name. Empty for the default runtime handler.",
     )

@@ -9,13 +9,17 @@ class EnvFromSource(BaseK8sModel):
     """EnvFromSource represents the source of a set of ConfigMaps or Secrets"""
 
     config_map_ref: ConfigMapEnvSource | None = Field(
-        default=None, alias="configMapRef", description="The ConfigMap to select from"
+        default=None,
+        alias="configMapRef",
+        description="configMapRef is the ConfigMap to select from",
     )
     prefix: str | None = Field(
         default=None,
         alias="prefix",
-        description="Optional text to prepend to the name of each environment variable. May consist of any printable ASCII characters except '='.",
+        description="prefix is the text to prepend to the name of each environment variable. May consist of any printable ASCII characters except '='.",
     )
     secret_ref: SecretEnvSource | None = Field(
-        default=None, alias="secretRef", description="The Secret to select from"
+        default=None,
+        alias="secretRef",
+        description="secretRef is the Secret to select from",
     )

@@ -12,15 +12,15 @@ class ShareableSummaryStatus(BaseK8sModel):
     capacity: list[ShareableCapacityStatus] | None = Field(
         default=None,
         alias="capacity",
-        description="Capacity reports aggregate total, consumed, and available amounts per shareable capacity key across the pool.",
+        description="capacity reports aggregate total, consumed, and available amounts per shareable capacity key across the pool.",
     )
     fully_available_devices: int = Field(
         ...,
         alias="fullyAvailableDevices",
-        description="FullyAvailableDevices is the number of shareable devices with no capacity consumed.",
+        description="fullyAvailableDevices is the number of shareable devices with no capacity consumed.",
     )
     partially_available_devices: int = Field(
         ...,
         alias="partiallyAvailableDevices",
-        description="PartiallyAvailableDevices is the number of shareable devices with some but not all capacity consumed.",
+        description="partiallyAvailableDevices is the number of shareable devices with some but not all capacity consumed.",
     )

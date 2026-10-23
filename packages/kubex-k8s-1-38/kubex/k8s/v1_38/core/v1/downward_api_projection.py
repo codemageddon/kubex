@@ -10,5 +10,5 @@ class DownwardAPIProjection(BaseK8sModel):
     items: list[DownwardAPIVolumeFile] | None = Field(
         default=None,
         alias="items",
-        description="Items is a list of DownwardAPIVolume file",
+        description="items is a list of DownwardAPIVolume file",
     )

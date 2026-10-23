@@ -27,8 +27,8 @@ class ScaleIOVolumeSource(BaseK8sModel):
         alias="readOnly",
         description="readOnly Defaults to false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts.",
     )
-    secret_ref: LocalObjectReference = Field(
-        ...,
+    secret_ref: LocalObjectReference | None = Field(
+        default=None,
         alias="secretRef",
         description="secretRef references to the secret for ScaleIO user and other sensitive information. If this is not provided, Login operation will fail.",
     )
@@ -52,8 +52,8 @@ class ScaleIOVolumeSource(BaseK8sModel):
         alias="system",
         description="system is the name of the storage system as configured in ScaleIO.",
     )
-    volume_name: str | None = Field(
-        default=None,
+    volume_name: str = Field(
+        ...,
         alias="volumeName",
         description="volumeName is the name of a volume already created in the ScaleIO system that is associated with this volume source.",
     )

@@ -9,28 +9,28 @@ class LimitRangeItem(BaseK8sModel):
     default: dict[str, str] | None = Field(
         default=None,
         alias="default",
-        description="Default resource requirement limit value by resource name if resource limit is omitted.",
+        description="default specifies resource limit values by resource name. These are applied to containers which do not specify their own limits for those resources.",
     )
     default_request: dict[str, str] | None = Field(
         default=None,
         alias="defaultRequest",
-        description="DefaultRequest is the default resource requirement request value by resource name if resource request is omitted.",
+        description="defaultRequest specifies resource request values by resource name. These are applied to containers which do not specify their own requests for those resources.",
     )
     max: dict[str, str] | None = Field(
         default=None,
         alias="max",
-        description="Max usage constraints on this kind by resource name.",
+        description="max usage constraints on this kind by resource name.",
     )
     max_limit_request_ratio: dict[str, str] | None = Field(
         default=None,
         alias="maxLimitRequestRatio",
-        description="MaxLimitRequestRatio if specified, the named resource must have a request and limit that are both non-zero where limit divided by request is less than or equal to the enumerated value; this represents the max burst for the named resource.",
+        description="maxLimitRequestRatio if specified, the named resource must have a request and limit that are both non-zero where limit divided by request is less than or equal to the enumerated value; this represents the max burst for the named resource.",
     )
     min: dict[str, str] | None = Field(
         default=None,
         alias="min",
-        description="Min usage constraints on this kind by resource name.",
+        description="min usage constraints on this kind by resource name.",
     )
     type_: str = Field(
-        ..., alias="type", description="Type of resource that this limit applies to."
+        ..., alias="type", description="type of resource that this limit applies to."
     )

@@ -12,15 +12,15 @@ class Affinity(BaseK8sModel):
     node_affinity: NodeAffinity | None = Field(
         default=None,
         alias="nodeAffinity",
-        description="Describes node affinity scheduling rules for the pod.",
+        description="nodeAffinity describes node affinity scheduling rules for the pod.",
     )
     pod_affinity: PodAffinity | None = Field(
         default=None,
         alias="podAffinity",
-        description="Describes pod affinity scheduling rules (e.g. co-locate this pod in the same node, zone, etc. as some other pod(s)).",
+        description="podAffinity describes pod affinity scheduling rules (e.g. co-locate this pod in the same node, zone, etc. as some other pod(s)).",
     )
     pod_anti_affinity: PodAntiAffinity | None = Field(
         default=None,
         alias="podAntiAffinity",
-        description="Describes pod anti-affinity scheduling rules (e.g. avoid putting this pod in the same node, zone, etc. as some other pod(s)).",
+        description="podAntiAffinity describes pod anti-affinity scheduling rules (e.g. avoid putting this pod in the same node, zone, etc. as some other pod(s)).",
     )

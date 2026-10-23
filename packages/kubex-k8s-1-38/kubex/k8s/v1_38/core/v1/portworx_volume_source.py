@@ -9,7 +9,7 @@ class PortworxVolumeSource(BaseK8sModel):
     fs_type: str | None = Field(
         default=None,
         alias="fsType",
-        description='fSType represents the filesystem type to mount Must be a filesystem type supported by the host operating system. Ex. "ext4", "xfs". Implicitly inferred to be "ext4" if unspecified.',
+        description='fsType represents the filesystem type to mount Must be a filesystem type supported by the host operating system. Ex. "ext4", "xfs". Implicitly inferred to be "ext4" if unspecified.',
     )
     read_only: bool | None = Field(
         default=None,

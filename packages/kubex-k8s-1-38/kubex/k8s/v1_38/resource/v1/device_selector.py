@@ -10,5 +10,5 @@ class DeviceSelector(BaseK8sModel):
     cel: CELDeviceSelector | None = Field(
         default=None,
         alias="cel",
-        description="CEL contains a CEL expression for selecting a device.",
+        description="cel contains a CEL expression for selecting a device.",
     )

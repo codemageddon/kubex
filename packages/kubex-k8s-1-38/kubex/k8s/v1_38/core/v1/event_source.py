@@ -9,10 +9,10 @@ class EventSource(BaseK8sModel):
     component: str | None = Field(
         default=None,
         alias="component",
-        description="Component from which the event is generated.",
+        description="component from which the event is generated.",
     )
     host: str | None = Field(
         default=None,
         alias="host",
-        description="Node name on which the event is generated.",
+        description="host name on which the event is generated.",
     )

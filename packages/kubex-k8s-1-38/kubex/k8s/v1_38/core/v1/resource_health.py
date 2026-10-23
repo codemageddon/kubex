@@ -9,15 +9,15 @@ class ResourceHealth(BaseK8sModel):
     health: str | None = Field(
         default=None,
         alias="health",
-        description="Health of the resource. can be one of: - Healthy: operates as normal - Unhealthy: reported unhealthy. We consider this a temporary health issue since we do not have a mechanism today to distinguish temporary and permanent issues. - Unknown: The status cannot be determined. For example, Device Plugin got unregistered and hasn't been re-registered since. In future we may want to introduce the PermanentlyUnhealthy Status.",
+        description="health of the resource. can be one of: - Healthy: operates as normal - Unhealthy: reported unhealthy. We consider this a temporary health issue since we do not have a mechanism today to distinguish temporary and permanent issues. - Unknown: The status cannot be determined. For example, Device Plugin got unregistered and hasn't been re-registered since. In future we may want to introduce the PermanentlyUnhealthy Status.",
     )
     message: str | None = Field(
         default=None,
         alias="message",
-        description='Message provides human-readable context for Health (e.g. "ECC error count exceeded threshold"). This field is populated by the kubelet when ResourceHealthStatusMessage is enabled if the DRA plugin returns a message, and is null otherwise.',
+        description='message provides human-readable context for Health (e.g. "ECC error count exceeded threshold"). This field is populated by the kubelet when ResourceHealthStatusMessage is enabled if the DRA plugin returns a message, and is null otherwise.',
     )
     resource_id: str = Field(
         ...,
         alias="resourceID",
-        description="ResourceID is the unique identifier of the resource. See the ResourceID type for more information.",
+        description="resourceID is the unique identifier of the resource. See the ResourceID type for more information.",
     )

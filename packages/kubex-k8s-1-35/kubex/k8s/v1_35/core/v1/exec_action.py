@@ -4,7 +4,7 @@ from kubex_core.models.base import BaseK8sModel
 
 
 class ExecAction(BaseK8sModel):
-    """ExecAction describes a "run in container" action."""
+    """ExecAction describes a \"run in container\" action."""
 
     command: list[str] | None = Field(
         default=None,

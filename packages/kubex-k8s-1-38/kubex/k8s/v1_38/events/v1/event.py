@@ -22,8 +22,8 @@ class Event(NamespaceScopedEntity):
         plural="events",
         scope=Scope.NAMESPACE,
     )
-    action: str | None = Field(
-        default=None,
+    action: str = Field(
+        ...,
         alias="action",
         description="action is what action was taken/failed regarding to the regarding object. It is machine-readable. This field cannot be empty for new Events and it can have at most 128 characters.",
     )
@@ -67,8 +67,8 @@ class Event(NamespaceScopedEntity):
         alias="note",
         description="note is a human-readable description of the status of this operation. Maximal length of the note is 1kB, but libraries should be prepared to handle values up to 64kB.",
     )
-    reason: str | None = Field(
-        default=None,
+    reason: str = Field(
+        ...,
         alias="reason",
         description="reason is why the action was taken. It is human-readable. This field cannot be empty for new Events and it can have at most 128 characters.",
     )
@@ -82,13 +82,13 @@ class Event(NamespaceScopedEntity):
         alias="related",
         description="related is the optional secondary object for more complex actions. E.g. when regarding object triggers a creation or deletion of related object.",
     )
-    reporting_controller: str | None = Field(
-        default=None,
+    reporting_controller: str = Field(
+        ...,
         alias="reportingController",
         description="reportingController is the name of the controller that emitted this Event, e.g. `kubernetes.io/kubelet`. This field cannot be empty for new Events.",
     )
-    reporting_instance: str | None = Field(
-        default=None,
+    reporting_instance: str = Field(
+        ...,
         alias="reportingInstance",
         description="reportingInstance is the ID of the controller instance, e.g. `kubelet-xyzf`. This field cannot be empty for new Events and it can have at most 128 characters.",
     )
@@ -97,8 +97,8 @@ class Event(NamespaceScopedEntity):
         alias="series",
         description="series is data about the Event series this event represents or nil if it's a singleton Event.",
     )
-    type_: str | None = Field(
-        default=None,
+    type_: str = Field(
+        ...,
         alias="type",
         description="type is the type of this event (Normal, Warning), new types could be added in the future. It is machine-readable. This field cannot be empty for new Events.",
     )

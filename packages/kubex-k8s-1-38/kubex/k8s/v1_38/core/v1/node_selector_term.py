@@ -10,10 +10,10 @@ class NodeSelectorTerm(BaseK8sModel):
     match_expressions: list[NodeSelectorRequirement] | None = Field(
         default=None,
         alias="matchExpressions",
-        description="A list of node selector requirements by node's labels.",
+        description="matchExpressions is a list of node selector requirements by node's labels.",
     )
     match_fields: list[NodeSelectorRequirement] | None = Field(
         default=None,
         alias="matchFields",
-        description="A list of node selector requirements by node's fields.",
+        description="matchFields is a list of node selector requirements by node's fields.",
     )

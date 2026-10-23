@@ -12,10 +12,10 @@ class StatefulSetUpdateStrategy(BaseK8sModel):
     rolling_update: RollingUpdateStatefulSetStrategy | None = Field(
         default=None,
         alias="rollingUpdate",
-        description="RollingUpdate is used to communicate parameters when Type is RollingUpdateStatefulSetStrategyType.",
+        description="rollingUpdate is used to communicate parameters when Type is RollingUpdateStatefulSetStrategyType.",
     )
     type_: str | None = Field(
         default=None,
         alias="type",
-        description="Type indicates the type of the StatefulSetUpdateStrategy. Default is RollingUpdate.",
+        description="type indicates the type of the StatefulSetUpdateStrategy. Default is RollingUpdate.",
     )

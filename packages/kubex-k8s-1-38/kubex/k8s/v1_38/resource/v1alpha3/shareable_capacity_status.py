@@ -9,16 +9,16 @@ class ShareableCapacityStatus(BaseK8sModel):
     available: str = Field(
         ...,
         alias="available",
-        description="Available is Total minus Consumed, never negative.",
+        description="available is Total minus Consumed, never negative.",
     )
     consumed: str = Field(
         ...,
         alias="consumed",
-        description="Consumed is the amount drawn by current allocations.",
+        description="consumed is the amount drawn by current allocations.",
     )
-    name: str = Field(..., alias="name", description="Name is the capacity name.")
+    name: str = Field(..., alias="name", description="name is the capacity name.")
     total: str = Field(
         ...,
         alias="total",
-        description="Total is the sum of this capacity across shareable devices in the pool.",
+        description="total is the sum of this capacity across shareable devices in the pool.",
     )

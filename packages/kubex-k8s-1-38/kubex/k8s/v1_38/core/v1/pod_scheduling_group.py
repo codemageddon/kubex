@@ -9,5 +9,5 @@ class PodSchedulingGroup(BaseK8sModel):
     pod_group_name: str | None = Field(
         default=None,
         alias="podGroupName",
-        description="PodGroupName specifies the name of the standalone PodGroup object that represents the runtime instance of this group. Must be a DNS subdomain.",
+        description="podGroupName specifies the name of the standalone PodGroup object that represents the runtime instance of this group. Must be a DNS subdomain.",
     )

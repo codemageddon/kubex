@@ -15,15 +15,15 @@ class AllocationResult(BaseK8sModel):
     allocation_timestamp: datetime.datetime | None = Field(
         default=None,
         alias="allocationTimestamp",
-        description="AllocationTimestamp stores the time when the resources were allocated. This field is not guaranteed to be set, in which case that time is unknown. This is a beta field and requires enabling the DRADeviceBindingConditions and DRAResourceClaimDeviceStatus feature gate.",
+        description="allocationTimestamp stores the time when the resources were allocated. This field is not guaranteed to be set, in which case that time is unknown. This is a beta field and requires enabling the DRADeviceBindingConditions and DRAResourceClaimDeviceStatus feature gate.",
     )
     devices: DeviceAllocationResult | None = Field(
         default=None,
         alias="devices",
-        description="Devices is the result of allocating devices.",
+        description="devices is the result of allocating devices.",
     )
     node_selector: NodeSelector | None = Field(
         default=None,
         alias="nodeSelector",
-        description="NodeSelector defines where the allocated resources are available. If unset, they are available everywhere.",
+        description="nodeSelector defines where the allocated resources are available. If unset, they are available everywhere.",
     )

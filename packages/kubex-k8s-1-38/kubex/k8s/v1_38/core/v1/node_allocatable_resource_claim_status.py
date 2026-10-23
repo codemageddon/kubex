@@ -15,20 +15,20 @@ class NodeAllocatableResourceClaimStatus(BaseK8sModel):
     containers: list[str] | None = Field(
         default=None,
         alias="containers",
-        description="Containers lists the names of all containers in this pod that reference the claim.",
+        description="containers lists the names of all containers in this pod that reference the claim.",
     )
     mapping: list[NodeAllocatableMappedResources] | None = Field(
         default=None,
         alias="mapping",
-        description="Mapping contains allocations through devices mapped in the device spec's `nodeAllocatableResources[...].mapping` field. This is used by kubelet for pod level and container-level cgroup enforcement.",
+        description="mapping contains allocations through devices mapped in the device spec's `nodeAllocatableResources[...].mapping` field. This is used by kubelet for pod level and container-level cgroup enforcement.",
     )
     overhead: list[NodeAllocatableOverheadResources] | None = Field(
         default=None,
         alias="overhead",
-        description="Overhead contains allocations through devices mapped in the device spec's `nodeAllocatableResources[...].overhead` field. This is used by kubelet for pod level and container-level cgroup enforcement.",
+        description="overhead contains allocations through devices mapped in the device spec's `nodeAllocatableResources[...].overhead` field. This is used by kubelet for pod level and container-level cgroup enforcement.",
     )
     resource_claim_name: str = Field(
         ...,
         alias="resourceClaimName",
-        description="ResourceClaimName is the resource claim referenced by the pod that resulted in this node allocatable resource allocation.",
+        description="resourceClaimName is the resource claim referenced by the pod that resulted in this node allocatable resource allocation.",
     )

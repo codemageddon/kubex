@@ -9,10 +9,10 @@ class ContainerResizePolicy(BaseK8sModel):
     resource_name: str = Field(
         ...,
         alias="resourceName",
-        description="Name of the resource to which this resource resize policy applies. Supported values: cpu, memory.",
+        description="resourceName is the name of the resource to which this resource resize policy applies. Supported values: cpu, memory.",
     )
     restart_policy: str = Field(
         ...,
         alias="restartPolicy",
-        description="Restart policy to apply when specified resource is resized. If not specified, it defaults to NotRequired.",
+        description="restartPolicy is the restart policy to apply when specified resource is resized. If not specified, it defaults to NotRequired.",
     )

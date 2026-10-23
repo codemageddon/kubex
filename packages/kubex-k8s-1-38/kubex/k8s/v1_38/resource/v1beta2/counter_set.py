@@ -10,10 +10,10 @@ class CounterSet(BaseK8sModel):
     counters: dict[str, Counter] = Field(
         ...,
         alias="counters",
-        description="Counters defines the set of counters for this CounterSet The name of each counter must be unique in that set and must be a DNS label. The maximum number of counters is 32.",
+        description="counters defines the set of counters for this CounterSet The name of each counter must be unique in that set and must be a DNS label. The maximum number of counters is 32.",
     )
     name: str = Field(
         ...,
         alias="name",
-        description="Name defines the name of the counter set. It must be a DNS label.",
+        description="name defines the name of the counter set. It must be a DNS label.",
     )

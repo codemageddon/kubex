@@ -9,15 +9,15 @@ class LinuxContainerUser(BaseK8sModel):
     gid: int = Field(
         ...,
         alias="gid",
-        description="GID is the primary gid initially attached to the first process in the container",
+        description="gid is the primary gid initially attached to the first process in the container",
     )
     supplemental_groups: list[int] | None = Field(
         default=None,
         alias="supplementalGroups",
-        description="SupplementalGroups are the supplemental groups initially attached to the first process in the container",
+        description="supplementalGroups are the supplemental groups initially attached to the first process in the container",
     )
     uid: int = Field(
         ...,
         alias="uid",
-        description="UID is the primary uid initially attached to the first process in the container",
+        description="uid is the primary uid initially attached to the first process in the container",
     )

@@ -10,5 +10,5 @@ class StorageVersionMigrationSpec(BaseK8sModel):
     resource: GroupResource = Field(
         ...,
         alias="resource",
-        description="The resource that is being migrated. The migrator sends requests to the endpoint serving the resource. Immutable.",
+        description="resource is the resource that is being migrated. The migrator sends requests to the endpoint serving the resource. Immutable.",
     )

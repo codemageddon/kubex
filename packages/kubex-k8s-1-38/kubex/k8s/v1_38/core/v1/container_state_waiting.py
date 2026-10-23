@@ -9,10 +9,10 @@ class ContainerStateWaiting(BaseK8sModel):
     message: str | None = Field(
         default=None,
         alias="message",
-        description="Message regarding why the container is not yet running.",
+        description="message regarding why the container is not yet running.",
     )
     reason: str | None = Field(
         default=None,
         alias="reason",
-        description="(brief) reason the container is not yet running.",
+        description="reason the container is not yet running.",
     )

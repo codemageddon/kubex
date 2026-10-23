@@ -9,10 +9,10 @@ class ContainerRestartRuleOnExitCodes(BaseK8sModel):
     operator: str = Field(
         ...,
         alias="operator",
-        description="Represents the relationship between the container exit code(s) and the specified values. Possible values are: - In: the requirement is satisfied if the container exit code is in the set of specified values. - NotIn: the requirement is satisfied if the container exit code is not in the set of specified values.",
+        description="operator represents the relationship between the container exit code(s) and the specified values. Possible values are: - In: the requirement is satisfied if the container exit code is in the set of specified values. - NotIn: the requirement is satisfied if the container exit code is not in the set of specified values.",
     )
     values: list[int] | None = Field(
         default=None,
         alias="values",
-        description="Specifies the set of values to check for container exit codes. At most 255 elements are allowed.",
+        description="values specifies the set of values to check for container exit codes. At most 255 elements are allowed.",
     )

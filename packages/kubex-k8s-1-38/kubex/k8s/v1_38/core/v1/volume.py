@@ -64,7 +64,7 @@ class Volume(BaseK8sModel):
     cephfs: CephFSVolumeSource | None = Field(
         default=None,
         alias="cephfs",
-        description="cephFS represents a Ceph FS mount on the host that shares a pod's lifetime. Deprecated: CephFS is deprecated and the in-tree cephfs type is no longer supported.",
+        description="cephfs represents a Ceph FS mount on the host that shares a pod's lifetime. Deprecated: CephFS is deprecated and the in-tree cephfs type is no longer supported.",
     )
     cinder: CinderVolumeSource | None = Field(
         default=None,
@@ -154,7 +154,7 @@ class Volume(BaseK8sModel):
     persistent_volume_claim: PersistentVolumeClaimVolumeSource | None = Field(
         default=None,
         alias="persistentVolumeClaim",
-        description="persistentVolumeClaimVolumeSource represents a reference to a PersistentVolumeClaim in the same namespace. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims",
+        description="persistentVolumeClaim represents a reference to a PersistentVolumeClaim in the same namespace. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims",
     )
     photon_persistent_disk: PhotonPersistentDiskVolumeSource | None = Field(
         default=None,
@@ -194,7 +194,7 @@ class Volume(BaseK8sModel):
     storageos: StorageOSVolumeSource | None = Field(
         default=None,
         alias="storageos",
-        description="storageOS represents a StorageOS volume attached and mounted on Kubernetes nodes. Deprecated: StorageOS is deprecated and the in-tree storageos type is no longer supported.",
+        description="storageos represents a StorageOS volume attached and mounted on Kubernetes nodes. Deprecated: StorageOS is deprecated and the in-tree storageos type is no longer supported.",
     )
     vsphere_volume: VsphereVirtualDiskVolumeSource | None = Field(
         default=None,

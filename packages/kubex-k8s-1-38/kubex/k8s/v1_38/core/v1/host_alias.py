@@ -9,6 +9,6 @@ class HostAlias(BaseK8sModel):
     hostnames: list[str] | None = Field(
         default=None,
         alias="hostnames",
-        description="Hostnames for the above IP address.",
+        description="hostnames for the above IP address.",
     )
-    ip: str = Field(..., alias="ip", description="IP address of the host file entry.")
+    ip: str = Field(..., alias="ip", description="ip address of the host file entry.")

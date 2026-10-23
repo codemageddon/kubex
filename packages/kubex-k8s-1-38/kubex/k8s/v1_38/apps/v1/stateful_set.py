@@ -39,10 +39,10 @@ class StatefulSet(NamespaceScopedEntity, HasScaleSubresource, HasStatusSubresour
     spec: StatefulSetSpec = Field(
         ...,
         alias="spec",
-        description="Spec defines the desired identities of pods in this set.",
+        description="spec defines the desired identities of pods in this set.",
     )
     status: StatefulSetStatus | None = Field(
         default=None,
         alias="status",
-        description="Status is the current status of Pods in this StatefulSet. This data may be out of date by some window of time.",
+        description="status is the current status of Pods in this StatefulSet. This data may be out of date by some window of time.",
     )

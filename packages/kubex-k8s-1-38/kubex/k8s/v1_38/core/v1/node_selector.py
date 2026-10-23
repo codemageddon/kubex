@@ -10,5 +10,5 @@ class NodeSelector(BaseK8sModel):
     node_selector_terms: list[NodeSelectorTerm] = Field(
         ...,
         alias="nodeSelectorTerms",
-        description="Required. A list of node selector terms. The terms are ORed.",
+        description="nodeSelectorTerms is a list of node selector terms. The terms are ORed. Required. A list of node selector terms. The terms are ORed.",
     )

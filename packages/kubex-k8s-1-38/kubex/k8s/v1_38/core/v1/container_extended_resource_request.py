@@ -9,15 +9,15 @@ class ContainerExtendedResourceRequest(BaseK8sModel):
     container_name: str = Field(
         ...,
         alias="containerName",
-        description="The name of the container requesting resources.",
+        description="containerName is the name of the container requesting resources.",
     )
     request_name: str = Field(
         ...,
         alias="requestName",
-        description="The name of the request in the special ResourceClaim which corresponds to the extended resource.",
+        description="requestName is the name of the request in the special ResourceClaim which corresponds to the extended resource.",
     )
     resource_name: str = Field(
         ...,
         alias="resourceName",
-        description="The name of the extended resource in that container which gets backed by DRA.",
+        description="resourceName is the name of the extended resource in that container which gets backed by DRA.",
     )

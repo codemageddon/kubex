@@ -12,5 +12,5 @@ class DeviceClassConfiguration(BaseK8sModel):
     opaque: OpaqueDeviceConfiguration | None = Field(
         default=None,
         alias="opaque",
-        description="Opaque provides driver-specific configuration parameters.",
+        description="opaque provides driver-specific configuration parameters.",
     )

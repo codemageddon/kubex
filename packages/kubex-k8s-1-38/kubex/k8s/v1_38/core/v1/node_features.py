@@ -9,5 +9,5 @@ class NodeFeatures(BaseK8sModel):
     supplemental_groups_policy: bool | None = Field(
         default=None,
         alias="supplementalGroupsPolicy",
-        description="SupplementalGroupsPolicy is set to true if the runtime supports SupplementalGroupsPolicy and ContainerUser.",
+        description="supplementalGroupsPolicy is set to true if the runtime supports SupplementalGroupsPolicy and ContainerUser.",
     )

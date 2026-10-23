@@ -12,18 +12,18 @@ class Subject(BaseK8sModel):
     group: GroupSubject | None = Field(
         default=None,
         alias="group",
-        description="`group` matches based on user group name.",
+        description="group matches based on user group name.",
     )
     kind: str = Field(
         ...,
         alias="kind",
-        description="`kind` indicates which one of the other fields is non-empty. Required",
+        description="kind indicates which one of the other fields is non-empty. Required",
     )
     service_account: ServiceAccountSubject | None = Field(
         default=None,
         alias="serviceAccount",
-        description="`serviceAccount` matches ServiceAccounts.",
+        description="serviceAccount matches ServiceAccounts.",
     )
     user: UserSubject | None = Field(
-        default=None, alias="user", description="`user` matches based on username."
+        default=None, alias="user", description="user matches based on username."
     )

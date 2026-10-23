@@ -9,5 +9,5 @@ class ImageVolumeStatus(BaseK8sModel):
     image_ref: str = Field(
         ...,
         alias="imageRef",
-        description="ImageRef is the digest of the image used for this volume. It should have a value that's similar to the pod's status.containerStatuses[i].imageID. The ImageRef length should not exceed 256 characters.",
+        description="imageRef is the digest of the image used for this volume. It should have a value that's similar to the pod's status.containerStatuses[i].imageID. The ImageRef length should not exceed 256 characters.",
     )

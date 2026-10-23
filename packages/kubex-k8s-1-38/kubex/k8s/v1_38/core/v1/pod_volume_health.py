@@ -12,7 +12,7 @@ class PodVolumeHealth(BaseK8sModel):
     health_conditions: list[VolumeHealthCondition] | None = Field(
         default=None,
         alias="healthConditions",
-        description="conditions is the set of adverse conditions reported by the CSI node plugin for this volume on this node. At most 16 conditions may be reported.",
+        description="healthConditions is the set of adverse conditions reported by the CSI node plugin for this volume on this node. At most 16 conditions may be reported.",
     )
     last_transition_time: datetime.datetime | None = Field(
         default=None,

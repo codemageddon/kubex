@@ -9,5 +9,5 @@ class FlowDistinguisherMethod(BaseK8sModel):
     type_: str = Field(
         ...,
         alias="type",
-        description='`type` is the type of flow distinguisher method The supported types are "ByUser" and "ByNamespace". Required.',
+        description='type is the type of flow distinguisher method The supported types are "ByUser" and "ByNamespace". Required.',
     )

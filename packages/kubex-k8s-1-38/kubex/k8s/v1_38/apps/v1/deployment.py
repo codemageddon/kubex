@@ -39,10 +39,10 @@ class Deployment(NamespaceScopedEntity, HasScaleSubresource, HasStatusSubresourc
     spec: DeploymentSpec = Field(
         ...,
         alias="spec",
-        description="Specification of the desired behavior of the Deployment.",
+        description="spec defines the desired behavior of the Deployment.",
     )
     status: DeploymentStatus | None = Field(
         default=None,
         alias="status",
-        description="Most recently observed status of the Deployment.",
+        description="status is the most recently observed status of the Deployment.",
     )

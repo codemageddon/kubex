@@ -9,6 +9,8 @@ class HTTPHeader(BaseK8sModel):
     name: str = Field(
         ...,
         alias="name",
-        description="The header field name. This will be canonicalized upon output, so case-variant names will be understood as the same header.",
+        description="name is the header field name. This will be canonicalized upon output, so case-variant names will be understood as the same header.",
     )
-    value: str = Field(..., alias="value", description="The header field value")
+    value: str = Field(
+        ..., alias="value", description="value is the header field value"
+    )

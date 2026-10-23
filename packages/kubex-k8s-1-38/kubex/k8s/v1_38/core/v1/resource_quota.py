@@ -35,10 +35,10 @@ class ResourceQuota(NamespaceScopedEntity, HasStatusSubresource):
     spec: ResourceQuotaSpec | None = Field(
         default=None,
         alias="spec",
-        description="Spec defines the desired quota. https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status",
+        description="spec defines the desired quota. https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status",
     )
     status: ResourceQuotaStatus | None = Field(
         default=None,
         alias="status",
-        description="Status defines the actual enforced quota and its current usage. https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status",
+        description="status defines the actual enforced quota and its current usage. https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status",
     )

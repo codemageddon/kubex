@@ -10,7 +10,7 @@ class WeightedPodAffinityTerm(BaseK8sModel):
     pod_affinity_term: PodAffinityTerm = Field(
         ...,
         alias="podAffinityTerm",
-        description="Required. A pod affinity term, associated with the corresponding weight.",
+        description="podAffinityTerm is a pod affinity term, associated with the corresponding weight. required.",
     )
     weight: int = Field(
         ...,

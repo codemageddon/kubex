@@ -10,10 +10,10 @@ class DaemonSetUpdateStrategy(BaseK8sModel):
     rolling_update: RollingUpdateDaemonSet | None = Field(
         default=None,
         alias="rollingUpdate",
-        description='Rolling update config params. Present only if type = "RollingUpdate".',
+        description='rollingUpdate config params. Present only if type = "RollingUpdate".',
     )
     type_: str | None = Field(
         default=None,
         alias="type",
-        description='Type of daemon set update. Can be "RollingUpdate" or "OnDelete". Default is RollingUpdate.',
+        description='type of daemon set update. Can be "RollingUpdate" or "OnDelete". Default is RollingUpdate.',
     )

@@ -34,5 +34,5 @@ class Binding(NamespaceScopedEntity):
     target: ObjectReference = Field(
         ...,
         alias="target",
-        description="The target object that you want to bind to the standard object.",
+        description="target is the target object that you want to bind to the standard object.",
     )

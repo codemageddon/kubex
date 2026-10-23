@@ -12,8 +12,8 @@ class VolumeAttachmentStatus(BaseK8sModel):
         alias="attachError",
         description="attachError represents the last error encountered during attach operation, if any. This field must only be set by the entity completing the attach operation, i.e. the external-attacher.",
     )
-    attached: bool = Field(
-        ...,
+    attached: bool | None = Field(
+        default=None,
         alias="attached",
         description="attached indicates the volume is successfully attached. This field must only be set by the entity completing the attach operation, i.e. the external-attacher.",
     )

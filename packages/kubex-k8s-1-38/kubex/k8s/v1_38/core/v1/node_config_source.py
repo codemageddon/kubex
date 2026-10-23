@@ -12,5 +12,5 @@ class NodeConfigSource(BaseK8sModel):
     config_map: ConfigMapNodeConfigSource | None = Field(
         default=None,
         alias="configMap",
-        description="ConfigMap is a reference to a Node's ConfigMap",
+        description="configMap is a reference to a Node's ConfigMap",
     )

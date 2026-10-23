@@ -35,10 +35,10 @@ class ResourceClaim(NamespaceScopedEntity, HasStatusSubresource):
     spec: ResourceClaimSpec | None = Field(
         default=None,
         alias="spec",
-        description="Spec describes what is being requested and how to configure it. The spec is immutable.",
+        description="spec describes what is being requested and how to configure it. The spec is immutable.",
     )
     status: ResourceClaimStatus | None = Field(
         default=None,
         alias="status",
-        description="Status describes whether the claim is ready to use and what has been allocated.",
+        description="status describes whether the claim is ready to use and what has been allocated.",
     )

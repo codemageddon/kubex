@@ -11,5 +11,5 @@ class ContainerStateRunning(BaseK8sModel):
     started_at: datetime.datetime | None = Field(
         default=None,
         alias="startedAt",
-        description="Time at which the container was last (re-)started",
+        description="startedAt is the time at which the container was last (re-)started",
     )

@@ -25,7 +25,7 @@ class Event(NamespaceScopedEntity):
     action: str | None = Field(
         default=None,
         alias="action",
-        description="What action was taken/failed regarding to the Regarding object.",
+        description="action is what action was taken/failed regarding to the Regarding object.",
     )
     api_version: Literal["v1"] = Field(
         default="v1",
@@ -35,20 +35,22 @@ class Event(NamespaceScopedEntity):
     count: int | None = Field(
         default=None,
         alias="count",
-        description="The number of times this event has occurred.",
+        description="count is the number of times this event has occurred.",
     )
     event_time: datetime.datetime | None = Field(
         default=None,
         alias="eventTime",
-        description="Time when this Event was first observed.",
+        description="eventTime is the time when this Event was first observed.",
     )
     first_timestamp: datetime.datetime | None = Field(
         default=None,
         alias="firstTimestamp",
-        description="The time at which the event was first recorded. (Time of server receipt is in TypeMeta.)",
+        description="firstTimestamp is the time at which the event was first recorded. (Time of server receipt is in TypeMeta.)",
     )
     involved_object: ObjectReference = Field(
-        ..., alias="involvedObject", description="The object that this event is about."
+        ...,
+        alias="involvedObject",
+        description="involvedObject is the object that this event is about.",
     )
     kind: Literal["Event"] = Field(
         default="Event",
@@ -58,45 +60,45 @@ class Event(NamespaceScopedEntity):
     last_timestamp: datetime.datetime | None = Field(
         default=None,
         alias="lastTimestamp",
-        description="The time at which the most recent occurrence of this event was recorded.",
+        description="lastTimestamp is the time at which the most recent occurrence of this event was recorded.",
     )
     message: str | None = Field(
         default=None,
         alias="message",
-        description="A human-readable description of the status of this operation.",
+        description="message is a human-readable description of the status of this operation.",
     )
     reason: str | None = Field(
         default=None,
         alias="reason",
-        description="This should be a short, machine understandable string that gives the reason for the transition into the object's current status.",
+        description="reason is a short, machine understandable string that gives the reason for the transition into the object's current status.",
     )
     related: ObjectReference | None = Field(
         default=None,
         alias="related",
-        description="Optional secondary object for more complex actions.",
+        description="related is an optional secondary object for more complex actions.",
     )
     reporting_component: str | None = Field(
         default=None,
         alias="reportingComponent",
-        description="Name of the controller that emitted this Event, e.g. `kubernetes.io/kubelet`.",
+        description="reportingComponent is the name of the controller that emitted this Event, e.g. `kubernetes.io/kubelet`.",
     )
     reporting_instance: str | None = Field(
         default=None,
         alias="reportingInstance",
-        description="ID of the controller instance, e.g. `kubelet-xyzf`.",
+        description="reportingInstance is the ID of the controller instance, e.g. `kubelet-xyzf`.",
     )
     series: EventSeries | None = Field(
         default=None,
         alias="series",
-        description="Data about the Event series this event represents or nil if it's a singleton Event.",
+        description="series is data about the Event series this event represents or nil if it's a singleton Event.",
     )
     source: EventSource | None = Field(
         default=None,
         alias="source",
-        description="The component reporting this event. Should be a short machine understandable string.",
+        description="source is the component reporting this event. Should be a short machine understandable string.",
     )
     type_: str | None = Field(
         default=None,
         alias="type",
-        description="Type of this event (Normal, Warning), new types could be added in the future",
+        description="type is the type of this event (Normal, Warning), new types could be added in the future",
     )

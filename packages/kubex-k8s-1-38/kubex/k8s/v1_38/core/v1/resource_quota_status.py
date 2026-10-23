@@ -9,10 +9,10 @@ class ResourceQuotaStatus(BaseK8sModel):
     hard: dict[str, str] | None = Field(
         default=None,
         alias="hard",
-        description="Hard is the set of enforced hard limits for each named resource. More info: https://kubernetes.io/docs/concepts/policy/resource-quotas/",
+        description="hard is the set of enforced hard limits for each named resource. More info: https://kubernetes.io/docs/concepts/policy/resource-quotas/",
     )
     used: dict[str, str] | None = Field(
         default=None,
         alias="used",
-        description="Used is the current observed total usage of the resource in the namespace.",
+        description="used is the current observed total usage of the resource in the namespace.",
     )

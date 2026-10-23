@@ -10,5 +10,5 @@ class ResourceClaimSpec(BaseK8sModel):
     devices: DeviceClaim | None = Field(
         default=None,
         alias="devices",
-        description="Devices defines how to request devices.",
+        description="devices defines how to request devices.",
     )

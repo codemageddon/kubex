@@ -10,5 +10,5 @@ class LimitRangeSpec(BaseK8sModel):
     limits: list[LimitRangeItem] = Field(
         ...,
         alias="limits",
-        description="Limits is the list of LimitRangeItem objects that are enforced.",
+        description="limits is the list of LimitRangeItem objects that are enforced.",
     )

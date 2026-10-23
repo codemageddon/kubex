@@ -11,10 +11,10 @@ class DeviceTaintRuleSpec(BaseK8sModel):
     device_selector: DeviceTaintSelector | None = Field(
         default=None,
         alias="deviceSelector",
-        description="DeviceSelector defines which device(s) the taint is applied to. All selector criteria must be satisfied for a device to match. The empty selector matches all devices. Without a selector, no devices are matches.",
+        description="deviceSelector defines which device(s) the taint is applied to. All selector criteria must be satisfied for a device to match. The empty selector matches all devices. Without a selector, no devices are matches.",
     )
     taint: DeviceTaint = Field(
         ...,
         alias="taint",
-        description="The taint that gets applied to matching devices.",
+        description="taint is the taint that gets applied to matching devices.",
     )

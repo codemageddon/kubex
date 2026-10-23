@@ -34,5 +34,5 @@ class ResourceSlice(ClusterScopedEntity):
     spec: ResourceSliceSpec = Field(
         ...,
         alias="spec",
-        description="Contains the information published by the driver. Changing the spec automatically increments the metadata.generation number.",
+        description="spec contains the information published by the driver. Changing the spec automatically increments the metadata.generation number.",
     )

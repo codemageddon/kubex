@@ -7,7 +7,7 @@ from kubex_core.models.base import BaseK8sModel
 
 
 class Endpoint(BaseK8sModel):
-    """Endpoint represents a single logical "backend" implementing a service."""
+    """Endpoint represents a single logical \"backend\" implementing a service."""
 
     addresses: list[str] = Field(
         ...,

@@ -18,7 +18,6 @@ __all__ = [
     "AzureDiskVolumeSource",
     "AzureFilePersistentVolumeSource",
     "AzureFileVolumeSource",
-    "BasicDevice",
     "BasicSchedulingPolicy",
     "Binding",
     "CELDeviceSelector",

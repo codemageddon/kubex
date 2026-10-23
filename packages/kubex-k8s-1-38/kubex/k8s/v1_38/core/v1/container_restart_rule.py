@@ -12,10 +12,10 @@ class ContainerRestartRule(BaseK8sModel):
     action: str = Field(
         ...,
         alias="action",
-        description='Specifies the action taken on a container exit if the requirements are satisfied. The only possible value is "Restart" to restart the container.',
+        description='action specifies the action taken on a container exit if the requirements are satisfied. The only possible value is "Restart" to restart the container.',
     )
     exit_codes: ContainerRestartRuleOnExitCodes | None = Field(
         default=None,
         alias="exitCodes",
-        description="Represents the exit codes to check on container exits.",
+        description="exitCodes represents the exit codes to check on container exits.",
     )

@@ -11,23 +11,25 @@ class ReplicationControllerCondition(BaseK8sModel):
     last_transition_time: datetime.datetime | None = Field(
         default=None,
         alias="lastTransitionTime",
-        description="The last time the condition transitioned from one status to another.",
+        description="lastTransitionTime is the last time the condition transitioned from one status to another.",
     )
     message: str | None = Field(
         default=None,
         alias="message",
-        description="A human readable message indicating details about the transition.",
+        description="message is a human readable message indicating details about the transition.",
     )
     reason: str | None = Field(
         default=None,
         alias="reason",
-        description="The reason for the condition's last transition.",
+        description="reason is the reason for the condition's last transition.",
     )
     status: str = Field(
         ...,
         alias="status",
-        description="Status of the condition, one of True, False, Unknown.",
+        description="status of the condition, one of True, False, Unknown.",
     )
     type_: str = Field(
-        ..., alias="type", description="Type of replication controller condition."
+        ...,
+        alias="type",
+        description="type is the type of replication controller condition.",
     )

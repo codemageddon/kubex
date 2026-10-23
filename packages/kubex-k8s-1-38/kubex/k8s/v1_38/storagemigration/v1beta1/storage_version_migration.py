@@ -36,9 +36,11 @@ class StorageVersionMigration(ClusterScopedEntity, HasStatusSubresource):
         alias="kind",
         description="Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
     )
-    spec: StorageVersionMigrationSpec | None = Field(
-        default=None, alias="spec", description="Specification of the migration."
+    spec: StorageVersionMigrationSpec = Field(
+        ..., alias="spec", description="spec is the specification of the migration."
     )
     status: StorageVersionMigrationStatus | None = Field(
-        default=None, alias="status", description="Status of the migration."
+        default=None,
+        alias="status",
+        description="status is the status of the migration.",
     )

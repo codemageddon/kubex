@@ -39,10 +39,10 @@ class ResourcePoolStatusRequest(ClusterScopedEntity, HasStatusSubresource):
     spec: ResourcePoolStatusRequestSpec = Field(
         ...,
         alias="spec",
-        description="Spec defines the filters for which pools to include in the status. The spec is immutable once created.",
+        description="spec defines the filters for which pools to include in the status. The spec is immutable once created.",
     )
     status: ResourcePoolStatusRequestStatus | None = Field(
         default=None,
         alias="status",
-        description="Status is populated by the controller with the calculated pool status. When status is non-nil, the request is considered complete and the entire object becomes immutable.",
+        description="status is populated by the controller with the calculated pool status. When status is non-nil, the request is considered complete and the entire object becomes immutable.",
     )

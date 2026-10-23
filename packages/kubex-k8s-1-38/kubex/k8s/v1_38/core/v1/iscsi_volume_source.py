@@ -35,8 +35,8 @@ class ISCSIVolumeSource(BaseK8sModel):
         alias="iscsiInterface",
         description="iscsiInterface is the interface Name that uses an iSCSI transport. Defaults to 'default' (tcp).",
     )
-    lun: int = Field(
-        ..., alias="lun", description="lun represents iSCSI Target Lun number."
+    lun: int | None = Field(
+        default=None, alias="lun", description="lun represents iSCSI Target Lun number."
     )
     portals: list[str] | None = Field(
         default=None,

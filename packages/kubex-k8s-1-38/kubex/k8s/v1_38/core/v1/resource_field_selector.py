@@ -9,13 +9,13 @@ class ResourceFieldSelector(BaseK8sModel):
     container_name: str | None = Field(
         default=None,
         alias="containerName",
-        description="Container name: required for volumes, optional for env vars",
+        description="containerName is the name of the container: required for volumes, optional for env vars",
     )
     divisor: str | None = Field(
         default=None,
         alias="divisor",
-        description='Specifies the output format of the exposed resources, defaults to "1"',
+        description="divisor optionally indicates how the resource from the container should be scaled. If unset or 0, the resource is not scaled (divisor is treated as 1).",
     )
     resource: str = Field(
-        ..., alias="resource", description="Required: resource to select"
+        ..., alias="resource", description="resource is the resource to select"
     )

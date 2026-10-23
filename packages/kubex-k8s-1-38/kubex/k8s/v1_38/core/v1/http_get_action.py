@@ -10,28 +10,30 @@ class HTTPGetAction(BaseK8sModel):
     host: str | None = Field(
         default=None,
         alias="host",
-        description='Host name to connect to, defaults to the pod IP. You probably want to set "Host" in httpHeaders instead.',
+        description='host is the host name to connect to, defaults to the pod IP. You probably want to set "Host" in httpHeaders instead.',
     )
     http_headers: list[HTTPHeader] | None = Field(
         default=None,
         alias="httpHeaders",
-        description="Custom headers to set in the request. HTTP allows repeated headers.",
+        description="httpHeaders are the custom headers to set in the request. HTTP allows repeated headers.",
     )
     path: str | None = Field(
-        default=None, alias="path", description="Path to access on the HTTP server."
+        default=None,
+        alias="path",
+        description="path is the path to access on the HTTP server.",
     )
     port: int | str = Field(
         ...,
         alias="port",
-        description="Name or number of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.",
+        description="port is the name or number of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.",
     )
     protocol: str | None = Field(
         default=None,
         alias="protocol",
-        description="Protocol selects the wire protocol for the probe connection. Nil defaults to HTTP/1.1.",
+        description="protocol selects the wire protocol for the probe connection. Nil defaults to HTTP/1.1.",
     )
     scheme: str | None = Field(
         default=None,
         alias="scheme",
-        description="Scheme to use for connecting to the host. Defaults to HTTP.",
+        description="scheme is the scheme to use for connecting to the host. Defaults to HTTP.",
     )

@@ -9,5 +9,5 @@ class NodeSwapStatus(BaseK8sModel):
     capacity: int | None = Field(
         default=None,
         alias="capacity",
-        description="Total amount of swap memory in bytes.",
+        description="capacity is the total amount of swap memory in bytes.",
     )

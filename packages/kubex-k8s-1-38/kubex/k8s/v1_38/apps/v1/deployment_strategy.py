@@ -10,10 +10,10 @@ class DeploymentStrategy(BaseK8sModel):
     rolling_update: RollingUpdateDeployment | None = Field(
         default=None,
         alias="rollingUpdate",
-        description="Rolling update config params. Present only if DeploymentStrategyType = RollingUpdate.",
+        description="rollingUpdate config params. Present only if type = RollingUpdate.",
     )
     type_: str | None = Field(
         default=None,
         alias="type",
-        description='Type of deployment. Can be "Recreate" or "RollingUpdate". Default is RollingUpdate.',
+        description='type of deployment. Can be "Recreate" or "RollingUpdate". Default is RollingUpdate.',
     )

@@ -11,23 +11,23 @@ class DaemonSetCondition(BaseK8sModel):
     last_transition_time: datetime.datetime | None = Field(
         default=None,
         alias="lastTransitionTime",
-        description="Last time the condition transitioned from one status to another.",
+        description="lastTransitionTime is the last time the condition transitioned from one status to another.",
     )
     message: str | None = Field(
         default=None,
         alias="message",
-        description="A human readable message indicating details about the transition.",
+        description="message is a human readable string indicating details about the transition.",
     )
     reason: str | None = Field(
         default=None,
         alias="reason",
-        description="The reason for the condition's last transition.",
+        description="reason for the condition's last transition.",
     )
     status: str | None = Field(
         default=None,
         alias="status",
-        description="Status of the condition, one of True, False, Unknown.",
+        description="status of the condition, one of True, False, Unknown.",
     )
     type_: str | None = Field(
-        default=None, alias="type", description="Type of DaemonSet condition."
+        default=None, alias="type", description="type of DaemonSet condition."
     )

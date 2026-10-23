@@ -13,20 +13,20 @@ class LifecycleHandler(BaseK8sModel):
     exec: ExecAction | None = Field(
         default=None,
         alias="exec",
-        description="Exec specifies a command to execute in the container.",
+        description="exec specifies a command to execute in the container.",
     )
     http_get: HTTPGetAction | None = Field(
         default=None,
         alias="httpGet",
-        description="HTTPGet specifies an HTTP GET request to perform.",
+        description="httpGet specifies an HTTP GET request to perform.",
     )
     sleep: SleepAction | None = Field(
         default=None,
         alias="sleep",
-        description="Sleep represents a duration that the container should sleep.",
+        description="sleep represents a duration that the container should sleep.",
     )
     tcp_socket: TCPSocketAction | None = Field(
         default=None,
         alias="tcpSocket",
-        description="Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept for backward compatibility. There is no validation of this field and lifecycle hooks will fail at runtime when it is specified.",
+        description="tcpSocket is NOT supported as a LifecycleHandler and kept for backward compatibility. There is no validation of this field and lifecycle hooks will fail at runtime when it is specified. Deprecated.",
     )

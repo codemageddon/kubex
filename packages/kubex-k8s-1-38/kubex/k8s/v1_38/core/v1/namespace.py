@@ -35,10 +35,10 @@ class Namespace(ClusterScopedEntity, HasStatusSubresource):
     spec: NamespaceSpec | None = Field(
         default=None,
         alias="spec",
-        description="Spec defines the behavior of the Namespace. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status",
+        description="spec defines the behavior of the Namespace. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status",
     )
     status: NamespaceStatus | None = Field(
         default=None,
         alias="status",
-        description="Status describes the current status of a Namespace. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status",
+        description="status describes the current status of a Namespace. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status",
     )

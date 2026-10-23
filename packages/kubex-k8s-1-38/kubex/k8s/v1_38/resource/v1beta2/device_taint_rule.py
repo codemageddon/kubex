@@ -37,10 +37,10 @@ class DeviceTaintRule(ClusterScopedEntity, HasStatusSubresource):
     spec: DeviceTaintRuleSpec = Field(
         ...,
         alias="spec",
-        description="Spec specifies the selector and one taint. Changing the spec automatically increments the metadata.generation number.",
+        description="spec specifies the selector and one taint. Changing the spec automatically increments the metadata.generation number.",
     )
     status: DeviceTaintRuleStatus | None = Field(
         default=None,
         alias="status",
-        description="Status provides information about what was requested in the spec.",
+        description="status provides information about what was requested in the spec.",
     )

@@ -49,7 +49,7 @@ class CompositePodGroupSpec(BaseK8sModel):
     scheduling_policy: CompositePodGroupSchedulingPolicy = Field(
         ...,
         alias="schedulingPolicy",
-        description="schedulingPolicy defines the scheduling policy for this instance of the CompositePodGroup. Controllers are expected to fill this field by copying it from a CompositePodGroupTemplate. This field is immutable.",
+        description="schedulingPolicy defines the scheduling policy for this instance of the CompositePodGroup. Controllers are expected to fill this field by copying it from a CompositePodGroupTemplate.",
     )
     workload_ref: WorkloadReference = Field(
         ...,

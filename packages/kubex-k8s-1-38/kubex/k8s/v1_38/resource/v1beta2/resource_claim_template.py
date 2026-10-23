@@ -12,7 +12,7 @@ from kubex_core.models.resource_config import ResourceConfig, Scope
 
 
 class ResourceClaimTemplate(NamespaceScopedEntity):
-    """ResourceClaimTemplate is used to produce ResourceClaim objects. This is an alpha type and requires enabling the DynamicResourceAllocation feature gate."""
+    """ResourceClaimTemplate is used to produce ResourceClaim objects."""
 
     __RESOURCE_CONFIG__: ClassVar[ResourceConfig["ResourceClaimTemplate"]] = (
         ResourceConfig["ResourceClaimTemplate"](
@@ -36,5 +36,5 @@ class ResourceClaimTemplate(NamespaceScopedEntity):
     spec: ResourceClaimTemplateSpec | None = Field(
         default=None,
         alias="spec",
-        description="Describes the ResourceClaim that is to be generated. This field is immutable. A ResourceClaim will get created by the control plane for a Pod when needed and then not get updated anymore.",
+        description="spec describes the ResourceClaim that is to be generated. This field is immutable. A ResourceClaim will get created by the control plane for a Pod when needed and then not get updated anymore.",
     )

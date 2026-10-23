@@ -86,7 +86,7 @@ class PersistentVolumeSpec(BaseK8sModel):
     cephfs: CephFSPersistentVolumeSource | None = Field(
         default=None,
         alias="cephfs",
-        description="cephFS represents a Ceph FS mount on the host that shares a pod's lifetime. Deprecated: CephFS is deprecated and the in-tree cephfs type is no longer supported.",
+        description="cephfs represents a Ceph FS mount on the host that shares a pod's lifetime. Deprecated: CephFS is deprecated and the in-tree cephfs type is no longer supported.",
     )
     cinder: CinderPersistentVolumeSource | None = Field(
         default=None,
@@ -196,12 +196,12 @@ class PersistentVolumeSpec(BaseK8sModel):
     storageos: StorageOSPersistentVolumeSource | None = Field(
         default=None,
         alias="storageos",
-        description="storageOS represents a StorageOS volume that is attached to the kubelet's host machine and mounted into the pod. Deprecated: StorageOS is deprecated and the in-tree storageos type is no longer supported. More info: https://examples.k8s.io/volumes/storageos/README.md",
+        description="storageos represents a StorageOS volume that is attached to the kubelet's host machine and mounted into the pod. Deprecated: StorageOS is deprecated and the in-tree storageos type is no longer supported. More info: https://examples.k8s.io/volumes/storageos/README.md",
     )
     volume_attributes_class_name: str | None = Field(
         default=None,
         alias="volumeAttributesClassName",
-        description="Name of VolumeAttributesClass to which this persistent volume belongs. Empty value is not allowed. When this field is not set, it indicates that this volume does not belong to any VolumeAttributesClass. This field is mutable and can be changed by the CSI driver after a volume has been updated successfully to a new class. For an unbound PersistentVolume, the volumeAttributesClassName will be matched with unbound PersistentVolumeClaims during the binding process.",
+        description="volumeAttributesClassName is the name of VolumeAttributesClass to which this persistent volume belongs. Empty value is not allowed. When this field is not set, it indicates that this volume does not belong to any VolumeAttributesClass. This field is mutable and can be changed by the CSI driver after a volume has been updated successfully to a new class. For an unbound PersistentVolume, the volumeAttributesClassName will be matched with unbound PersistentVolumeClaims during the binding process.",
     )
     volume_mode: str | None = Field(
         default=None,

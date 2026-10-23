@@ -9,10 +9,10 @@ class PodDNSConfigOption(BaseK8sModel):
     name: str | None = Field(
         default=None,
         alias="name",
-        description="Name is this DNS resolver option's name. Required.",
+        description="name is this DNS resolver option's name. Required.",
     )
     value: str | None = Field(
         default=None,
         alias="value",
-        description="Value is this DNS resolver option's value.",
+        description="value is this DNS resolver option's value.",
     )
