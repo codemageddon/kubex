@@ -2092,7 +2092,7 @@
 
 
 <h1 id="authentication">Authentication<a class="headerlink" href="#authentication" title="Permanent link">&para;</a></h1>
-<p>Kubex supports three authentication methods: kubeconfig files, in-cluster service account tokens, and exec-provider credentials. Configuration is represented by <code>ClientConfiguration</code> and loaded by one of two async factory functions.</p>
+<p>Kubex supports three authentication methods: kubeconfig files, in-cluster service account tokens, and exec-provider/OIDC credentials. Configuration is represented by <code>ClientConfiguration</code> and loaded by one of two async factory functions.</p>
 <h2 id="auto-detection">Auto-detection<a class="headerlink" href="#auto-detection" title="Permanent link">&para;</a></h2>
 <p><code>create_client()</code> calls <code>configure_from_kubeconfig()</code> first. If the kubeconfig file is not found, it falls back to <code>configure_from_pod_env()</code>. Other kubeconfig errors (malformed file, missing context, permission denied, etc.) are propagated to the caller:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.client</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_client</span>
@@ -2137,7 +2137,16 @@
 - Client certificate + key (<code>users[].user.client-certificate</code> / <code>client-key</code>)
 - Inline base64 certificate data (decoded to temp files automatically)
 - Exec provider (see below)
-- OIDC (see below)</p>
+- OIDC, <code>auth-provider: oidc</code> only (see below)
+- <code>clusters[].cluster.insecure-skip-tls-verify</code> (forwarded only when <code>true</code>; a cluster that
+  omits it keeps kubex's normal system-trust-store/explicit-CA behavior)</p>
+<p>A context whose user sets <code>auth-provider:</code> to anything other than <code>oidc</code>, or an <code>oidc</code>
+<code>auth-provider</code> block that fails to validate, raises <code>ConfigurationError</code> rather than
+silently returning an unauthenticated client.</p>
+<p><code>clusters[].cluster.proxy-url</code> is read but <strong>not</strong> applied — it belongs on <code>ClientOptions.proxy</code>,
+which <code>configure_from_kubeconfig()</code> has no access to (it only builds a <code>ClientConfiguration</code>). A
+cluster that sets it emits a <code>UserWarning</code>; pass the equivalent proxy via
+<code>ClientOptions(proxy=...)</code> when constructing the client yourself.</p>
 <h2 id="in-cluster-pod-environment">In-cluster (pod environment)<a class="headerlink" href="#in-cluster-pod-environment" title="Permanent link">&para;</a></h2>
 <p>When your code runs inside a Kubernetes pod with a service account mounted, use <code>configure_from_pod_env()</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.client</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_client</span>
@@ -2154,8 +2163,9 @@
 - Server URL: from <code>KUBERNETES_SERVICE_HOST</code> and <code>KUBERNETES_SERVICE_PORT</code> environment variables</p>
 <p>Token auto-refresh is enabled by default (<code>try_refresh_token=True</code>). The token is re-read from disk every 60 seconds, which matches the default rotation window used by Kubernetes projected volume tokens.</p>
 <h2 id="exec-provider">Exec provider<a class="headerlink" href="#exec-provider" title="Permanent link">&para;</a></h2>
-<p>Exec provider authentication runs an external command to obtain a bearer token. This is the standard mechanism for cloud-provider CLI tools (AWS, GCP, Azure) and other external credential sources.</p>
-<p>The exec provider config lives in the kubeconfig <code>users[].user.exec</code> block:</p>
+<p>Exec provider authentication runs an external command to obtain a bearer token — the standard
+mechanism for cloud-provider CLI tools (AWS, GCP, Azure) and other external credential sources.
+The exec provider config lives in the kubeconfig <code>users[].user.exec</code> block:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nt">users</span><span class="p">:</span>
 <a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-user</span>
 <a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nt">user</span><span class="p">:</span>
@@ -2168,10 +2178,29 @@
 <a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">--cluster-name</span>
 <a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-cluster</span>
 </code></pre></div>
-<p>Kubex reads this via <code>configure_from_kubeconfig()</code>. The <code>ExecAuthProvider</code> class runs the command using <code>anyio.run_process</code>, parses the <code>ExecCredential</code> JSON response, and extracts the token. The token is then used as a bearer token in subsequent requests.</p>
-<p><code>ExecCredential.status.expirationTimestamp</code> is noted but token refresh on expiry is not yet fully implemented — the token is refreshed on the next call after the current one fails with <code>Unauthorized</code> (the auto-retry logic is planned). For long-running processes, re-configure periodically if needed.</p>
+<p><code>configure_from_kubeconfig()</code> resolves this block: it wraps <code>ExecAuthProvider</code> (which runs the
+command via <code>anyio.run_process</code> and parses the <code>ExecCredential</code> JSON response) in an
+<code>ExecRefreshableToken</code> and stores it on <code>ClientConfiguration.refreshable_token</code>. Both HTTP
+backends call <code>ClientConfiguration.get_authorization_header()</code> on every request, which awaits
+<code>ExecRefreshableToken.to_header()</code> — the exec command re-runs whenever the cached token is within
+10 seconds of expiring.</p>
+<p>Caveat: <code>ExecCredential.status.expirationTimestamp</code> is not read. The cached token is treated as
+expiring after a fixed 60 seconds regardless of what the plugin actually reported, so a plugin
+issuing longer- or shorter-lived tokens re-runs on that fixed cadence rather than the token's real
+lifetime.</p>
 <h2 id="oidc">OIDC<a class="headerlink" href="#oidc" title="Permanent link">&para;</a></h2>
-<p>OIDC (<code>auth-provider: oidc</code>) is parsed from the kubeconfig <code>auth-provider</code> block but token refresh is not yet implemented. OIDC support is listed as a planned feature in the roadmap. For current OIDC clusters, the exec provider (via <code>kubelogin</code> or similar) is the recommended workaround.</p>
+<p>OIDC (<code>auth-provider: oidc</code>) is resolved the same way: <code>configure_from_kubeconfig()</code> wraps
+<code>OIDCAuthProvider</code> in an <code>OidcRefreshableToken</code>. Only <code>auth-provider: oidc</code> is supported — any
+other <code>auth-provider</code> name raises <code>ConfigurationError</code>. The same fixed-60-second refresh caveat
+as the exec provider applies (the OIDC token response's real expiry is not read either).</p>
+<p>If the identity provider rotates refresh tokens (e.g. Auth0, Okta, or Keycloak with rotation
+enabled), a fresh refresh token issued during a kubex refresh is kept only in memory for the
+life of the process — it is <strong>not</strong> written back to the kubeconfig file on disk. Combined with
+the fixed 60-second refresh cadence above, this means the on-disk refresh token is invalidated
+roughly once a minute; a fresh process (or a concurrent <code>kubectl</code> invocation reading the same
+kubeconfig) will need to re-authenticate interactively once that has happened. Identity
+providers that do not rotate refresh tokens for the client type in use (e.g. Google's OAuth
+for installed applications) are unaffected.</p>
 <h2 id="manual-clientconfiguration">Manual <code>ClientConfiguration</code><a class="headerlink" href="#manual-clientconfiguration" title="Permanent link">&para;</a></h2>
 <p>For programmatic or testing use cases, construct <code>ClientConfiguration</code> directly:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.configuration</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClientConfiguration</span>
@@ -2198,7 +2227,13 @@
 <a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a>    <span class="n">token</span><span class="o">=</span><span class="s2">"my-token"</span><span class="p">,</span>
 <a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a><span class="p">)</span>
 </code></pre></div>
-<p>The <code>namespace</code> parameter sets the default namespace for all <code>Api</code> instances created from this client. It defaults to <code>"default"</code> if not specified.</p>
+<p>The <code>namespace</code> parameter is populated by <code>configure_from_pod_env()</code> from the pod's service-account
+namespace file. <code>Api</code>/<code>create_api()</code> fall back to it when a <strong>namespace-scoped</strong> resource is
+created without an explicit <code>namespace=</code> argument — so running in-cluster and omitting the
+namespace scopes <code>get()</code>/<code>create()</code>/<code>list()</code>/<code>watch()</code> to the pod's own namespace, rather than
+"all namespaces". Pass <code>namespace=None</code> explicitly to opt back into all-namespaces behavior, or a
+specific string to target a different namespace. Cluster-scoped resources never receive a
+namespace, configured or not.</p>
 
 
 

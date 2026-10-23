@@ -2512,6 +2512,16 @@ Requires Kubernetes ≥ 1.30 (v5 channel protocol).</p>
 <td>Async iterable yielding stderr chunks</td>
 </tr>
 <tr>
+<td><code>stdout_truncated</code></td>
+<td><code>bool</code></td>
+<td><code>True</code> if the stdout buffer overflowed and frames were dropped</td>
+</tr>
+<tr>
+<td><code>stderr_truncated</code></td>
+<td><code>bool</code></td>
+<td><code>True</code> if the stderr buffer overflowed and frames were dropped</td>
+</tr>
+<tr>
 <td><code>resize(width, height)</code></td>
 <td>coroutine</td>
 <td>Send a terminal resize event</td>
@@ -2528,6 +2538,9 @@ Requires Kubernetes ≥ 1.30 (v5 channel protocol).</p>
 </tr>
 </tbody>
 </table>
+<p><code>stdout</code>/<code>stderr</code> are each bounded at 128 buffered frames; if a consumer falls behind and the
+buffer fills, kubex closes that channel locally rather than blocking forever. Check
+<code>stdout_truncated</code>/<code>stderr_truncated</code> after the iterator ends to tell that apart from a normal EOF.</p>
 <h3 id="tty-mode-and-stderr">TTY mode and stderr<a class="headerlink" href="#tty-mode-and-stderr" title="Permanent link">&para;</a></h3>
 <p>When <code>tty=True</code>, the kubelet merges stderr into stdout — only the stdout channel is opened. <code>session.stderr</code> will close immediately. Always read only <code>session.stdout</code> when <code>tty=True</code>.</p>
 <h3 id="exiting-a-stream-early">Exiting a stream early<a class="headerlink" href="#exiting-a-stream-early" title="Permanent link">&para;</a></h3>

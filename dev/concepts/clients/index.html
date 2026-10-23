@@ -2537,7 +2537,7 @@ than <code>...</code> on an httpx-backed client emits a <code>UserWarning</code>
 </tr>
 <tr>
 <td><code>None</code></td>
-<td>No cap (passes <code>0</code> on the wire)</td>
+<td>No cap on aiohttp (passes <code>0</code> on the wire); <strong>not supported on httpx</strong> — falls back to the httpx-ws default of 65536 bytes, with a <code>UserWarning</code></td>
 </tr>
 <tr>
 <td><code>int &gt; 0</code></td>
@@ -2548,7 +2548,7 @@ than <code>...</code> on an httpx-backed client emits a <code>UserWarning</code>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># Allow frames up to 8 MiB (for large exec output)</span>
 <a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">options</span> <span class="o">=</span> <span class="n">ClientOptions</span><span class="p">(</span><span class="n">ws_max_message_size</span><span class="o">=</span><span class="mi">8</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span><span class="p">)</span>
 <a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1"># No cap</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1"># No cap on aiohttp; on httpx this instead falls back to a 64 KiB cap (see above)</span>
 <a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="n">options</span> <span class="o">=</span> <span class="n">ClientOptions</span><span class="p">(</span><span class="n">ws_max_message_size</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="pool_size"><code>pool_size</code><a class="headerlink" href="#pool_size" title="Permanent link">&para;</a></h3>
@@ -2709,8 +2709,8 @@ than <code>...</code> on an httpx-backed client emits a <code>UserWarning</code>
 </tr>
 <tr>
 <td><code>ws_max_message_size</code></td>
-<td><code>aconnect_ws(max_message_size_bytes=int)</code></td>
-<td><code>ws_connect(max_msg_size=int)</code></td>
+<td><code>aconnect_ws(max_message_size_bytes=int)</code> — <code>None</code> is unsupported: falls back to the httpx-ws default (65536 bytes), warning emitted</td>
+<td><code>ws_connect(max_msg_size=int)</code> — <code>None</code> maps to <code>0</code> (no cap)</td>
 </tr>
 <tr>
 <td><code>pool_size</code></td>

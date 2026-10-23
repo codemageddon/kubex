@@ -2725,23 +2725,23 @@
 
                   <details class="mkdocstrings-source">
                     <summary>Source code in <code>kubex/client/client.py</code></summary>
-                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-49">49</a></span>
-<span class="normal"><a href="#__codelineno-0-50">50</a></span>
-<span class="normal"><a href="#__codelineno-0-51">51</a></span>
-<span class="normal"><a href="#__codelineno-0-52">52</a></span>
-<span class="normal"><a href="#__codelineno-0-53">53</a></span>
-<span class="normal"><a href="#__codelineno-0-54">54</a></span>
-<span class="normal"><a href="#__codelineno-0-55">55</a></span>
-<span class="normal"><a href="#__codelineno-0-56">56</a></span>
-<span class="normal"><a href="#__codelineno-0-57">57</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-49" name="__codelineno-0-49"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-<a id="__codelineno-0-50" name="__codelineno-0-50"></a>    <span class="bp">self</span><span class="p">,</span>
-<a id="__codelineno-0-51" name="__codelineno-0-51"></a>    <span class="n">configuration</span><span class="p">:</span> <span class="n">ClientConfiguration</span><span class="p">,</span>
-<a id="__codelineno-0-52" name="__codelineno-0-52"></a>    <span class="n">options</span><span class="p">:</span> <span class="n">ClientOptions</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-53" name="__codelineno-0-53"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-54" name="__codelineno-0-54"></a>    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-<a id="__codelineno-0-55" name="__codelineno-0-55"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_configuration</span> <span class="o">=</span> <span class="n">configuration</span>
-<a id="__codelineno-0-56" name="__codelineno-0-56"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_options</span> <span class="o">=</span> <span class="n">options</span> <span class="k">if</span> <span class="n">options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ClientOptions</span><span class="p">()</span>
-<a id="__codelineno-0-57" name="__codelineno-0-57"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_inner_client</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_inner_client</span><span class="p">()</span>
+                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#kubex.client.client.BaseClient--source--__codelineno-0-49">49</a></span>
+<span class="normal"><a href="#kubex.client.client.BaseClient--source--__codelineno-0-50">50</a></span>
+<span class="normal"><a href="#kubex.client.client.BaseClient--source--__codelineno-0-51">51</a></span>
+<span class="normal"><a href="#kubex.client.client.BaseClient--source--__codelineno-0-52">52</a></span>
+<span class="normal"><a href="#kubex.client.client.BaseClient--source--__codelineno-0-53">53</a></span>
+<span class="normal"><a href="#kubex.client.client.BaseClient--source--__codelineno-0-54">54</a></span>
+<span class="normal"><a href="#kubex.client.client.BaseClient--source--__codelineno-0-55">55</a></span>
+<span class="normal"><a href="#kubex.client.client.BaseClient--source--__codelineno-0-56">56</a></span>
+<span class="normal"><a href="#kubex.client.client.BaseClient--source--__codelineno-0-57">57</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="kubex.client.client.BaseClient--source--__codelineno-0-49" name="kubex.client.client.BaseClient--source--__codelineno-0-49"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<a id="kubex.client.client.BaseClient--source--__codelineno-0-50" name="kubex.client.client.BaseClient--source--__codelineno-0-50"></a>    <span class="bp">self</span><span class="p">,</span>
+<a id="kubex.client.client.BaseClient--source--__codelineno-0-51" name="kubex.client.client.BaseClient--source--__codelineno-0-51"></a>    <span class="n">configuration</span><span class="p">:</span> <span class="n">ClientConfiguration</span><span class="p">,</span>
+<a id="kubex.client.client.BaseClient--source--__codelineno-0-52" name="kubex.client.client.BaseClient--source--__codelineno-0-52"></a>    <span class="n">options</span><span class="p">:</span> <span class="n">ClientOptions</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="kubex.client.client.BaseClient--source--__codelineno-0-53" name="kubex.client.client.BaseClient--source--__codelineno-0-53"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="kubex.client.client.BaseClient--source--__codelineno-0-54" name="kubex.client.client.BaseClient--source--__codelineno-0-54"></a>    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+<a id="kubex.client.client.BaseClient--source--__codelineno-0-55" name="kubex.client.client.BaseClient--source--__codelineno-0-55"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_configuration</span> <span class="o">=</span> <span class="n">configuration</span>
+<a id="kubex.client.client.BaseClient--source--__codelineno-0-56" name="kubex.client.client.BaseClient--source--__codelineno-0-56"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_options</span> <span class="o">=</span> <span class="n">options</span> <span class="k">if</span> <span class="n">options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ClientOptions</span><span class="p">()</span>
+<a id="kubex.client.client.BaseClient--source--__codelineno-0-57" name="kubex.client.client.BaseClient--source--__codelineno-0-57"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_inner_client</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_inner_client</span><span class="p">()</span>
 </code></pre></div></td></tr></table></div>
                   </details>
 
@@ -2787,35 +2787,35 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>kubex/client/client.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-90"> 90</a></span>
-<span class="normal"><a href="#__codelineno-0-91"> 91</a></span>
-<span class="normal"><a href="#__codelineno-0-92"> 92</a></span>
-<span class="normal"><a href="#__codelineno-0-93"> 93</a></span>
-<span class="normal"><a href="#__codelineno-0-94"> 94</a></span>
-<span class="normal"><a href="#__codelineno-0-95"> 95</a></span>
-<span class="normal"><a href="#__codelineno-0-96"> 96</a></span>
-<span class="normal"><a href="#__codelineno-0-97"> 97</a></span>
-<span class="normal"><a href="#__codelineno-0-98"> 98</a></span>
-<span class="normal"><a href="#__codelineno-0-99"> 99</a></span>
-<span class="normal"><a href="#__codelineno-0-100">100</a></span>
-<span class="normal"><a href="#__codelineno-0-101">101</a></span>
-<span class="normal"><a href="#__codelineno-0-102">102</a></span>
-<span class="normal"><a href="#__codelineno-0-103">103</a></span>
-<span class="normal"><a href="#__codelineno-0-104">104</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-90" name="__codelineno-0-90"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">connect_websocket</span><span class="p">(</span>
-<a id="__codelineno-0-91" name="__codelineno-0-91"></a>    <span class="bp">self</span><span class="p">,</span>
-<a id="__codelineno-0-92" name="__codelineno-0-92"></a>    <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
-<a id="__codelineno-0-93" name="__codelineno-0-93"></a>    <span class="n">subprotocols</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-<a id="__codelineno-0-94" name="__codelineno-0-94"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"WebSocketConnection"</span><span class="p">:</span>
-<a id="__codelineno-0-95" name="__codelineno-0-95"></a><span class="w">    </span><span class="sd">"""Open a WebSocket connection for a streaming subresource.</span>
-<a id="__codelineno-0-96" name="__codelineno-0-96"></a>
-<a id="__codelineno-0-97" name="__codelineno-0-97"></a><span class="sd">    .. warning::</span>
-<a id="__codelineno-0-98" name="__codelineno-0-98"></a>
-<a id="__codelineno-0-99" name="__codelineno-0-99"></a><span class="sd">       **Experimental.** The WebSocket transport (used by ``exec``,</span>
-<a id="__codelineno-0-100" name="__codelineno-0-100"></a><span class="sd">       ``attach`` and ``portforward``) is still under active development</span>
-<a id="__codelineno-0-101" name="__codelineno-0-101"></a><span class="sd">       and the surrounding API may change in future releases without</span>
-<a id="__codelineno-0-102" name="__codelineno-0-102"></a><span class="sd">       notice.</span>
-<a id="__codelineno-0-103" name="__codelineno-0-103"></a><span class="sd">    """</span>
-<a id="__codelineno-0-104" name="__codelineno-0-104"></a>    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">"WebSocket not supported by this client"</span><span class="p">)</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-94"> 94</a></span>
+<span class="normal"><a href="#kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-95"> 95</a></span>
+<span class="normal"><a href="#kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-96"> 96</a></span>
+<span class="normal"><a href="#kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-97"> 97</a></span>
+<span class="normal"><a href="#kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-98"> 98</a></span>
+<span class="normal"><a href="#kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-99"> 99</a></span>
+<span class="normal"><a href="#kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-100">100</a></span>
+<span class="normal"><a href="#kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-101">101</a></span>
+<span class="normal"><a href="#kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-102">102</a></span>
+<span class="normal"><a href="#kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-103">103</a></span>
+<span class="normal"><a href="#kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-104">104</a></span>
+<span class="normal"><a href="#kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-105">105</a></span>
+<span class="normal"><a href="#kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-106">106</a></span>
+<span class="normal"><a href="#kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-107">107</a></span>
+<span class="normal"><a href="#kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-108">108</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-94" name="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-94"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">connect_websocket</span><span class="p">(</span>
+<a id="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-95" name="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-95"></a>    <span class="bp">self</span><span class="p">,</span>
+<a id="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-96" name="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-96"></a>    <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
+<a id="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-97" name="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-97"></a>    <span class="n">subprotocols</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+<a id="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-98" name="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-98"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"WebSocketConnection"</span><span class="p">:</span>
+<a id="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-99" name="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-99"></a><span class="w">    </span><span class="sd">"""Open a WebSocket connection for a streaming subresource.</span>
+<a id="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-100" name="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-100"></a>
+<a id="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-101" name="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-101"></a><span class="sd">    .. warning::</span>
+<a id="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-102" name="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-102"></a>
+<a id="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-103" name="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-103"></a><span class="sd">       **Experimental.** The WebSocket transport (used by ``exec``,</span>
+<a id="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-104" name="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-104"></a><span class="sd">       ``attach`` and ``portforward``) is still under active development</span>
+<a id="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-105" name="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-105"></a><span class="sd">       and the surrounding API may change in future releases without</span>
+<a id="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-106" name="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-106"></a><span class="sd">       notice.</span>
+<a id="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-107" name="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-107"></a><span class="sd">    """</span>
+<a id="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-108" name="kubex.client.client.BaseClient.connect_websocket--source--__codelineno-0-108"></a>    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">"WebSocket not supported by this client"</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3366,29 +3366,29 @@ aiohttp's native per-request env lookup.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>kubex/client/options.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-339">339</a></span>
-<span class="normal"><a href="#__codelineno-0-340">340</a></span>
-<span class="normal"><a href="#__codelineno-0-341">341</a></span>
-<span class="normal"><a href="#__codelineno-0-342">342</a></span>
-<span class="normal"><a href="#__codelineno-0-343">343</a></span>
-<span class="normal"><a href="#__codelineno-0-344">344</a></span>
-<span class="normal"><a href="#__codelineno-0-345">345</a></span>
-<span class="normal"><a href="#__codelineno-0-346">346</a></span>
-<span class="normal"><a href="#__codelineno-0-347">347</a></span>
-<span class="normal"><a href="#__codelineno-0-348">348</a></span>
-<span class="normal"><a href="#__codelineno-0-349">349</a></span>
-<span class="normal"><a href="#__codelineno-0-350">350</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-339" name="__codelineno-0-339"></a><span class="k">def</span><span class="w"> </span><span class="nf">resolve_ws_max_message_size</span><span class="p">(</span><span class="n">ws_max_message_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">|</span> <span class="n">EllipsisType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-<a id="__codelineno-0-340" name="__codelineno-0-340"></a><span class="w">    </span><span class="sd">"""Resolve ``ws_max_message_size`` to a concrete integer for HTTP backends.</span>
-<a id="__codelineno-0-341" name="__codelineno-0-341"></a>
-<a id="__codelineno-0-342" name="__codelineno-0-342"></a><span class="sd">    - ``...`` → ``2**21`` (kubex default; preserves pre-option behavior on both backends)</span>
-<a id="__codelineno-0-343" name="__codelineno-0-343"></a><span class="sd">    - ``None`` → ``0`` (aiohttp treats 0 as "no cap"; httpx does not pass this at all)</span>
-<a id="__codelineno-0-344" name="__codelineno-0-344"></a><span class="sd">    - ``int``  → that int</span>
-<a id="__codelineno-0-345" name="__codelineno-0-345"></a><span class="sd">    """</span>
-<a id="__codelineno-0-346" name="__codelineno-0-346"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ws_max_message_size</span><span class="p">,</span> <span class="n">EllipsisType</span><span class="p">):</span>
-<a id="__codelineno-0-347" name="__codelineno-0-347"></a>        <span class="k">return</span> <span class="mi">2</span><span class="o">**</span><span class="mi">21</span>
-<a id="__codelineno-0-348" name="__codelineno-0-348"></a>    <span class="k">if</span> <span class="n">ws_max_message_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-349" name="__codelineno-0-349"></a>        <span class="k">return</span> <span class="mi">0</span>
-<a id="__codelineno-0-350" name="__codelineno-0-350"></a>    <span class="k">return</span> <span class="n">ws_max_message_size</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-339">339</a></span>
+<span class="normal"><a href="#kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-340">340</a></span>
+<span class="normal"><a href="#kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-341">341</a></span>
+<span class="normal"><a href="#kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-342">342</a></span>
+<span class="normal"><a href="#kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-343">343</a></span>
+<span class="normal"><a href="#kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-344">344</a></span>
+<span class="normal"><a href="#kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-345">345</a></span>
+<span class="normal"><a href="#kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-346">346</a></span>
+<span class="normal"><a href="#kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-347">347</a></span>
+<span class="normal"><a href="#kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-348">348</a></span>
+<span class="normal"><a href="#kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-349">349</a></span>
+<span class="normal"><a href="#kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-350">350</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-339" name="kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-339"></a><span class="k">def</span><span class="w"> </span><span class="nf">resolve_ws_max_message_size</span><span class="p">(</span><span class="n">ws_max_message_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">|</span> <span class="n">EllipsisType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<a id="kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-340" name="kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-340"></a><span class="w">    </span><span class="sd">"""Resolve ``ws_max_message_size`` to a concrete integer for HTTP backends.</span>
+<a id="kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-341" name="kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-341"></a>
+<a id="kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-342" name="kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-342"></a><span class="sd">    - ``...`` → ``2**21`` (kubex default; preserves pre-option behavior on both backends)</span>
+<a id="kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-343" name="kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-343"></a><span class="sd">    - ``None`` → ``0`` (aiohttp treats 0 as "no cap"; httpx does not pass this at all)</span>
+<a id="kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-344" name="kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-344"></a><span class="sd">    - ``int``  → that int</span>
+<a id="kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-345" name="kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-345"></a><span class="sd">    """</span>
+<a id="kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-346" name="kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-346"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ws_max_message_size</span><span class="p">,</span> <span class="n">EllipsisType</span><span class="p">):</span>
+<a id="kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-347" name="kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-347"></a>        <span class="k">return</span> <span class="mi">2</span><span class="o">**</span><span class="mi">21</span>
+<a id="kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-348" name="kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-348"></a>    <span class="k">if</span> <span class="n">ws_max_message_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-349" name="kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-349"></a>        <span class="k">return</span> <span class="mi">0</span>
+<a id="kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-350" name="kubex.client.options.resolve_ws_max_message_size--source--__codelineno-0-350"></a>    <span class="k">return</span> <span class="n">ws_max_message_size</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3563,31 +3563,31 @@ them to bytes.</p>
 
                   <details class="mkdocstrings-source">
                     <summary>Source code in <code>kubex/client/httpx.py</code></summary>
-                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-518">518</a></span>
-<span class="normal"><a href="#__codelineno-0-519">519</a></span>
-<span class="normal"><a href="#__codelineno-0-520">520</a></span>
-<span class="normal"><a href="#__codelineno-0-521">521</a></span>
-<span class="normal"><a href="#__codelineno-0-522">522</a></span>
-<span class="normal"><a href="#__codelineno-0-523">523</a></span>
-<span class="normal"><a href="#__codelineno-0-524">524</a></span>
-<span class="normal"><a href="#__codelineno-0-525">525</a></span>
-<span class="normal"><a href="#__codelineno-0-526">526</a></span>
-<span class="normal"><a href="#__codelineno-0-527">527</a></span>
-<span class="normal"><a href="#__codelineno-0-528">528</a></span>
-<span class="normal"><a href="#__codelineno-0-529">529</a></span>
-<span class="normal"><a href="#__codelineno-0-530">530</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-518" name="__codelineno-0-518"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-<a id="__codelineno-0-519" name="__codelineno-0-519"></a>    <span class="bp">self</span><span class="p">,</span>
-<a id="__codelineno-0-520" name="__codelineno-0-520"></a>    <span class="n">cm</span><span class="p">:</span> <span class="n">AbstractAsyncContextManager</span><span class="p">[</span><span class="n">AsyncWebSocketSession</span><span class="p">],</span>
-<a id="__codelineno-0-521" name="__codelineno-0-521"></a>    <span class="n">session</span><span class="p">:</span> <span class="n">AsyncWebSocketSession</span><span class="p">,</span>
-<a id="__codelineno-0-522" name="__codelineno-0-522"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-523" name="__codelineno-0-523"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_cm</span> <span class="o">=</span> <span class="n">cm</span>
-<a id="__codelineno-0-524" name="__codelineno-0-524"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_session</span> <span class="o">=</span> <span class="n">session</span>
-<a id="__codelineno-0-525" name="__codelineno-0-525"></a>    <span class="c1"># ``_eof`` short-circuits further ``receive_bytes()`` calls once the</span>
-<a id="__codelineno-0-526" name="__codelineno-0-526"></a>    <span class="c1"># peer closes or the transport breaks. ``_cm_exited`` guards the</span>
-<a id="__codelineno-0-527" name="__codelineno-0-527"></a>    <span class="c1"># underlying ``httpx_ws`` context manager so its ``__aexit__`` runs</span>
-<a id="__codelineno-0-528" name="__codelineno-0-528"></a>    <span class="c1"># exactly once — the EOF path must not skip releasing the HTTP stream.</span>
-<a id="__codelineno-0-529" name="__codelineno-0-529"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_eof</span> <span class="o">=</span> <span class="kc">False</span>
-<a id="__codelineno-0-530" name="__codelineno-0-530"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_cm_exited</span> <span class="o">=</span> <span class="kc">False</span>
+                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-515">515</a></span>
+<span class="normal"><a href="#kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-516">516</a></span>
+<span class="normal"><a href="#kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-517">517</a></span>
+<span class="normal"><a href="#kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-518">518</a></span>
+<span class="normal"><a href="#kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-519">519</a></span>
+<span class="normal"><a href="#kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-520">520</a></span>
+<span class="normal"><a href="#kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-521">521</a></span>
+<span class="normal"><a href="#kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-522">522</a></span>
+<span class="normal"><a href="#kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-523">523</a></span>
+<span class="normal"><a href="#kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-524">524</a></span>
+<span class="normal"><a href="#kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-525">525</a></span>
+<span class="normal"><a href="#kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-526">526</a></span>
+<span class="normal"><a href="#kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-527">527</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-515" name="kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-515"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<a id="kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-516" name="kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-516"></a>    <span class="bp">self</span><span class="p">,</span>
+<a id="kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-517" name="kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-517"></a>    <span class="n">cm</span><span class="p">:</span> <span class="n">AbstractAsyncContextManager</span><span class="p">[</span><span class="n">AsyncWebSocketSession</span><span class="p">],</span>
+<a id="kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-518" name="kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-518"></a>    <span class="n">session</span><span class="p">:</span> <span class="n">AsyncWebSocketSession</span><span class="p">,</span>
+<a id="kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-519" name="kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-519"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-520" name="kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-520"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_cm</span> <span class="o">=</span> <span class="n">cm</span>
+<a id="kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-521" name="kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-521"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_session</span> <span class="o">=</span> <span class="n">session</span>
+<a id="kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-522" name="kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-522"></a>    <span class="c1"># ``_eof`` short-circuits further ``receive_bytes()`` calls once the</span>
+<a id="kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-523" name="kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-523"></a>    <span class="c1"># peer closes or the transport breaks. ``_cm_exited`` guards the</span>
+<a id="kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-524" name="kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-524"></a>    <span class="c1"># underlying ``httpx_ws`` context manager so its ``__aexit__`` runs</span>
+<a id="kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-525" name="kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-525"></a>    <span class="c1"># exactly once — the EOF path must not skip releasing the HTTP stream.</span>
+<a id="kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-526" name="kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-526"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_eof</span> <span class="o">=</span> <span class="kc">False</span>
+<a id="kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-527" name="kubex.client.httpx.HttpxWebSocketConnection--source--__codelineno-0-527"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_cm_exited</span> <span class="o">=</span> <span class="kc">False</span>
 </code></pre></div></td></tr></table></div>
                   </details>
 
@@ -3683,27 +3683,29 @@ them to bytes.</p>
 
                   <details class="mkdocstrings-source">
                     <summary>Source code in <code>kubex/client/aiohttp.py</code></summary>
-                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-90"> 90</a></span>
-<span class="normal"><a href="#__codelineno-0-91"> 91</a></span>
-<span class="normal"><a href="#__codelineno-0-92"> 92</a></span>
-<span class="normal"><a href="#__codelineno-0-93"> 93</a></span>
-<span class="normal"><a href="#__codelineno-0-94"> 94</a></span>
-<span class="normal"><a href="#__codelineno-0-95"> 95</a></span>
-<span class="normal"><a href="#__codelineno-0-96"> 96</a></span>
-<span class="normal"><a href="#__codelineno-0-97"> 97</a></span>
-<span class="normal"><a href="#__codelineno-0-98"> 98</a></span>
-<span class="normal"><a href="#__codelineno-0-99"> 99</a></span>
-<span class="normal"><a href="#__codelineno-0-100">100</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-90" name="__codelineno-0-90"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-<a id="__codelineno-0-91" name="__codelineno-0-91"></a>    <span class="bp">self</span><span class="p">,</span>
-<a id="__codelineno-0-92" name="__codelineno-0-92"></a>    <span class="n">configuration</span><span class="p">:</span> <span class="n">ClientConfiguration</span><span class="p">,</span>
-<a id="__codelineno-0-93" name="__codelineno-0-93"></a>    <span class="n">options</span><span class="p">:</span> <span class="n">ClientOptions</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-94" name="__codelineno-0-94"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-95" name="__codelineno-0-95"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_default_headers</span> <span class="o">=</span> <span class="p">{</span>
-<a id="__codelineno-0-96" name="__codelineno-0-96"></a>        <span class="n">constants</span><span class="o">.</span><span class="n">CONTENT_TYPE_HEADER</span><span class="p">:</span> <span class="n">constants</span><span class="o">.</span><span class="n">APPLICATION_JSON_MIME_TYPE</span><span class="p">,</span>
-<a id="__codelineno-0-97" name="__codelineno-0-97"></a>        <span class="n">constants</span><span class="o">.</span><span class="n">ACCEPT_HEADER</span><span class="p">:</span> <span class="n">constants</span><span class="o">.</span><span class="n">APPLICATION_JSON_MIME_TYPE</span><span class="p">,</span>
-<a id="__codelineno-0-98" name="__codelineno-0-98"></a>    <span class="p">}</span>
-<a id="__codelineno-0-99" name="__codelineno-0-99"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_resolved_proxy</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-100" name="__codelineno-0-100"></a>    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">configuration</span><span class="p">,</span> <span class="n">options</span><span class="p">)</span>
+                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-108">108</a></span>
+<span class="normal"><a href="#kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-109">109</a></span>
+<span class="normal"><a href="#kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-110">110</a></span>
+<span class="normal"><a href="#kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-111">111</a></span>
+<span class="normal"><a href="#kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-112">112</a></span>
+<span class="normal"><a href="#kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-113">113</a></span>
+<span class="normal"><a href="#kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-114">114</a></span>
+<span class="normal"><a href="#kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-115">115</a></span>
+<span class="normal"><a href="#kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-116">116</a></span>
+<span class="normal"><a href="#kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-117">117</a></span>
+<span class="normal"><a href="#kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-118">118</a></span>
+<span class="normal"><a href="#kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-119">119</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-108" name="kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-108"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<a id="kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-109" name="kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-109"></a>    <span class="bp">self</span><span class="p">,</span>
+<a id="kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-110" name="kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-110"></a>    <span class="n">configuration</span><span class="p">:</span> <span class="n">ClientConfiguration</span><span class="p">,</span>
+<a id="kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-111" name="kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-111"></a>    <span class="n">options</span><span class="p">:</span> <span class="n">ClientOptions</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-112" name="kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-112"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-113" name="kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-113"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_default_headers</span> <span class="o">=</span> <span class="p">{</span>
+<a id="kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-114" name="kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-114"></a>        <span class="n">constants</span><span class="o">.</span><span class="n">CONTENT_TYPE_HEADER</span><span class="p">:</span> <span class="n">constants</span><span class="o">.</span><span class="n">APPLICATION_JSON_MIME_TYPE</span><span class="p">,</span>
+<a id="kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-115" name="kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-115"></a>        <span class="n">constants</span><span class="o">.</span><span class="n">ACCEPT_HEADER</span><span class="p">:</span> <span class="n">constants</span><span class="o">.</span><span class="n">APPLICATION_JSON_MIME_TYPE</span><span class="p">,</span>
+<a id="kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-116" name="kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-116"></a>    <span class="p">}</span>
+<a id="kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-117" name="kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-117"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_resolved_proxy</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-118" name="kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-118"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_origin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_path_prefix</span> <span class="o">=</span> <span class="n">_split_base_url</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">configuration</span><span class="o">.</span><span class="n">base_url</span><span class="p">))</span>
+<a id="kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-119" name="kubex.client.aiohttp.AioHttpClient--source--__codelineno-0-119"></a>    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">configuration</span><span class="p">,</span> <span class="n">options</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
                   </details>
 
@@ -3757,13 +3759,13 @@ them to bytes.</p>
 
                   <details class="mkdocstrings-source">
                     <summary>Source code in <code>kubex/client/aiohttp.py</code></summary>
-                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-410">410</a></span>
-<span class="normal"><a href="#__codelineno-0-411">411</a></span>
-<span class="normal"><a href="#__codelineno-0-412">412</a></span>
-<span class="normal"><a href="#__codelineno-0-413">413</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-410" name="__codelineno-0-410"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ws</span><span class="p">:</span> <span class="n">ClientWebSocketResponse</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-411" name="__codelineno-0-411"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_ws</span> <span class="o">=</span> <span class="n">ws</span>
-<a id="__codelineno-0-412" name="__codelineno-0-412"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_client_closed</span> <span class="o">=</span> <span class="kc">False</span>
-<a id="__codelineno-0-413" name="__codelineno-0-413"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_peer_closed_clean</span> <span class="o">=</span> <span class="kc">False</span>
+                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#kubex.client.aiohttp.AioHttpWebSocketConnection--source--__codelineno-0-431">431</a></span>
+<span class="normal"><a href="#kubex.client.aiohttp.AioHttpWebSocketConnection--source--__codelineno-0-432">432</a></span>
+<span class="normal"><a href="#kubex.client.aiohttp.AioHttpWebSocketConnection--source--__codelineno-0-433">433</a></span>
+<span class="normal"><a href="#kubex.client.aiohttp.AioHttpWebSocketConnection--source--__codelineno-0-434">434</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="kubex.client.aiohttp.AioHttpWebSocketConnection--source--__codelineno-0-431" name="kubex.client.aiohttp.AioHttpWebSocketConnection--source--__codelineno-0-431"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ws</span><span class="p">:</span> <span class="n">ClientWebSocketResponse</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="kubex.client.aiohttp.AioHttpWebSocketConnection--source--__codelineno-0-432" name="kubex.client.aiohttp.AioHttpWebSocketConnection--source--__codelineno-0-432"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_ws</span> <span class="o">=</span> <span class="n">ws</span>
+<a id="kubex.client.aiohttp.AioHttpWebSocketConnection--source--__codelineno-0-433" name="kubex.client.aiohttp.AioHttpWebSocketConnection--source--__codelineno-0-433"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_client_closed</span> <span class="o">=</span> <span class="kc">False</span>
+<a id="kubex.client.aiohttp.AioHttpWebSocketConnection--source--__codelineno-0-434" name="kubex.client.aiohttp.AioHttpWebSocketConnection--source--__codelineno-0-434"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_peer_closed_clean</span> <span class="o">=</span> <span class="kc">False</span>
 </code></pre></div></td></tr></table></div>
                   </details>
 

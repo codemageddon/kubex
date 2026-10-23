@@ -2230,12 +2230,14 @@
 <h2 id="patching-metadata">Patching metadata<a class="headerlink" href="#patching-metadata" title="Permanent link">&para;</a></h2>
 <p>Use <code>api.metadata.patch()</code> to update labels or annotations without touching the resource spec. All three patch types work:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.core.patch</span><span class="w"> </span><span class="kn">import</span> <span class="n">MergePatch</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">updated</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="s2">"my-pod"</span><span class="p">,</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">MergePatch</span><span class="p">({</span><span class="s2">"metadata"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"labels"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"version"</span><span class="p">:</span> <span class="s2">"v2"</span><span class="p">}}}),</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="p">)</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">updated</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">labels</span><span class="p">)</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex_core.models.metadata</span><span class="w"> </span><span class="kn">import</span> <span class="n">ObjectMetadata</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex_core.models.partial_object_meta</span><span class="w"> </span><span class="kn">import</span> <span class="n">PartialObjectMetadata</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">updated</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="s2">"my-pod"</span><span class="p">,</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">MergePatch</span><span class="p">(</span><span class="n">PartialObjectMetadata</span><span class="p">(</span><span class="n">metadata</span><span class="o">=</span><span class="n">ObjectMetadata</span><span class="p">(</span><span class="n">labels</span><span class="o">=</span><span class="p">{</span><span class="s2">"version"</span><span class="p">:</span> <span class="s2">"v2"</span><span class="p">}))),</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="p">)</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="nb">print</span><span class="p">(</span><span class="n">updated</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">labels</span><span class="p">)</span>
 </code></pre></div>
 <p><code>JsonPatch</code> is also accepted — useful when you want to set or remove a single label without re-sending the full label map:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.core.patch</span><span class="w"> </span><span class="kn">import</span> <span class="n">JsonPatch</span><span class="p">,</span> <span class="n">JsonPointer</span>
@@ -2249,13 +2251,17 @@
 </code></pre></div>
 <p>For server-side apply, use <code>ApplyPatch</code> with <code>force=True</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.core.patch</span><span class="w"> </span><span class="kn">import</span> <span class="n">ApplyPatch</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="s2">"my-pod"</span><span class="p">,</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">ApplyPatch</span><span class="p">({</span><span class="s2">"metadata"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"labels"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"managed-by"</span><span class="p">:</span> <span class="s2">"kubex"</span><span class="p">}}}),</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">field_manager</span><span class="o">=</span><span class="s2">"my-controller"</span><span class="p">,</span>
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="p">)</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex_core.models.metadata</span><span class="w"> </span><span class="kn">import</span> <span class="n">ObjectMetadata</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex_core.models.partial_object_meta</span><span class="w"> </span><span class="kn">import</span> <span class="n">PartialObjectMetadata</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="s2">"my-pod"</span><span class="p">,</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">ApplyPatch</span><span class="p">(</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>        <span class="n">PartialObjectMetadata</span><span class="p">(</span><span class="n">metadata</span><span class="o">=</span><span class="n">ObjectMetadata</span><span class="p">(</span><span class="n">labels</span><span class="o">=</span><span class="p">{</span><span class="s2">"managed-by"</span><span class="p">:</span> <span class="s2">"kubex"</span><span class="p">}))</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="p">),</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>    <span class="n">field_manager</span><span class="o">=</span><span class="s2">"my-controller"</span><span class="p">,</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="p">)</span>
 </code></pre></div>
 <h3 id="patch-options">Patch options<a class="headerlink" href="#patch-options" title="Permanent link">&para;</a></h3>
 <table>

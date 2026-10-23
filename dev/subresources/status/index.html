@@ -2227,11 +2227,20 @@
 <h2 id="patching-status">Patching status<a class="headerlink" href="#patching-status" title="Permanent link">&para;</a></h2>
 <p><code>api.status.patch()</code> applies a partial status update. Only the fields present in the patch body are merged into <code>.status</code>. <code>MergePatch</code> is usually the right choice for status updates:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.core.patch</span><span class="w"> </span><span class="kn">import</span> <span class="n">MergePatch</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">updated</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="s2">"my-deployment"</span><span class="p">,</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">MergePatch</span><span class="p">({</span><span class="s2">"status"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"availableReplicas"</span><span class="p">:</span> <span class="mi">3</span><span class="p">}}),</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="p">)</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.k8s.v1_35.apps.v1.deployment</span><span class="w"> </span><span class="kn">import</span> <span class="n">Deployment</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.k8s.v1_35.apps.v1.deployment_status</span><span class="w"> </span><span class="kn">import</span> <span class="n">DeploymentStatus</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex_core.models.metadata</span><span class="w"> </span><span class="kn">import</span> <span class="n">ObjectMetadata</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">updated</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="s2">"my-deployment"</span><span class="p">,</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="c1"># `metadata=ObjectMetadata()` is required by the model but empty is a no-op merge.</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="n">MergePatch</span><span class="p">(</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>        <span class="n">Deployment</span><span class="p">(</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>            <span class="n">metadata</span><span class="o">=</span><span class="n">ObjectMetadata</span><span class="p">(),</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>            <span class="n">status</span><span class="o">=</span><span class="n">DeploymentStatus</span><span class="p">(</span><span class="n">available_replicas</span><span class="o">=</span><span class="mi">3</span><span class="p">),</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>        <span class="p">)</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>    <span class="p">),</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="p">)</span>
 </code></pre></div>
 <p><code>JsonPatch</code> is also accepted for operation-level control (e.g., conditional updates with <code>test</code>):</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.core.patch</span><span class="w"> </span><span class="kn">import</span> <span class="n">JsonPatch</span>
@@ -2243,13 +2252,24 @@
 </code></pre></div>
 <p>For server-side apply on status, use <code>ApplyPatch</code> with <code>force=True</code> and a <code>field_manager</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.core.patch</span><span class="w"> </span><span class="kn">import</span> <span class="n">ApplyPatch</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">updated</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="s2">"my-deployment"</span><span class="p">,</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">ApplyPatch</span><span class="p">({</span><span class="s2">"status"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"conditions"</span><span class="p">:</span> <span class="p">[</span><span class="o">...</span><span class="p">]}}),</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="n">field_manager</span><span class="o">=</span><span class="s2">"my-controller"</span><span class="p">,</span>
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="p">)</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.k8s.v1_35.apps.v1.deployment</span><span class="w"> </span><span class="kn">import</span> <span class="n">Deployment</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.k8s.v1_35.apps.v1.deployment_condition</span><span class="w"> </span><span class="kn">import</span> <span class="n">DeploymentCondition</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.k8s.v1_35.apps.v1.deployment_status</span><span class="w"> </span><span class="kn">import</span> <span class="n">DeploymentStatus</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex_core.models.metadata</span><span class="w"> </span><span class="kn">import</span> <span class="n">ObjectMetadata</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="n">updated</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="s2">"my-deployment"</span><span class="p">,</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="n">ApplyPatch</span><span class="p">(</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>        <span class="n">Deployment</span><span class="p">(</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>            <span class="n">metadata</span><span class="o">=</span><span class="n">ObjectMetadata</span><span class="p">(),</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>            <span class="n">status</span><span class="o">=</span><span class="n">DeploymentStatus</span><span class="p">(</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>                <span class="n">conditions</span><span class="o">=</span><span class="p">[</span><span class="n">DeploymentCondition</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="s2">"True"</span><span class="p">,</span> <span class="n">type_</span><span class="o">=</span><span class="s2">"Available"</span><span class="p">)]</span>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>            <span class="p">),</span>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>        <span class="p">)</span>
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>    <span class="p">),</span>
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>    <span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>    <span class="n">field_manager</span><span class="o">=</span><span class="s2">"my-controller"</span><span class="p">,</span>
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a><span class="p">)</span>
 </code></pre></div>
 <p><code>patch()</code> accepts the same options as <code>replace()</code> plus <code>force</code> and <code>field_validation</code>.</p>
 <h2 id="status-vs-spec-updates">Status vs spec updates<a class="headerlink" href="#status-vs-spec-updates" title="Permanent link">&para;</a></h2>

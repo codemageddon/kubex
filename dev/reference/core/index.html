@@ -2066,6 +2066,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#kubex.core.patch.ApplyPatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ApplyPatch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#kubex.core.patch.JsonPatch" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2112,6 +2123,28 @@
         
       </ul>
     </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kubex.core.patch.MergePatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MergePatch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kubex.core.patch.StrategicMergePatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        StrategicMergePatch
+      
+    </span>
+  </a>
   
 </li>
         
@@ -2267,6 +2300,23 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="exec_channels">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#kubex.core.exec_channels.port_prefix_encode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        port_prefix_encode
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -2618,6 +2668,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#kubex.core.patch.ApplyPatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ApplyPatch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#kubex.core.patch.JsonPatch" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2664,6 +2725,28 @@
         
       </ul>
     </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kubex.core.patch.MergePatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MergePatch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kubex.core.patch.StrategicMergePatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        StrategicMergePatch
+      
+    </span>
+  </a>
   
 </li>
         
@@ -2819,6 +2902,23 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="exec_channels">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#kubex.core.exec_channels.port_prefix_encode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        port_prefix_encode
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -3061,33 +3161,33 @@
 
                   <details class="mkdocstrings-source">
                     <summary>Source code in <code>kubex/core/params.py</code></summary>
-                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-393">393</a></span>
-<span class="normal"><a href="#__codelineno-0-394">394</a></span>
-<span class="normal"><a href="#__codelineno-0-395">395</a></span>
-<span class="normal"><a href="#__codelineno-0-396">396</a></span>
-<span class="normal"><a href="#__codelineno-0-397">397</a></span>
-<span class="normal"><a href="#__codelineno-0-398">398</a></span>
-<span class="normal"><a href="#__codelineno-0-399">399</a></span>
-<span class="normal"><a href="#__codelineno-0-400">400</a></span>
-<span class="normal"><a href="#__codelineno-0-401">401</a></span>
-<span class="normal"><a href="#__codelineno-0-402">402</a></span>
-<span class="normal"><a href="#__codelineno-0-403">403</a></span>
-<span class="normal"><a href="#__codelineno-0-404">404</a></span>
-<span class="normal"><a href="#__codelineno-0-405">405</a></span>
-<span class="normal"><a href="#__codelineno-0-406">406</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-393" name="__codelineno-0-393"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-<a id="__codelineno-0-394" name="__codelineno-0-394"></a>    <span class="bp">self</span><span class="p">,</span>
-<a id="__codelineno-0-395" name="__codelineno-0-395"></a>    <span class="o">*</span><span class="p">,</span>
-<a id="__codelineno-0-396" name="__codelineno-0-396"></a>    <span class="n">container</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-397" name="__codelineno-0-397"></a>    <span class="n">stdin</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<a id="__codelineno-0-398" name="__codelineno-0-398"></a>    <span class="n">stdout</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-0-399" name="__codelineno-0-399"></a>    <span class="n">stderr</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-0-400" name="__codelineno-0-400"></a>    <span class="n">tty</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<a id="__codelineno-0-401" name="__codelineno-0-401"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-402" name="__codelineno-0-402"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">container</span> <span class="o">=</span> <span class="n">container</span>
-<a id="__codelineno-0-403" name="__codelineno-0-403"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">stdin</span> <span class="o">=</span> <span class="n">stdin</span>
-<a id="__codelineno-0-404" name="__codelineno-0-404"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span> <span class="o">=</span> <span class="n">stdout</span>
-<a id="__codelineno-0-405" name="__codelineno-0-405"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">stderr</span> <span class="o">=</span> <span class="n">stderr</span>
-<a id="__codelineno-0-406" name="__codelineno-0-406"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">tty</span> <span class="o">=</span> <span class="n">tty</span>
+                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#kubex.core.params.AttachOptions--source--__codelineno-0-393">393</a></span>
+<span class="normal"><a href="#kubex.core.params.AttachOptions--source--__codelineno-0-394">394</a></span>
+<span class="normal"><a href="#kubex.core.params.AttachOptions--source--__codelineno-0-395">395</a></span>
+<span class="normal"><a href="#kubex.core.params.AttachOptions--source--__codelineno-0-396">396</a></span>
+<span class="normal"><a href="#kubex.core.params.AttachOptions--source--__codelineno-0-397">397</a></span>
+<span class="normal"><a href="#kubex.core.params.AttachOptions--source--__codelineno-0-398">398</a></span>
+<span class="normal"><a href="#kubex.core.params.AttachOptions--source--__codelineno-0-399">399</a></span>
+<span class="normal"><a href="#kubex.core.params.AttachOptions--source--__codelineno-0-400">400</a></span>
+<span class="normal"><a href="#kubex.core.params.AttachOptions--source--__codelineno-0-401">401</a></span>
+<span class="normal"><a href="#kubex.core.params.AttachOptions--source--__codelineno-0-402">402</a></span>
+<span class="normal"><a href="#kubex.core.params.AttachOptions--source--__codelineno-0-403">403</a></span>
+<span class="normal"><a href="#kubex.core.params.AttachOptions--source--__codelineno-0-404">404</a></span>
+<span class="normal"><a href="#kubex.core.params.AttachOptions--source--__codelineno-0-405">405</a></span>
+<span class="normal"><a href="#kubex.core.params.AttachOptions--source--__codelineno-0-406">406</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="kubex.core.params.AttachOptions--source--__codelineno-0-393" name="kubex.core.params.AttachOptions--source--__codelineno-0-393"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<a id="kubex.core.params.AttachOptions--source--__codelineno-0-394" name="kubex.core.params.AttachOptions--source--__codelineno-0-394"></a>    <span class="bp">self</span><span class="p">,</span>
+<a id="kubex.core.params.AttachOptions--source--__codelineno-0-395" name="kubex.core.params.AttachOptions--source--__codelineno-0-395"></a>    <span class="o">*</span><span class="p">,</span>
+<a id="kubex.core.params.AttachOptions--source--__codelineno-0-396" name="kubex.core.params.AttachOptions--source--__codelineno-0-396"></a>    <span class="n">container</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="kubex.core.params.AttachOptions--source--__codelineno-0-397" name="kubex.core.params.AttachOptions--source--__codelineno-0-397"></a>    <span class="n">stdin</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<a id="kubex.core.params.AttachOptions--source--__codelineno-0-398" name="kubex.core.params.AttachOptions--source--__codelineno-0-398"></a>    <span class="n">stdout</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<a id="kubex.core.params.AttachOptions--source--__codelineno-0-399" name="kubex.core.params.AttachOptions--source--__codelineno-0-399"></a>    <span class="n">stderr</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<a id="kubex.core.params.AttachOptions--source--__codelineno-0-400" name="kubex.core.params.AttachOptions--source--__codelineno-0-400"></a>    <span class="n">tty</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<a id="kubex.core.params.AttachOptions--source--__codelineno-0-401" name="kubex.core.params.AttachOptions--source--__codelineno-0-401"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="kubex.core.params.AttachOptions--source--__codelineno-0-402" name="kubex.core.params.AttachOptions--source--__codelineno-0-402"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">container</span> <span class="o">=</span> <span class="n">container</span>
+<a id="kubex.core.params.AttachOptions--source--__codelineno-0-403" name="kubex.core.params.AttachOptions--source--__codelineno-0-403"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">stdin</span> <span class="o">=</span> <span class="n">stdin</span>
+<a id="kubex.core.params.AttachOptions--source--__codelineno-0-404" name="kubex.core.params.AttachOptions--source--__codelineno-0-404"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span> <span class="o">=</span> <span class="n">stdout</span>
+<a id="kubex.core.params.AttachOptions--source--__codelineno-0-405" name="kubex.core.params.AttachOptions--source--__codelineno-0-405"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">stderr</span> <span class="o">=</span> <span class="n">stderr</span>
+<a id="kubex.core.params.AttachOptions--source--__codelineno-0-406" name="kubex.core.params.AttachOptions--source--__codelineno-0-406"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">tty</span> <span class="o">=</span> <span class="n">tty</span>
 </code></pre></div></td></tr></table></div>
                   </details>
 
@@ -3152,79 +3252,79 @@ server expects.</p>
 
                   <details class="mkdocstrings-source">
                     <summary>Source code in <code>kubex/core/params.py</code></summary>
-                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-339">339</a></span>
-<span class="normal"><a href="#__codelineno-0-340">340</a></span>
-<span class="normal"><a href="#__codelineno-0-341">341</a></span>
-<span class="normal"><a href="#__codelineno-0-342">342</a></span>
-<span class="normal"><a href="#__codelineno-0-343">343</a></span>
-<span class="normal"><a href="#__codelineno-0-344">344</a></span>
-<span class="normal"><a href="#__codelineno-0-345">345</a></span>
-<span class="normal"><a href="#__codelineno-0-346">346</a></span>
-<span class="normal"><a href="#__codelineno-0-347">347</a></span>
-<span class="normal"><a href="#__codelineno-0-348">348</a></span>
-<span class="normal"><a href="#__codelineno-0-349">349</a></span>
-<span class="normal"><a href="#__codelineno-0-350">350</a></span>
-<span class="normal"><a href="#__codelineno-0-351">351</a></span>
-<span class="normal"><a href="#__codelineno-0-352">352</a></span>
-<span class="normal"><a href="#__codelineno-0-353">353</a></span>
-<span class="normal"><a href="#__codelineno-0-354">354</a></span>
-<span class="normal"><a href="#__codelineno-0-355">355</a></span>
-<span class="normal"><a href="#__codelineno-0-356">356</a></span>
-<span class="normal"><a href="#__codelineno-0-357">357</a></span>
-<span class="normal"><a href="#__codelineno-0-358">358</a></span>
-<span class="normal"><a href="#__codelineno-0-359">359</a></span>
-<span class="normal"><a href="#__codelineno-0-360">360</a></span>
-<span class="normal"><a href="#__codelineno-0-361">361</a></span>
-<span class="normal"><a href="#__codelineno-0-362">362</a></span>
-<span class="normal"><a href="#__codelineno-0-363">363</a></span>
-<span class="normal"><a href="#__codelineno-0-364">364</a></span>
-<span class="normal"><a href="#__codelineno-0-365">365</a></span>
-<span class="normal"><a href="#__codelineno-0-366">366</a></span>
-<span class="normal"><a href="#__codelineno-0-367">367</a></span>
-<span class="normal"><a href="#__codelineno-0-368">368</a></span>
-<span class="normal"><a href="#__codelineno-0-369">369</a></span>
-<span class="normal"><a href="#__codelineno-0-370">370</a></span>
-<span class="normal"><a href="#__codelineno-0-371">371</a></span>
-<span class="normal"><a href="#__codelineno-0-372">372</a></span>
-<span class="normal"><a href="#__codelineno-0-373">373</a></span>
-<span class="normal"><a href="#__codelineno-0-374">374</a></span>
-<span class="normal"><a href="#__codelineno-0-375">375</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-339" name="__codelineno-0-339"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-<a id="__codelineno-0-340" name="__codelineno-0-340"></a>    <span class="bp">self</span><span class="p">,</span>
-<a id="__codelineno-0-341" name="__codelineno-0-341"></a>    <span class="o">*</span><span class="p">,</span>
-<a id="__codelineno-0-342" name="__codelineno-0-342"></a>    <span class="n">command</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-<a id="__codelineno-0-343" name="__codelineno-0-343"></a>    <span class="n">container</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-344" name="__codelineno-0-344"></a>    <span class="n">stdin</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<a id="__codelineno-0-345" name="__codelineno-0-345"></a>    <span class="n">stdout</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-0-346" name="__codelineno-0-346"></a>    <span class="n">stderr</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-0-347" name="__codelineno-0-347"></a>    <span class="n">tty</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<a id="__codelineno-0-348" name="__codelineno-0-348"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-349" name="__codelineno-0-349"></a>    <span class="c1"># ``str`` satisfies ``Sequence[str]`` (each character is itself a</span>
-<a id="__codelineno-0-350" name="__codelineno-0-350"></a>    <span class="c1"># ``str``), so ``list("sh")`` would silently produce ``["s", "h"]``</span>
-<a id="__codelineno-0-351" name="__codelineno-0-351"></a>    <span class="c1"># and emit a broken request. Reject it explicitly so callers see a</span>
-<a id="__codelineno-0-352" name="__codelineno-0-352"></a>    <span class="c1"># clear local validation error instead of a confusing 400 from the</span>
-<a id="__codelineno-0-353" name="__codelineno-0-353"></a>    <span class="c1"># API server.</span>
-<a id="__codelineno-0-354" name="__codelineno-0-354"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)):</span>
-<a id="__codelineno-0-355" name="__codelineno-0-355"></a>        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-<a id="__codelineno-0-356" name="__codelineno-0-356"></a>            <span class="s2">"command must be a sequence of strings, not a single "</span>
-<a id="__codelineno-0-357" name="__codelineno-0-357"></a>            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">command</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">; pass e.g. ['sh', '-c', 'echo hi']"</span>
-<a id="__codelineno-0-358" name="__codelineno-0-358"></a>        <span class="p">)</span>
-<a id="__codelineno-0-359" name="__codelineno-0-359"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">command</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">command</span><span class="p">)</span>
-<a id="__codelineno-0-360" name="__codelineno-0-360"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">command</span><span class="p">:</span>
-<a id="__codelineno-0-361" name="__codelineno-0-361"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"command must be a non-empty sequence of strings"</span><span class="p">)</span>
-<a id="__codelineno-0-362" name="__codelineno-0-362"></a>    <span class="c1"># Each element must be a ``str`` — non-strings would otherwise</span>
-<a id="__codelineno-0-363" name="__codelineno-0-363"></a>    <span class="c1"># serialize via ``__str__`` (or fail at the HTTP layer for ``bytes``)</span>
-<a id="__codelineno-0-364" name="__codelineno-0-364"></a>    <span class="c1"># and produce a confusing 400 from the API server. Validate here so</span>
-<a id="__codelineno-0-365" name="__codelineno-0-365"></a>    <span class="c1"># callers see a clear local error instead.</span>
-<a id="__codelineno-0-366" name="__codelineno-0-366"></a>    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">element</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">command</span><span class="p">):</span>
-<a id="__codelineno-0-367" name="__codelineno-0-367"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">element</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-<a id="__codelineno-0-368" name="__codelineno-0-368"></a>            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-<a id="__codelineno-0-369" name="__codelineno-0-369"></a>                <span class="sa">f</span><span class="s2">"command[</span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s2">] must be str, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">element</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span>
-<a id="__codelineno-0-370" name="__codelineno-0-370"></a>            <span class="p">)</span>
-<a id="__codelineno-0-371" name="__codelineno-0-371"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">container</span> <span class="o">=</span> <span class="n">container</span>
-<a id="__codelineno-0-372" name="__codelineno-0-372"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">stdin</span> <span class="o">=</span> <span class="n">stdin</span>
-<a id="__codelineno-0-373" name="__codelineno-0-373"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span> <span class="o">=</span> <span class="n">stdout</span>
-<a id="__codelineno-0-374" name="__codelineno-0-374"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">stderr</span> <span class="o">=</span> <span class="n">stderr</span>
-<a id="__codelineno-0-375" name="__codelineno-0-375"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">tty</span> <span class="o">=</span> <span class="n">tty</span>
+                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-339">339</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-340">340</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-341">341</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-342">342</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-343">343</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-344">344</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-345">345</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-346">346</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-347">347</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-348">348</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-349">349</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-350">350</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-351">351</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-352">352</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-353">353</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-354">354</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-355">355</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-356">356</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-357">357</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-358">358</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-359">359</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-360">360</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-361">361</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-362">362</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-363">363</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-364">364</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-365">365</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-366">366</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-367">367</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-368">368</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-369">369</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-370">370</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-371">371</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-372">372</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-373">373</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-374">374</a></span>
+<span class="normal"><a href="#kubex.core.params.ExecOptions--source--__codelineno-0-375">375</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="kubex.core.params.ExecOptions--source--__codelineno-0-339" name="kubex.core.params.ExecOptions--source--__codelineno-0-339"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-340" name="kubex.core.params.ExecOptions--source--__codelineno-0-340"></a>    <span class="bp">self</span><span class="p">,</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-341" name="kubex.core.params.ExecOptions--source--__codelineno-0-341"></a>    <span class="o">*</span><span class="p">,</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-342" name="kubex.core.params.ExecOptions--source--__codelineno-0-342"></a>    <span class="n">command</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-343" name="kubex.core.params.ExecOptions--source--__codelineno-0-343"></a>    <span class="n">container</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-344" name="kubex.core.params.ExecOptions--source--__codelineno-0-344"></a>    <span class="n">stdin</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-345" name="kubex.core.params.ExecOptions--source--__codelineno-0-345"></a>    <span class="n">stdout</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-346" name="kubex.core.params.ExecOptions--source--__codelineno-0-346"></a>    <span class="n">stderr</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-347" name="kubex.core.params.ExecOptions--source--__codelineno-0-347"></a>    <span class="n">tty</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-348" name="kubex.core.params.ExecOptions--source--__codelineno-0-348"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-349" name="kubex.core.params.ExecOptions--source--__codelineno-0-349"></a>    <span class="c1"># ``str`` satisfies ``Sequence[str]`` (each character is itself a</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-350" name="kubex.core.params.ExecOptions--source--__codelineno-0-350"></a>    <span class="c1"># ``str``), so ``list("sh")`` would silently produce ``["s", "h"]``</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-351" name="kubex.core.params.ExecOptions--source--__codelineno-0-351"></a>    <span class="c1"># and emit a broken request. Reject it explicitly so callers see a</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-352" name="kubex.core.params.ExecOptions--source--__codelineno-0-352"></a>    <span class="c1"># clear local validation error instead of a confusing 400 from the</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-353" name="kubex.core.params.ExecOptions--source--__codelineno-0-353"></a>    <span class="c1"># API server.</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-354" name="kubex.core.params.ExecOptions--source--__codelineno-0-354"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)):</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-355" name="kubex.core.params.ExecOptions--source--__codelineno-0-355"></a>        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-356" name="kubex.core.params.ExecOptions--source--__codelineno-0-356"></a>            <span class="s2">"command must be a sequence of strings, not a single "</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-357" name="kubex.core.params.ExecOptions--source--__codelineno-0-357"></a>            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">command</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">; pass e.g. ['sh', '-c', 'echo hi']"</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-358" name="kubex.core.params.ExecOptions--source--__codelineno-0-358"></a>        <span class="p">)</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-359" name="kubex.core.params.ExecOptions--source--__codelineno-0-359"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">command</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">command</span><span class="p">)</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-360" name="kubex.core.params.ExecOptions--source--__codelineno-0-360"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">command</span><span class="p">:</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-361" name="kubex.core.params.ExecOptions--source--__codelineno-0-361"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"command must be a non-empty sequence of strings"</span><span class="p">)</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-362" name="kubex.core.params.ExecOptions--source--__codelineno-0-362"></a>    <span class="c1"># Each element must be a ``str`` — non-strings would otherwise</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-363" name="kubex.core.params.ExecOptions--source--__codelineno-0-363"></a>    <span class="c1"># serialize via ``__str__`` (or fail at the HTTP layer for ``bytes``)</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-364" name="kubex.core.params.ExecOptions--source--__codelineno-0-364"></a>    <span class="c1"># and produce a confusing 400 from the API server. Validate here so</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-365" name="kubex.core.params.ExecOptions--source--__codelineno-0-365"></a>    <span class="c1"># callers see a clear local error instead.</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-366" name="kubex.core.params.ExecOptions--source--__codelineno-0-366"></a>    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">element</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">command</span><span class="p">):</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-367" name="kubex.core.params.ExecOptions--source--__codelineno-0-367"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">element</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-368" name="kubex.core.params.ExecOptions--source--__codelineno-0-368"></a>            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-369" name="kubex.core.params.ExecOptions--source--__codelineno-0-369"></a>                <span class="sa">f</span><span class="s2">"command[</span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s2">] must be str, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">element</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-370" name="kubex.core.params.ExecOptions--source--__codelineno-0-370"></a>            <span class="p">)</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-371" name="kubex.core.params.ExecOptions--source--__codelineno-0-371"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">container</span> <span class="o">=</span> <span class="n">container</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-372" name="kubex.core.params.ExecOptions--source--__codelineno-0-372"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">stdin</span> <span class="o">=</span> <span class="n">stdin</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-373" name="kubex.core.params.ExecOptions--source--__codelineno-0-373"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span> <span class="o">=</span> <span class="n">stdout</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-374" name="kubex.core.params.ExecOptions--source--__codelineno-0-374"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">stderr</span> <span class="o">=</span> <span class="n">stderr</span>
+<a id="kubex.core.params.ExecOptions--source--__codelineno-0-375" name="kubex.core.params.ExecOptions--source--__codelineno-0-375"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">tty</span> <span class="o">=</span> <span class="n">tty</span>
 </code></pre></div></td></tr></table></div>
                   </details>
 
@@ -3278,49 +3378,49 @@ server expects.</p>
 
                   <details class="mkdocstrings-source">
                     <summary>Source code in <code>kubex/core/params.py</code></summary>
-                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-428">428</a></span>
-<span class="normal"><a href="#__codelineno-0-429">429</a></span>
-<span class="normal"><a href="#__codelineno-0-430">430</a></span>
-<span class="normal"><a href="#__codelineno-0-431">431</a></span>
-<span class="normal"><a href="#__codelineno-0-432">432</a></span>
-<span class="normal"><a href="#__codelineno-0-433">433</a></span>
-<span class="normal"><a href="#__codelineno-0-434">434</a></span>
-<span class="normal"><a href="#__codelineno-0-435">435</a></span>
-<span class="normal"><a href="#__codelineno-0-436">436</a></span>
-<span class="normal"><a href="#__codelineno-0-437">437</a></span>
-<span class="normal"><a href="#__codelineno-0-438">438</a></span>
-<span class="normal"><a href="#__codelineno-0-439">439</a></span>
-<span class="normal"><a href="#__codelineno-0-440">440</a></span>
-<span class="normal"><a href="#__codelineno-0-441">441</a></span>
-<span class="normal"><a href="#__codelineno-0-442">442</a></span>
-<span class="normal"><a href="#__codelineno-0-443">443</a></span>
-<span class="normal"><a href="#__codelineno-0-444">444</a></span>
-<span class="normal"><a href="#__codelineno-0-445">445</a></span>
-<span class="normal"><a href="#__codelineno-0-446">446</a></span>
-<span class="normal"><a href="#__codelineno-0-447">447</a></span>
-<span class="normal"><a href="#__codelineno-0-448">448</a></span>
-<span class="normal"><a href="#__codelineno-0-449">449</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-428" name="__codelineno-0-428"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">ports</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-429" name="__codelineno-0-429"></a>    <span class="n">ports_t</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">ports</span><span class="p">)</span>
-<a id="__codelineno-0-430" name="__codelineno-0-430"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">ports_t</span><span class="p">:</span>
-<a id="__codelineno-0-431" name="__codelineno-0-431"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"portforward requires at least one port"</span><span class="p">)</span>
-<a id="__codelineno-0-432" name="__codelineno-0-432"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">ports_t</span><span class="p">))</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ports_t</span><span class="p">):</span>
-<a id="__codelineno-0-433" name="__codelineno-0-433"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"duplicate ports are not allowed"</span><span class="p">)</span>
-<a id="__codelineno-0-434" name="__codelineno-0-434"></a>    <span class="c1"># Channel IDs are a single byte (0..255).  Two channels per port</span>
-<a id="__codelineno-0-435" name="__codelineno-0-435"></a>    <span class="c1"># (data=2i, error=2i+1) means index 127 maps to error channel</span>
-<a id="__codelineno-0-436" name="__codelineno-0-436"></a>    <span class="c1"># 2*127+1 = 255, which collides with the v5 CHANNEL_CLOSE sentinel.</span>
-<a id="__codelineno-0-437" name="__codelineno-0-437"></a>    <span class="c1"># The kubelet portforward currently negotiates v4 only (no</span>
-<a id="__codelineno-0-438" name="__codelineno-0-438"></a>    <span class="c1"># CHANNEL_CLOSE sentinel), but we cap at 127 to stay forward-compatible</span>
-<a id="__codelineno-0-439" name="__codelineno-0-439"></a>    <span class="c1"># with v5 and to keep error-channel ids inside [0, 254].</span>
-<a id="__codelineno-0-440" name="__codelineno-0-440"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ports_t</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">127</span><span class="p">:</span>
-<a id="__codelineno-0-441" name="__codelineno-0-441"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-<a id="__codelineno-0-442" name="__codelineno-0-442"></a>            <span class="sa">f</span><span class="s2">"portforward supports at most 127 ports, got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">ports_t</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
-<a id="__codelineno-0-443" name="__codelineno-0-443"></a>        <span class="p">)</span>
-<a id="__codelineno-0-444" name="__codelineno-0-444"></a>    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">ports_t</span><span class="p">:</span>
-<a id="__codelineno-0-445" name="__codelineno-0-445"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
-<a id="__codelineno-0-446" name="__codelineno-0-446"></a>            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"port must be int, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">p</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<a id="__codelineno-0-447" name="__codelineno-0-447"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="n">p</span> <span class="o">&lt;=</span> <span class="mi">65535</span><span class="p">:</span>
-<a id="__codelineno-0-448" name="__codelineno-0-448"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"port </span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s2"> out of range 1..65535"</span><span class="p">)</span>
-<a id="__codelineno-0-449" name="__codelineno-0-449"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">ports</span> <span class="o">=</span> <span class="n">ports_t</span>
+                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#kubex.core.params.PortForwardOptions--source--__codelineno-0-428">428</a></span>
+<span class="normal"><a href="#kubex.core.params.PortForwardOptions--source--__codelineno-0-429">429</a></span>
+<span class="normal"><a href="#kubex.core.params.PortForwardOptions--source--__codelineno-0-430">430</a></span>
+<span class="normal"><a href="#kubex.core.params.PortForwardOptions--source--__codelineno-0-431">431</a></span>
+<span class="normal"><a href="#kubex.core.params.PortForwardOptions--source--__codelineno-0-432">432</a></span>
+<span class="normal"><a href="#kubex.core.params.PortForwardOptions--source--__codelineno-0-433">433</a></span>
+<span class="normal"><a href="#kubex.core.params.PortForwardOptions--source--__codelineno-0-434">434</a></span>
+<span class="normal"><a href="#kubex.core.params.PortForwardOptions--source--__codelineno-0-435">435</a></span>
+<span class="normal"><a href="#kubex.core.params.PortForwardOptions--source--__codelineno-0-436">436</a></span>
+<span class="normal"><a href="#kubex.core.params.PortForwardOptions--source--__codelineno-0-437">437</a></span>
+<span class="normal"><a href="#kubex.core.params.PortForwardOptions--source--__codelineno-0-438">438</a></span>
+<span class="normal"><a href="#kubex.core.params.PortForwardOptions--source--__codelineno-0-439">439</a></span>
+<span class="normal"><a href="#kubex.core.params.PortForwardOptions--source--__codelineno-0-440">440</a></span>
+<span class="normal"><a href="#kubex.core.params.PortForwardOptions--source--__codelineno-0-441">441</a></span>
+<span class="normal"><a href="#kubex.core.params.PortForwardOptions--source--__codelineno-0-442">442</a></span>
+<span class="normal"><a href="#kubex.core.params.PortForwardOptions--source--__codelineno-0-443">443</a></span>
+<span class="normal"><a href="#kubex.core.params.PortForwardOptions--source--__codelineno-0-444">444</a></span>
+<span class="normal"><a href="#kubex.core.params.PortForwardOptions--source--__codelineno-0-445">445</a></span>
+<span class="normal"><a href="#kubex.core.params.PortForwardOptions--source--__codelineno-0-446">446</a></span>
+<span class="normal"><a href="#kubex.core.params.PortForwardOptions--source--__codelineno-0-447">447</a></span>
+<span class="normal"><a href="#kubex.core.params.PortForwardOptions--source--__codelineno-0-448">448</a></span>
+<span class="normal"><a href="#kubex.core.params.PortForwardOptions--source--__codelineno-0-449">449</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="kubex.core.params.PortForwardOptions--source--__codelineno-0-428" name="kubex.core.params.PortForwardOptions--source--__codelineno-0-428"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">ports</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="kubex.core.params.PortForwardOptions--source--__codelineno-0-429" name="kubex.core.params.PortForwardOptions--source--__codelineno-0-429"></a>    <span class="n">ports_t</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">ports</span><span class="p">)</span>
+<a id="kubex.core.params.PortForwardOptions--source--__codelineno-0-430" name="kubex.core.params.PortForwardOptions--source--__codelineno-0-430"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">ports_t</span><span class="p">:</span>
+<a id="kubex.core.params.PortForwardOptions--source--__codelineno-0-431" name="kubex.core.params.PortForwardOptions--source--__codelineno-0-431"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"portforward requires at least one port"</span><span class="p">)</span>
+<a id="kubex.core.params.PortForwardOptions--source--__codelineno-0-432" name="kubex.core.params.PortForwardOptions--source--__codelineno-0-432"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">ports_t</span><span class="p">))</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ports_t</span><span class="p">):</span>
+<a id="kubex.core.params.PortForwardOptions--source--__codelineno-0-433" name="kubex.core.params.PortForwardOptions--source--__codelineno-0-433"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"duplicate ports are not allowed"</span><span class="p">)</span>
+<a id="kubex.core.params.PortForwardOptions--source--__codelineno-0-434" name="kubex.core.params.PortForwardOptions--source--__codelineno-0-434"></a>    <span class="c1"># Channel IDs are a single byte (0..255).  Two channels per port</span>
+<a id="kubex.core.params.PortForwardOptions--source--__codelineno-0-435" name="kubex.core.params.PortForwardOptions--source--__codelineno-0-435"></a>    <span class="c1"># (data=2i, error=2i+1) means index 127 maps to error channel</span>
+<a id="kubex.core.params.PortForwardOptions--source--__codelineno-0-436" name="kubex.core.params.PortForwardOptions--source--__codelineno-0-436"></a>    <span class="c1"># 2*127+1 = 255, which collides with the v5 CHANNEL_CLOSE sentinel.</span>
+<a id="kubex.core.params.PortForwardOptions--source--__codelineno-0-437" name="kubex.core.params.PortForwardOptions--source--__codelineno-0-437"></a>    <span class="c1"># The kubelet portforward currently negotiates v4 only (no</span>
+<a id="kubex.core.params.PortForwardOptions--source--__codelineno-0-438" name="kubex.core.params.PortForwardOptions--source--__codelineno-0-438"></a>    <span class="c1"># CHANNEL_CLOSE sentinel), but we cap at 127 to stay forward-compatible</span>
+<a id="kubex.core.params.PortForwardOptions--source--__codelineno-0-439" name="kubex.core.params.PortForwardOptions--source--__codelineno-0-439"></a>    <span class="c1"># with v5 and to keep error-channel ids inside [0, 254].</span>
+<a id="kubex.core.params.PortForwardOptions--source--__codelineno-0-440" name="kubex.core.params.PortForwardOptions--source--__codelineno-0-440"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ports_t</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">127</span><span class="p">:</span>
+<a id="kubex.core.params.PortForwardOptions--source--__codelineno-0-441" name="kubex.core.params.PortForwardOptions--source--__codelineno-0-441"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+<a id="kubex.core.params.PortForwardOptions--source--__codelineno-0-442" name="kubex.core.params.PortForwardOptions--source--__codelineno-0-442"></a>            <span class="sa">f</span><span class="s2">"portforward supports at most 127 ports, got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">ports_t</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+<a id="kubex.core.params.PortForwardOptions--source--__codelineno-0-443" name="kubex.core.params.PortForwardOptions--source--__codelineno-0-443"></a>        <span class="p">)</span>
+<a id="kubex.core.params.PortForwardOptions--source--__codelineno-0-444" name="kubex.core.params.PortForwardOptions--source--__codelineno-0-444"></a>    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">ports_t</span><span class="p">:</span>
+<a id="kubex.core.params.PortForwardOptions--source--__codelineno-0-445" name="kubex.core.params.PortForwardOptions--source--__codelineno-0-445"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+<a id="kubex.core.params.PortForwardOptions--source--__codelineno-0-446" name="kubex.core.params.PortForwardOptions--source--__codelineno-0-446"></a>            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"port must be int, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">p</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="kubex.core.params.PortForwardOptions--source--__codelineno-0-447" name="kubex.core.params.PortForwardOptions--source--__codelineno-0-447"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="n">p</span> <span class="o">&lt;=</span> <span class="mi">65535</span><span class="p">:</span>
+<a id="kubex.core.params.PortForwardOptions--source--__codelineno-0-448" name="kubex.core.params.PortForwardOptions--source--__codelineno-0-448"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"port </span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s2"> out of range 1..65535"</span><span class="p">)</span>
+<a id="kubex.core.params.PortForwardOptions--source--__codelineno-0-449" name="kubex.core.params.PortForwardOptions--source--__codelineno-0-449"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">ports</span> <span class="o">=</span> <span class="n">ports_t</span>
 </code></pre></div></td></tr></table></div>
                   </details>
 
@@ -3480,33 +3580,33 @@ Only honored by the httpx backend.</p>
 
                   <details class="mkdocstrings-source">
                     <summary>Source code in <code>kubex/core/params.py</code></summary>
-                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-30">30</a></span>
-<span class="normal"><a href="#__codelineno-0-31">31</a></span>
-<span class="normal"><a href="#__codelineno-0-32">32</a></span>
-<span class="normal"><a href="#__codelineno-0-33">33</a></span>
-<span class="normal"><a href="#__codelineno-0-34">34</a></span>
-<span class="normal"><a href="#__codelineno-0-35">35</a></span>
-<span class="normal"><a href="#__codelineno-0-36">36</a></span>
-<span class="normal"><a href="#__codelineno-0-37">37</a></span>
-<span class="normal"><a href="#__codelineno-0-38">38</a></span>
-<span class="normal"><a href="#__codelineno-0-39">39</a></span>
-<span class="normal"><a href="#__codelineno-0-40">40</a></span>
-<span class="normal"><a href="#__codelineno-0-41">41</a></span>
-<span class="normal"><a href="#__codelineno-0-42">42</a></span>
-<span class="normal"><a href="#__codelineno-0-43">43</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-30" name="__codelineno-0-30"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-<a id="__codelineno-0-31" name="__codelineno-0-31"></a>    <span class="bp">self</span><span class="p">,</span>
-<a id="__codelineno-0-32" name="__codelineno-0-32"></a>    <span class="n">total</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-33" name="__codelineno-0-33"></a>    <span class="o">*</span><span class="p">,</span>
-<a id="__codelineno-0-34" name="__codelineno-0-34"></a>    <span class="n">connect</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-35" name="__codelineno-0-35"></a>    <span class="n">read</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-36" name="__codelineno-0-36"></a>    <span class="n">write</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-37" name="__codelineno-0-37"></a>    <span class="n">pool</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-38" name="__codelineno-0-38"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-39" name="__codelineno-0-39"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">total</span> <span class="o">=</span> <span class="n">total</span>
-<a id="__codelineno-0-40" name="__codelineno-0-40"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">connect</span> <span class="o">=</span> <span class="n">connect</span>
-<a id="__codelineno-0-41" name="__codelineno-0-41"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">read</span> <span class="o">=</span> <span class="n">read</span>
-<a id="__codelineno-0-42" name="__codelineno-0-42"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">write</span> <span class="o">=</span> <span class="n">write</span>
-<a id="__codelineno-0-43" name="__codelineno-0-43"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">pool</span> <span class="o">=</span> <span class="n">pool</span>
+                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#kubex.core.params.Timeout--source--__codelineno-0-30">30</a></span>
+<span class="normal"><a href="#kubex.core.params.Timeout--source--__codelineno-0-31">31</a></span>
+<span class="normal"><a href="#kubex.core.params.Timeout--source--__codelineno-0-32">32</a></span>
+<span class="normal"><a href="#kubex.core.params.Timeout--source--__codelineno-0-33">33</a></span>
+<span class="normal"><a href="#kubex.core.params.Timeout--source--__codelineno-0-34">34</a></span>
+<span class="normal"><a href="#kubex.core.params.Timeout--source--__codelineno-0-35">35</a></span>
+<span class="normal"><a href="#kubex.core.params.Timeout--source--__codelineno-0-36">36</a></span>
+<span class="normal"><a href="#kubex.core.params.Timeout--source--__codelineno-0-37">37</a></span>
+<span class="normal"><a href="#kubex.core.params.Timeout--source--__codelineno-0-38">38</a></span>
+<span class="normal"><a href="#kubex.core.params.Timeout--source--__codelineno-0-39">39</a></span>
+<span class="normal"><a href="#kubex.core.params.Timeout--source--__codelineno-0-40">40</a></span>
+<span class="normal"><a href="#kubex.core.params.Timeout--source--__codelineno-0-41">41</a></span>
+<span class="normal"><a href="#kubex.core.params.Timeout--source--__codelineno-0-42">42</a></span>
+<span class="normal"><a href="#kubex.core.params.Timeout--source--__codelineno-0-43">43</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="kubex.core.params.Timeout--source--__codelineno-0-30" name="kubex.core.params.Timeout--source--__codelineno-0-30"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<a id="kubex.core.params.Timeout--source--__codelineno-0-31" name="kubex.core.params.Timeout--source--__codelineno-0-31"></a>    <span class="bp">self</span><span class="p">,</span>
+<a id="kubex.core.params.Timeout--source--__codelineno-0-32" name="kubex.core.params.Timeout--source--__codelineno-0-32"></a>    <span class="n">total</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="kubex.core.params.Timeout--source--__codelineno-0-33" name="kubex.core.params.Timeout--source--__codelineno-0-33"></a>    <span class="o">*</span><span class="p">,</span>
+<a id="kubex.core.params.Timeout--source--__codelineno-0-34" name="kubex.core.params.Timeout--source--__codelineno-0-34"></a>    <span class="n">connect</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="kubex.core.params.Timeout--source--__codelineno-0-35" name="kubex.core.params.Timeout--source--__codelineno-0-35"></a>    <span class="n">read</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="kubex.core.params.Timeout--source--__codelineno-0-36" name="kubex.core.params.Timeout--source--__codelineno-0-36"></a>    <span class="n">write</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="kubex.core.params.Timeout--source--__codelineno-0-37" name="kubex.core.params.Timeout--source--__codelineno-0-37"></a>    <span class="n">pool</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="kubex.core.params.Timeout--source--__codelineno-0-38" name="kubex.core.params.Timeout--source--__codelineno-0-38"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="kubex.core.params.Timeout--source--__codelineno-0-39" name="kubex.core.params.Timeout--source--__codelineno-0-39"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">total</span> <span class="o">=</span> <span class="n">total</span>
+<a id="kubex.core.params.Timeout--source--__codelineno-0-40" name="kubex.core.params.Timeout--source--__codelineno-0-40"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">connect</span> <span class="o">=</span> <span class="n">connect</span>
+<a id="kubex.core.params.Timeout--source--__codelineno-0-41" name="kubex.core.params.Timeout--source--__codelineno-0-41"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">read</span> <span class="o">=</span> <span class="n">read</span>
+<a id="kubex.core.params.Timeout--source--__codelineno-0-42" name="kubex.core.params.Timeout--source--__codelineno-0-42"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">write</span> <span class="o">=</span> <span class="n">write</span>
+<a id="kubex.core.params.Timeout--source--__codelineno-0-43" name="kubex.core.params.Timeout--source--__codelineno-0-43"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">pool</span> <span class="o">=</span> <span class="n">pool</span>
 </code></pre></div></td></tr></table></div>
                   </details>
 
@@ -3545,21 +3645,21 @@ Only honored by the httpx backend.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>kubex/core/params.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-45">45</a></span>
-<span class="normal"><a href="#__codelineno-0-46">46</a></span>
-<span class="normal"><a href="#__codelineno-0-47">47</a></span>
-<span class="normal"><a href="#__codelineno-0-48">48</a></span>
-<span class="normal"><a href="#__codelineno-0-49">49</a></span>
-<span class="normal"><a href="#__codelineno-0-50">50</a></span>
-<span class="normal"><a href="#__codelineno-0-51">51</a></span>
-<span class="normal"><a href="#__codelineno-0-52">52</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-45" name="__codelineno-0-45"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-46" name="__codelineno-0-46"></a><span class="k">def</span><span class="w"> </span><span class="nf">coerce</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">TimeoutTypes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Timeout</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-47" name="__codelineno-0-47"></a><span class="w">    </span><span class="sd">"""Normalize a ``TimeoutTypes`` value to ``Timeout`` or ``None``."""</span>
-<a id="__codelineno-0-48" name="__codelineno-0-48"></a>    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-49" name="__codelineno-0-49"></a>        <span class="k">return</span> <span class="kc">None</span>
-<a id="__codelineno-0-50" name="__codelineno-0-50"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Timeout</span><span class="p">):</span>
-<a id="__codelineno-0-51" name="__codelineno-0-51"></a>        <span class="k">return</span> <span class="n">value</span>
-<a id="__codelineno-0-52" name="__codelineno-0-52"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">total</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#kubex.core.params.Timeout.coerce--source--__codelineno-0-45">45</a></span>
+<span class="normal"><a href="#kubex.core.params.Timeout.coerce--source--__codelineno-0-46">46</a></span>
+<span class="normal"><a href="#kubex.core.params.Timeout.coerce--source--__codelineno-0-47">47</a></span>
+<span class="normal"><a href="#kubex.core.params.Timeout.coerce--source--__codelineno-0-48">48</a></span>
+<span class="normal"><a href="#kubex.core.params.Timeout.coerce--source--__codelineno-0-49">49</a></span>
+<span class="normal"><a href="#kubex.core.params.Timeout.coerce--source--__codelineno-0-50">50</a></span>
+<span class="normal"><a href="#kubex.core.params.Timeout.coerce--source--__codelineno-0-51">51</a></span>
+<span class="normal"><a href="#kubex.core.params.Timeout.coerce--source--__codelineno-0-52">52</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="kubex.core.params.Timeout.coerce--source--__codelineno-0-45" name="kubex.core.params.Timeout.coerce--source--__codelineno-0-45"></a><span class="nd">@classmethod</span>
+<a id="kubex.core.params.Timeout.coerce--source--__codelineno-0-46" name="kubex.core.params.Timeout.coerce--source--__codelineno-0-46"></a><span class="k">def</span><span class="w"> </span><span class="nf">coerce</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">TimeoutTypes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Timeout</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<a id="kubex.core.params.Timeout.coerce--source--__codelineno-0-47" name="kubex.core.params.Timeout.coerce--source--__codelineno-0-47"></a><span class="w">    </span><span class="sd">"""Normalize a ``TimeoutTypes`` value to ``Timeout`` or ``None``."""</span>
+<a id="kubex.core.params.Timeout.coerce--source--__codelineno-0-48" name="kubex.core.params.Timeout.coerce--source--__codelineno-0-48"></a>    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="kubex.core.params.Timeout.coerce--source--__codelineno-0-49" name="kubex.core.params.Timeout.coerce--source--__codelineno-0-49"></a>        <span class="k">return</span> <span class="kc">None</span>
+<a id="kubex.core.params.Timeout.coerce--source--__codelineno-0-50" name="kubex.core.params.Timeout.coerce--source--__codelineno-0-50"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Timeout</span><span class="p">):</span>
+<a id="kubex.core.params.Timeout.coerce--source--__codelineno-0-51" name="kubex.core.params.Timeout.coerce--source--__codelineno-0-51"></a>        <span class="k">return</span> <span class="n">value</span>
+<a id="kubex.core.params.Timeout.coerce--source--__codelineno-0-52" name="kubex.core.params.Timeout.coerce--source--__codelineno-0-52"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">total</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3726,39 +3826,39 @@ Only honored by the httpx backend.</p>
 
                   <details class="mkdocstrings-source">
                     <summary>Source code in <code>kubex/core/watch_event.py</code></summary>
-                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-29">29</a></span>
-<span class="normal"><a href="#__codelineno-0-30">30</a></span>
-<span class="normal"><a href="#__codelineno-0-31">31</a></span>
-<span class="normal"><a href="#__codelineno-0-32">32</a></span>
-<span class="normal"><a href="#__codelineno-0-33">33</a></span>
-<span class="normal"><a href="#__codelineno-0-34">34</a></span>
-<span class="normal"><a href="#__codelineno-0-35">35</a></span>
-<span class="normal"><a href="#__codelineno-0-36">36</a></span>
-<span class="normal"><a href="#__codelineno-0-37">37</a></span>
-<span class="normal"><a href="#__codelineno-0-38">38</a></span>
-<span class="normal"><a href="#__codelineno-0-39">39</a></span>
-<span class="normal"><a href="#__codelineno-0-40">40</a></span>
-<span class="normal"><a href="#__codelineno-0-41">41</a></span>
-<span class="normal"><a href="#__codelineno-0-42">42</a></span>
-<span class="normal"><a href="#__codelineno-0-43">43</a></span>
-<span class="normal"><a href="#__codelineno-0-44">44</a></span>
-<span class="normal"><a href="#__codelineno-0-45">45</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-<a id="__codelineno-0-30" name="__codelineno-0-30"></a>    <span class="bp">self</span><span class="p">,</span> <span class="n">resource_type</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">ResourceType</span><span class="p">],</span> <span class="n">raw_event</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
-<a id="__codelineno-0-31" name="__codelineno-0-31"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-32" name="__codelineno-0-32"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_resource_type</span> <span class="o">=</span> <span class="n">resource_type</span>
-<a id="__codelineno-0-33" name="__codelineno-0-33"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">EventType</span><span class="p">(</span><span class="n">raw_event</span><span class="p">[</span><span class="s2">"type"</span><span class="p">])</span>
-<a id="__codelineno-0-34" name="__codelineno-0-34"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">object</span><span class="p">:</span> <span class="n">ResourceType</span> <span class="o">|</span> <span class="n">Bookmark</span>
-<a id="__codelineno-0-35" name="__codelineno-0-35"></a>    <span class="k">match</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
-<a id="__codelineno-0-36" name="__codelineno-0-36"></a>        <span class="k">case</span> <span class="n">EventType</span><span class="o">.</span><span class="n">BOOKMARK</span><span class="p">:</span>
-<a id="__codelineno-0-37" name="__codelineno-0-37"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">object</span> <span class="o">=</span> <span class="n">Bookmark</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span><span class="n">raw_event</span><span class="p">[</span><span class="s2">"object"</span><span class="p">])</span>
-<a id="__codelineno-0-38" name="__codelineno-0-38"></a>        <span class="k">case</span> <span class="n">EventType</span><span class="o">.</span><span class="n">ERROR</span><span class="p">:</span>
-<a id="__codelineno-0-39" name="__codelineno-0-39"></a>            <span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-0-40" name="__codelineno-0-40"></a>                <span class="n">status</span> <span class="o">=</span> <span class="n">Status</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span><span class="n">raw_event</span><span class="p">[</span><span class="s2">"object"</span><span class="p">])</span>
-<a id="__codelineno-0-41" name="__codelineno-0-41"></a>            <span class="k">except</span> <span class="n">ValidationError</span><span class="p">:</span>
-<a id="__codelineno-0-42" name="__codelineno-0-42"></a>                <span class="k">raise</span> <span class="n">build_exception</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">raw_event</span><span class="p">[</span><span class="s2">"object"</span><span class="p">]))</span>
-<a id="__codelineno-0-43" name="__codelineno-0-43"></a>            <span class="k">raise</span> <span class="n">build_exception</span><span class="p">(</span><span class="n">status</span><span class="o">.</span><span class="n">code</span><span class="p">,</span> <span class="n">status</span><span class="p">)</span>
-<a id="__codelineno-0-44" name="__codelineno-0-44"></a>        <span class="k">case</span><span class="w"> </span><span class="k">_</span><span class="p">:</span>
-<a id="__codelineno-0-45" name="__codelineno-0-45"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">object</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resource_type</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span><span class="n">raw_event</span><span class="p">[</span><span class="s2">"object"</span><span class="p">])</span>
+                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#kubex.core.watch_event.WatchEvent--source--__codelineno-0-29">29</a></span>
+<span class="normal"><a href="#kubex.core.watch_event.WatchEvent--source--__codelineno-0-30">30</a></span>
+<span class="normal"><a href="#kubex.core.watch_event.WatchEvent--source--__codelineno-0-31">31</a></span>
+<span class="normal"><a href="#kubex.core.watch_event.WatchEvent--source--__codelineno-0-32">32</a></span>
+<span class="normal"><a href="#kubex.core.watch_event.WatchEvent--source--__codelineno-0-33">33</a></span>
+<span class="normal"><a href="#kubex.core.watch_event.WatchEvent--source--__codelineno-0-34">34</a></span>
+<span class="normal"><a href="#kubex.core.watch_event.WatchEvent--source--__codelineno-0-35">35</a></span>
+<span class="normal"><a href="#kubex.core.watch_event.WatchEvent--source--__codelineno-0-36">36</a></span>
+<span class="normal"><a href="#kubex.core.watch_event.WatchEvent--source--__codelineno-0-37">37</a></span>
+<span class="normal"><a href="#kubex.core.watch_event.WatchEvent--source--__codelineno-0-38">38</a></span>
+<span class="normal"><a href="#kubex.core.watch_event.WatchEvent--source--__codelineno-0-39">39</a></span>
+<span class="normal"><a href="#kubex.core.watch_event.WatchEvent--source--__codelineno-0-40">40</a></span>
+<span class="normal"><a href="#kubex.core.watch_event.WatchEvent--source--__codelineno-0-41">41</a></span>
+<span class="normal"><a href="#kubex.core.watch_event.WatchEvent--source--__codelineno-0-42">42</a></span>
+<span class="normal"><a href="#kubex.core.watch_event.WatchEvent--source--__codelineno-0-43">43</a></span>
+<span class="normal"><a href="#kubex.core.watch_event.WatchEvent--source--__codelineno-0-44">44</a></span>
+<span class="normal"><a href="#kubex.core.watch_event.WatchEvent--source--__codelineno-0-45">45</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="kubex.core.watch_event.WatchEvent--source--__codelineno-0-29" name="kubex.core.watch_event.WatchEvent--source--__codelineno-0-29"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<a id="kubex.core.watch_event.WatchEvent--source--__codelineno-0-30" name="kubex.core.watch_event.WatchEvent--source--__codelineno-0-30"></a>    <span class="bp">self</span><span class="p">,</span> <span class="n">resource_type</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">ResourceType</span><span class="p">],</span> <span class="n">raw_event</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+<a id="kubex.core.watch_event.WatchEvent--source--__codelineno-0-31" name="kubex.core.watch_event.WatchEvent--source--__codelineno-0-31"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="kubex.core.watch_event.WatchEvent--source--__codelineno-0-32" name="kubex.core.watch_event.WatchEvent--source--__codelineno-0-32"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_resource_type</span> <span class="o">=</span> <span class="n">resource_type</span>
+<a id="kubex.core.watch_event.WatchEvent--source--__codelineno-0-33" name="kubex.core.watch_event.WatchEvent--source--__codelineno-0-33"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">EventType</span><span class="p">(</span><span class="n">raw_event</span><span class="p">[</span><span class="s2">"type"</span><span class="p">])</span>
+<a id="kubex.core.watch_event.WatchEvent--source--__codelineno-0-34" name="kubex.core.watch_event.WatchEvent--source--__codelineno-0-34"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">object</span><span class="p">:</span> <span class="n">ResourceType</span> <span class="o">|</span> <span class="n">Bookmark</span>
+<a id="kubex.core.watch_event.WatchEvent--source--__codelineno-0-35" name="kubex.core.watch_event.WatchEvent--source--__codelineno-0-35"></a>    <span class="k">match</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
+<a id="kubex.core.watch_event.WatchEvent--source--__codelineno-0-36" name="kubex.core.watch_event.WatchEvent--source--__codelineno-0-36"></a>        <span class="k">case</span> <span class="n">EventType</span><span class="o">.</span><span class="n">BOOKMARK</span><span class="p">:</span>
+<a id="kubex.core.watch_event.WatchEvent--source--__codelineno-0-37" name="kubex.core.watch_event.WatchEvent--source--__codelineno-0-37"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">object</span> <span class="o">=</span> <span class="n">Bookmark</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span><span class="n">raw_event</span><span class="p">[</span><span class="s2">"object"</span><span class="p">])</span>
+<a id="kubex.core.watch_event.WatchEvent--source--__codelineno-0-38" name="kubex.core.watch_event.WatchEvent--source--__codelineno-0-38"></a>        <span class="k">case</span> <span class="n">EventType</span><span class="o">.</span><span class="n">ERROR</span><span class="p">:</span>
+<a id="kubex.core.watch_event.WatchEvent--source--__codelineno-0-39" name="kubex.core.watch_event.WatchEvent--source--__codelineno-0-39"></a>            <span class="k">try</span><span class="p">:</span>
+<a id="kubex.core.watch_event.WatchEvent--source--__codelineno-0-40" name="kubex.core.watch_event.WatchEvent--source--__codelineno-0-40"></a>                <span class="n">status</span> <span class="o">=</span> <span class="n">Status</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span><span class="n">raw_event</span><span class="p">[</span><span class="s2">"object"</span><span class="p">])</span>
+<a id="kubex.core.watch_event.WatchEvent--source--__codelineno-0-41" name="kubex.core.watch_event.WatchEvent--source--__codelineno-0-41"></a>            <span class="k">except</span> <span class="n">ValidationError</span><span class="p">:</span>
+<a id="kubex.core.watch_event.WatchEvent--source--__codelineno-0-42" name="kubex.core.watch_event.WatchEvent--source--__codelineno-0-42"></a>                <span class="k">raise</span> <span class="n">build_exception</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">raw_event</span><span class="p">[</span><span class="s2">"object"</span><span class="p">]))</span>
+<a id="kubex.core.watch_event.WatchEvent--source--__codelineno-0-43" name="kubex.core.watch_event.WatchEvent--source--__codelineno-0-43"></a>            <span class="k">raise</span> <span class="n">build_exception</span><span class="p">(</span><span class="n">status</span><span class="o">.</span><span class="n">code</span><span class="p">,</span> <span class="n">status</span><span class="p">)</span>
+<a id="kubex.core.watch_event.WatchEvent--source--__codelineno-0-44" name="kubex.core.watch_event.WatchEvent--source--__codelineno-0-44"></a>        <span class="k">case</span><span class="w"> </span><span class="k">_</span><span class="p">:</span>
+<a id="kubex.core.watch_event.WatchEvent--source--__codelineno-0-45" name="kubex.core.watch_event.WatchEvent--source--__codelineno-0-45"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">object</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resource_type</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span><span class="n">raw_event</span><span class="p">[</span><span class="s2">"object"</span><span class="p">])</span>
 </code></pre></div></td></tr></table></div>
                   </details>
 
@@ -3823,6 +3923,66 @@ Only honored by the httpx backend.</p>
 
 
 
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="kubex.core.patch.ApplyPatch" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">ApplyPatch</span>
+
+
+<a href="#kubex.core.patch.ApplyPatch" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">ApplyPatch</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="n">P</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="kubex.core.patch.Patch">Patch</span></code>, <code><span title="typing.Generic">Generic</span>[<span title="kubex.core.patch.P">P</span>]</code></p>
+
+
+
+        <p>Server-side apply patch (<code>application/apply-patch+yaml</code>).</p>
+<p>Unlike <code>MergePatch</code>/<code>StrategicMergePatch</code>, <code>exclude_none</code> defaults to <code>True</code>
+here: a field management conflict is reported by field ownership, not by
+an explicit <code>null</code>, so there is no RFC 7396-style "null deletes the field"
+convention to preserve.</p>
+
+
+
+
+
+
+
+
+                  <details class="mkdocstrings-source">
+                    <summary>Source code in <code>kubex/core/patch.py</code></summary>
+                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#kubex.core.patch.ApplyPatch--source--__codelineno-0-62">62</a></span>
+<span class="normal"><a href="#kubex.core.patch.ApplyPatch--source--__codelineno-0-63">63</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="kubex.core.patch.ApplyPatch--source--__codelineno-0-62" name="kubex.core.patch.ApplyPatch--source--__codelineno-0-62"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="n">P</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="kubex.core.patch.ApplyPatch--source--__codelineno-0-63" name="kubex.core.patch.ApplyPatch--source--__codelineno-0-63"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">body</span> <span class="o">=</span> <span class="n">body</span>
+</code></pre></div></td></tr></table></div>
+                  </details>
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
 
 <div class="doc doc-object doc-class">
 
@@ -3970,28 +4130,149 @@ ptr = JsonPointer() / "foo" / 0
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>kubex/core/json_pointer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-73">73</a></span>
-<span class="normal"><a href="#__codelineno-0-74">74</a></span>
-<span class="normal"><a href="#__codelineno-0-75">75</a></span>
-<span class="normal"><a href="#__codelineno-0-76">76</a></span>
-<span class="normal"><a href="#__codelineno-0-77">77</a></span>
-<span class="normal"><a href="#__codelineno-0-78">78</a></span>
-<span class="normal"><a href="#__codelineno-0-79">79</a></span>
-<span class="normal"><a href="#__codelineno-0-80">80</a></span>
-<span class="normal"><a href="#__codelineno-0-81">81</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-73" name="__codelineno-0-73"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-74" name="__codelineno-0-74"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_tokens</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">tokens</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JsonPointer</span><span class="p">:</span>
-<a id="__codelineno-0-75" name="__codelineno-0-75"></a><span class="w">    </span><span class="sd">"""Build a pointer from unescaped reference tokens.</span>
-<a id="__codelineno-0-76" name="__codelineno-0-76"></a>
-<a id="__codelineno-0-77" name="__codelineno-0-77"></a><span class="sd">    Tokens are escaped per RFC 6901 (``~`` -&gt; ``~0``, ``/`` -&gt; ``~1``).</span>
-<a id="__codelineno-0-78" name="__codelineno-0-78"></a><span class="sd">    """</span>
-<a id="__codelineno-0-79" name="__codelineno-0-79"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">tokens</span><span class="p">:</span>
-<a id="__codelineno-0-80" name="__codelineno-0-80"></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
-<a id="__codelineno-0-81" name="__codelineno-0-81"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="s2">"/"</span> <span class="o">+</span> <span class="s2">"/"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_escape_token</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">))</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tokens</span><span class="p">))</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#kubex.core.patch.JsonPointer.from_tokens--source--__codelineno-0-73">73</a></span>
+<span class="normal"><a href="#kubex.core.patch.JsonPointer.from_tokens--source--__codelineno-0-74">74</a></span>
+<span class="normal"><a href="#kubex.core.patch.JsonPointer.from_tokens--source--__codelineno-0-75">75</a></span>
+<span class="normal"><a href="#kubex.core.patch.JsonPointer.from_tokens--source--__codelineno-0-76">76</a></span>
+<span class="normal"><a href="#kubex.core.patch.JsonPointer.from_tokens--source--__codelineno-0-77">77</a></span>
+<span class="normal"><a href="#kubex.core.patch.JsonPointer.from_tokens--source--__codelineno-0-78">78</a></span>
+<span class="normal"><a href="#kubex.core.patch.JsonPointer.from_tokens--source--__codelineno-0-79">79</a></span>
+<span class="normal"><a href="#kubex.core.patch.JsonPointer.from_tokens--source--__codelineno-0-80">80</a></span>
+<span class="normal"><a href="#kubex.core.patch.JsonPointer.from_tokens--source--__codelineno-0-81">81</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="kubex.core.patch.JsonPointer.from_tokens--source--__codelineno-0-73" name="kubex.core.patch.JsonPointer.from_tokens--source--__codelineno-0-73"></a><span class="nd">@classmethod</span>
+<a id="kubex.core.patch.JsonPointer.from_tokens--source--__codelineno-0-74" name="kubex.core.patch.JsonPointer.from_tokens--source--__codelineno-0-74"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_tokens</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">tokens</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JsonPointer</span><span class="p">:</span>
+<a id="kubex.core.patch.JsonPointer.from_tokens--source--__codelineno-0-75" name="kubex.core.patch.JsonPointer.from_tokens--source--__codelineno-0-75"></a><span class="w">    </span><span class="sd">"""Build a pointer from unescaped reference tokens.</span>
+<a id="kubex.core.patch.JsonPointer.from_tokens--source--__codelineno-0-76" name="kubex.core.patch.JsonPointer.from_tokens--source--__codelineno-0-76"></a>
+<a id="kubex.core.patch.JsonPointer.from_tokens--source--__codelineno-0-77" name="kubex.core.patch.JsonPointer.from_tokens--source--__codelineno-0-77"></a><span class="sd">    Tokens are escaped per RFC 6901 (``~`` -&gt; ``~0``, ``/`` -&gt; ``~1``).</span>
+<a id="kubex.core.patch.JsonPointer.from_tokens--source--__codelineno-0-78" name="kubex.core.patch.JsonPointer.from_tokens--source--__codelineno-0-78"></a><span class="sd">    """</span>
+<a id="kubex.core.patch.JsonPointer.from_tokens--source--__codelineno-0-79" name="kubex.core.patch.JsonPointer.from_tokens--source--__codelineno-0-79"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">tokens</span><span class="p">:</span>
+<a id="kubex.core.patch.JsonPointer.from_tokens--source--__codelineno-0-80" name="kubex.core.patch.JsonPointer.from_tokens--source--__codelineno-0-80"></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+<a id="kubex.core.patch.JsonPointer.from_tokens--source--__codelineno-0-81" name="kubex.core.patch.JsonPointer.from_tokens--source--__codelineno-0-81"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="s2">"/"</span> <span class="o">+</span> <span class="s2">"/"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_escape_token</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">))</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tokens</span><span class="p">))</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
 
 </div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="kubex.core.patch.MergePatch" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">MergePatch</span>
+
+
+<a href="#kubex.core.patch.MergePatch" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">MergePatch</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="n">P</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="kubex.core.patch.Patch">Patch</span></code>, <code><span title="typing.Generic">Generic</span>[<span title="kubex.core.patch.P">P</span>]</code></p>
+
+
+
+        <p>RFC 7396 JSON merge patch (<code>application/merge-patch+json</code>).</p>
+<p><code>exclude_none</code> defaults to <code>False</code>: RFC 7396 uses an explicit <code>null</code> to
+delete a key, so a field the caller deliberately set to <code>None</code> must reach
+the server as <code>null</code> rather than being stripped before serialization.
+<code>exclude_unset</code> still limits the patch to fields the caller actually
+touched, so fields left at their default remain distinguishable from
+explicitly null ones.</p>
+
+
+
+
+
+
+
+
+                  <details class="mkdocstrings-source">
+                    <summary>Source code in <code>kubex/core/patch.py</code></summary>
+                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#kubex.core.patch.MergePatch--source--__codelineno-0-94">94</a></span>
+<span class="normal"><a href="#kubex.core.patch.MergePatch--source--__codelineno-0-95">95</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="kubex.core.patch.MergePatch--source--__codelineno-0-94" name="kubex.core.patch.MergePatch--source--__codelineno-0-94"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="n">P</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="kubex.core.patch.MergePatch--source--__codelineno-0-95" name="kubex.core.patch.MergePatch--source--__codelineno-0-95"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">body</span> <span class="o">=</span> <span class="n">body</span>
+</code></pre></div></td></tr></table></div>
+                  </details>
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="kubex.core.patch.StrategicMergePatch" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">StrategicMergePatch</span>
+
+
+<a href="#kubex.core.patch.StrategicMergePatch" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">StrategicMergePatch</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="n">P</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="kubex.core.patch.Patch">Patch</span></code>, <code><span title="typing.Generic">Generic</span>[<span title="kubex.core.patch.P">P</span>]</code></p>
+
+
+
+        <p>Kubernetes strategic merge patch (<code>application/strategic-merge-patch+json</code>).</p>
+<p><code>exclude_none</code> defaults to <code>False</code> for the same reason as <code>MergePatch</code>: an
+explicit <code>null</code> is meaningful (it deletes the field) and must not be
+stripped before serialization.</p>
+
+
+
+
+
+
+
+
+                  <details class="mkdocstrings-source">
+                    <summary>Source code in <code>kubex/core/patch.py</code></summary>
+                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#kubex.core.patch.StrategicMergePatch--source--__codelineno-0-119">119</a></span>
+<span class="normal"><a href="#kubex.core.patch.StrategicMergePatch--source--__codelineno-0-120">120</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="kubex.core.patch.StrategicMergePatch--source--__codelineno-0-119" name="kubex.core.patch.StrategicMergePatch--source--__codelineno-0-119"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="n">P</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="kubex.core.patch.StrategicMergePatch--source--__codelineno-0-120" name="kubex.core.patch.StrategicMergePatch--source--__codelineno-0-120"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">body</span> <span class="o">=</span> <span class="n">body</span>
+</code></pre></div></td></tr></table></div>
+                  </details>
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4229,23 +4510,23 @@ ptr = JsonPointer() / "foo" / 0
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>kubex/core/json_pointer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-73">73</a></span>
-<span class="normal"><a href="#__codelineno-0-74">74</a></span>
-<span class="normal"><a href="#__codelineno-0-75">75</a></span>
-<span class="normal"><a href="#__codelineno-0-76">76</a></span>
-<span class="normal"><a href="#__codelineno-0-77">77</a></span>
-<span class="normal"><a href="#__codelineno-0-78">78</a></span>
-<span class="normal"><a href="#__codelineno-0-79">79</a></span>
-<span class="normal"><a href="#__codelineno-0-80">80</a></span>
-<span class="normal"><a href="#__codelineno-0-81">81</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-73" name="__codelineno-0-73"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-74" name="__codelineno-0-74"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_tokens</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">tokens</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JsonPointer</span><span class="p">:</span>
-<a id="__codelineno-0-75" name="__codelineno-0-75"></a><span class="w">    </span><span class="sd">"""Build a pointer from unescaped reference tokens.</span>
-<a id="__codelineno-0-76" name="__codelineno-0-76"></a>
-<a id="__codelineno-0-77" name="__codelineno-0-77"></a><span class="sd">    Tokens are escaped per RFC 6901 (``~`` -&gt; ``~0``, ``/`` -&gt; ``~1``).</span>
-<a id="__codelineno-0-78" name="__codelineno-0-78"></a><span class="sd">    """</span>
-<a id="__codelineno-0-79" name="__codelineno-0-79"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">tokens</span><span class="p">:</span>
-<a id="__codelineno-0-80" name="__codelineno-0-80"></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
-<a id="__codelineno-0-81" name="__codelineno-0-81"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="s2">"/"</span> <span class="o">+</span> <span class="s2">"/"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_escape_token</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">))</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tokens</span><span class="p">))</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#kubex.core.json_pointer.JsonPointer.from_tokens--source--__codelineno-0-73">73</a></span>
+<span class="normal"><a href="#kubex.core.json_pointer.JsonPointer.from_tokens--source--__codelineno-0-74">74</a></span>
+<span class="normal"><a href="#kubex.core.json_pointer.JsonPointer.from_tokens--source--__codelineno-0-75">75</a></span>
+<span class="normal"><a href="#kubex.core.json_pointer.JsonPointer.from_tokens--source--__codelineno-0-76">76</a></span>
+<span class="normal"><a href="#kubex.core.json_pointer.JsonPointer.from_tokens--source--__codelineno-0-77">77</a></span>
+<span class="normal"><a href="#kubex.core.json_pointer.JsonPointer.from_tokens--source--__codelineno-0-78">78</a></span>
+<span class="normal"><a href="#kubex.core.json_pointer.JsonPointer.from_tokens--source--__codelineno-0-79">79</a></span>
+<span class="normal"><a href="#kubex.core.json_pointer.JsonPointer.from_tokens--source--__codelineno-0-80">80</a></span>
+<span class="normal"><a href="#kubex.core.json_pointer.JsonPointer.from_tokens--source--__codelineno-0-81">81</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="kubex.core.json_pointer.JsonPointer.from_tokens--source--__codelineno-0-73" name="kubex.core.json_pointer.JsonPointer.from_tokens--source--__codelineno-0-73"></a><span class="nd">@classmethod</span>
+<a id="kubex.core.json_pointer.JsonPointer.from_tokens--source--__codelineno-0-74" name="kubex.core.json_pointer.JsonPointer.from_tokens--source--__codelineno-0-74"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_tokens</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">tokens</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JsonPointer</span><span class="p">:</span>
+<a id="kubex.core.json_pointer.JsonPointer.from_tokens--source--__codelineno-0-75" name="kubex.core.json_pointer.JsonPointer.from_tokens--source--__codelineno-0-75"></a><span class="w">    </span><span class="sd">"""Build a pointer from unescaped reference tokens.</span>
+<a id="kubex.core.json_pointer.JsonPointer.from_tokens--source--__codelineno-0-76" name="kubex.core.json_pointer.JsonPointer.from_tokens--source--__codelineno-0-76"></a>
+<a id="kubex.core.json_pointer.JsonPointer.from_tokens--source--__codelineno-0-77" name="kubex.core.json_pointer.JsonPointer.from_tokens--source--__codelineno-0-77"></a><span class="sd">    Tokens are escaped per RFC 6901 (``~`` -&gt; ``~0``, ``/`` -&gt; ``~1``).</span>
+<a id="kubex.core.json_pointer.JsonPointer.from_tokens--source--__codelineno-0-78" name="kubex.core.json_pointer.JsonPointer.from_tokens--source--__codelineno-0-78"></a><span class="sd">    """</span>
+<a id="kubex.core.json_pointer.JsonPointer.from_tokens--source--__codelineno-0-79" name="kubex.core.json_pointer.JsonPointer.from_tokens--source--__codelineno-0-79"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">tokens</span><span class="p">:</span>
+<a id="kubex.core.json_pointer.JsonPointer.from_tokens--source--__codelineno-0-80" name="kubex.core.json_pointer.JsonPointer.from_tokens--source--__codelineno-0-80"></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+<a id="kubex.core.json_pointer.JsonPointer.from_tokens--source--__codelineno-0-81" name="kubex.core.json_pointer.JsonPointer.from_tokens--source--__codelineno-0-81"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="s2">"/"</span> <span class="o">+</span> <span class="s2">"/"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_escape_token</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">))</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tokens</span><span class="p">))</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -4342,6 +4623,57 @@ ptr = JsonPointer() / "foo" / 0
 
 
 
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="kubex.core.exec_channels.port_prefix_encode" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">port_prefix_encode</span>
+
+
+<a href="#kubex.core.exec_channels.port_prefix_encode" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">port_prefix_encode</span><span class="p">(</span><span class="n">port</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Inverse of <code>port_prefix_decode</code>.</p>
+<p>Outbound port-forward writes carry no port prefix (the channel id alone
+addresses the kubelet); only the <em>first inbound</em> frame on each channel is
+prefixed, which <code>PortForwardSession</code> strips via <code>port_prefix_decode</code>.
+Kubex itself has no reason to construct a prefix, so this exists for the
+test suite to build fake inbound frames and round-trip against
+<code>port_prefix_decode</code>.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>kubex/core/exec_channels.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-95"> 95</a></span>
+<span class="normal"><a href="#kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-96"> 96</a></span>
+<span class="normal"><a href="#kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-97"> 97</a></span>
+<span class="normal"><a href="#kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-98"> 98</a></span>
+<span class="normal"><a href="#kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-99"> 99</a></span>
+<span class="normal"><a href="#kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-100">100</a></span>
+<span class="normal"><a href="#kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-101">101</a></span>
+<span class="normal"><a href="#kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-102">102</a></span>
+<span class="normal"><a href="#kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-103">103</a></span>
+<span class="normal"><a href="#kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-104">104</a></span>
+<span class="normal"><a href="#kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-105">105</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-95" name="kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-95"></a><span class="k">def</span><span class="w"> </span><span class="nf">port_prefix_encode</span><span class="p">(</span><span class="n">port</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<a id="kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-96" name="kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-96"></a><span class="w">    </span><span class="sd">"""Inverse of `port_prefix_decode`.</span>
+<a id="kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-97" name="kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-97"></a>
+<a id="kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-98" name="kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-98"></a><span class="sd">    Outbound port-forward writes carry no port prefix (the channel id alone</span>
+<a id="kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-99" name="kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-99"></a><span class="sd">    addresses the kubelet); only the *first inbound* frame on each channel is</span>
+<a id="kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-100" name="kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-100"></a><span class="sd">    prefixed, which `PortForwardSession` strips via `port_prefix_decode`.</span>
+<a id="kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-101" name="kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-101"></a><span class="sd">    Kubex itself has no reason to construct a prefix, so this exists for the</span>
+<a id="kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-102" name="kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-102"></a><span class="sd">    test suite to build fake inbound frames and round-trip against</span>
+<a id="kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-103" name="kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-103"></a><span class="sd">    `port_prefix_decode`.</span>
+<a id="kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-104" name="kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-104"></a><span class="sd">    """</span>
+<a id="kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-105" name="kubex.core.exec_channels.port_prefix_encode--source--__codelineno-0-105"></a>    <span class="k">return</span> <span class="n">port</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">byteorder</span><span class="o">=</span><span class="s2">"little"</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
 
 
 

@@ -2190,9 +2190,26 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">api</span><span class="p">:</span> <span class="n">Api</span><span class="p">[</span><span class="n">Pod</span><span class="p">]</span> <span class="o">=</span> <span class="n">Api</span><span class="p">(</span><span class="n">Pod</span><span class="p">,</span> <span class="n">client</span><span class="o">=</span><span class="n">client</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="s2">"production"</span><span class="p">)</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">pod</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"web-server"</span><span class="p">)</span>  <span class="c1"># uses "production"</span>
 </code></pre></div>
+<p>Omitting <code>namespace=</code> entirely (rather than passing <code>None</code>) falls back to the client's configured
+namespace for namespace-scoped resources — set by <code>configure_from_pod_env()</code> from the pod's own
+service-account namespace file when running in-cluster, <code>None</code> (all-namespaces) otherwise:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.client</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_client</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.configuration.incluster_config</span><span class="w"> </span><span class="kn">import</span> <span class="n">configure_from_pod_env</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># In-cluster, no namespace= passed: scoped to this pod's own namespace, not all-namespaces.</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">config</span> <span class="o">=</span> <span class="k">await</span> <span class="n">configure_from_pod_env</span><span class="p">()</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">client</span> <span class="o">=</span> <span class="k">await</span> <span class="n">create_client</span><span class="p">(</span><span class="n">configuration</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="n">api</span><span class="p">:</span> <span class="n">Api</span><span class="p">[</span><span class="n">Pod</span><span class="p">]</span> <span class="o">=</span> <span class="n">Api</span><span class="p">(</span><span class="n">Pod</span><span class="p">,</span> <span class="n">client</span><span class="o">=</span><span class="n">client</span><span class="p">)</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="n">pods</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">list</span><span class="p">()</span>  <span class="c1"># only this pod's namespace</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="c1"># Pass namespace=None explicitly to opt back into all-namespaces.</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="n">all_pods</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">list</span><span class="p">(</span><span class="n">namespace</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</code></pre></div>
+<p>Cluster-scoped resources never receive a namespace this way, regardless of what the client has
+configured.</p>
 <h3 id="overriding-the-namespace-per-call">Overriding the namespace per-call<a class="headerlink" href="#overriding-the-namespace-per-call" title="Permanent link">&para;</a></h3>
 <p>Any method that accepts a namespace argument lets you override the default:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">pod</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"web-server"</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="s2">"staging"</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">pod</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"web-server"</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="s2">"staging"</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="the-ellipsis-sentinel">The Ellipsis sentinel<a class="headerlink" href="#the-ellipsis-sentinel" title="Permanent link">&para;</a></h3>
 <p>The namespace parameter on every method defaults to <code>...</code> (Ellipsis), not <code>None</code>. This distinction matters:</p>
@@ -2219,25 +2236,25 @@
 </tbody>
 </table>
 <p>This is why you can pass <code>namespace=None</code> to list across all namespaces even when the <code>Api</code> has a default namespace set.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># List pods in all namespaces, even though api was created with namespace="default"</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">pods</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">list</span><span class="p">(</span><span class="n">namespace</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># List pods in all namespaces, even though api was created with namespace="default"</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">pods</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">list</span><span class="p">(</span><span class="n">namespace</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="timeout-overrides">Timeout overrides<a class="headerlink" href="#timeout-overrides" title="Permanent link">&para;</a></h2>
 <p>Like namespace, the <code>request_timeout</code> parameter on every method defaults to <code>...</code> (Ellipsis), meaning "use the client-level default." Pass <code>None</code> to disable timeouts for a specific call (useful for long-running watch streams), or pass a number (seconds) for a per-call override:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Disable timeout for a long-running list</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">big_list</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">list</span><span class="p">(</span><span class="n">request_timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1"># Override to 5 seconds for this call only</span>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="n">pod</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"my-pod"</span><span class="p">,</span> <span class="n">request_timeout</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Disable timeout for a long-running list</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">big_list</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">list</span><span class="p">(</span><span class="n">request_timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># Override to 5 seconds for this call only</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">pod</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"my-pod"</span><span class="p">,</span> <span class="n">request_timeout</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
 </code></pre></div>
 <p>See <a href="../../operations/timeouts/">Timeouts</a> for full details.</p>
 <h2 id="subresource-access">Subresource access<a class="headerlink" href="#subresource-access" title="Permanent link">&para;</a></h2>
 <p>Subresources (logs, exec, portforward, scale, …) are accessed as attributes on the <code>Api</code> instance. They are only available when the resource type declares the appropriate marker interface:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Pod supports logs — this works</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="k">await</span> <span class="n">pod_api</span><span class="o">.</span><span class="n">logs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"my-pod"</span><span class="p">)</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># Deployment does not support logs — mypy error + runtime NotImplementedError</span>
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="k">await</span> <span class="n">deploy_api</span><span class="o">.</span><span class="n">logs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"my-deploy"</span><span class="p">)</span>  <span class="c1"># type: ignore[attr-defined]</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Pod supports logs — this works</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="k">await</span> <span class="n">pod_api</span><span class="o">.</span><span class="n">logs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"my-pod"</span><span class="p">)</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1"># Deployment does not support logs — mypy error + runtime NotImplementedError</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="k">await</span> <span class="n">deploy_api</span><span class="o">.</span><span class="n">logs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"my-deploy"</span><span class="p">)</span>  <span class="c1"># type: ignore[attr-defined]</span>
 </code></pre></div>
 <p>See <a href="../subresources/">Subresources</a> for details on the descriptor pattern and marker interfaces.</p>
 

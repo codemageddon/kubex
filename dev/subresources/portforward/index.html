@@ -2342,9 +2342,23 @@ channel-protocol layer is relatively new. The API may change between minor relea
 <td><code>Mapping[int, MemoryObjectReceiveStream[str]]</code></td>
 <td>Per-port kubelet error messages (typically empty on success)</td>
 </tr>
+<tr>
+<td><code>port_data_truncated</code></td>
+<td><code>Mapping[int, bool]</code></td>
+<td>Per-port: <code>True</code> if that port's data buffer overflowed and the stream was closed locally</td>
+</tr>
+<tr>
+<td><code>port_error_truncated</code></td>
+<td><code>Mapping[int, bool]</code></td>
+<td>Per-port: <code>True</code> if that port's error buffer overflowed and the error stream was closed locally</td>
+</tr>
 </tbody>
 </table>
 <p><code>PortForwardStream</code> is an <code>anyio.abc.ByteStream</code>, so you can use <code>send()</code> and <code>receive()</code> on it directly.</p>
+<p>Each port's incoming data — and, independently, its error messages — is buffered up to 128
+frames; if a consumer falls behind and a buffer fills, kubex closes that channel locally rather
+than blocking forever. Check <code>pf.port_data_truncated[port]</code>/<code>pf.port_error_truncated[port]</code> after
+the corresponding stream ends to tell that apart from a normal EOF.</p>
 <h3 id="forwarding-multiple-ports">Forwarding multiple ports<a class="headerlink" href="#forwarding-multiple-ports" title="Permanent link">&para;</a></h3>
 <p>Pass multiple ports to <code>forward()</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">async</span> <span class="k">with</span> <span class="n">api</span><span class="o">.</span><span class="n">portforward</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">pod_name</span><span class="p">,</span> <span class="n">ports</span><span class="o">=</span><span class="p">[</span><span class="mi">80</span><span class="p">,</span> <span class="mi">443</span><span class="p">])</span> <span class="k">as</span> <span class="n">pf</span><span class="p">:</span>
