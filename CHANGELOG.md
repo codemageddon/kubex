@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   property.
 - `PortForwarder.port_error_truncated` flags a truncated per-port error buffer.
 - Preliminary Kubernetes 1.38 support (`kubex-k8s-1-38`).
+- Python 3.15 support.
 
 ### Fixed
 
@@ -48,6 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Breaking:** Python 3.10 is no longer supported; the minimum is now 3.11. The
+  `exceptiongroup` dependency is dropped.
 - **Breaking:** In-cluster `Api`/`create_api()` calls without an explicit `namespace=` now
   scope to the pod's own namespace. `ClientConfiguration(namespace=...)` no longer defaults to
   `"default"`.

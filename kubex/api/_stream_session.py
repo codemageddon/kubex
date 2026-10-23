@@ -1,19 +1,15 @@
 from __future__ import annotations
 
 import json
-import sys
 from abc import ABC, abstractmethod
 from contextlib import AsyncExitStack
 from types import TracebackType
-from typing import TYPE_CHECKING, TypeVar
+from typing import Self, TypeVar
 
 import anyio
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from kubex_core.models.status import Status
 from pydantic import ValidationError
-
-if sys.version_info < (3, 11):
-    from exceptiongroup import BaseExceptionGroup
 
 from kubex.client.websocket import WebSocketConnection
 from kubex.core.exceptions import KubexClientException
@@ -27,9 +23,6 @@ from kubex.core.exec_channels import (
     ChannelProtocol,
     select_protocol,
 )
-
-if TYPE_CHECKING:
-    from typing_extensions import Self
 
 __all__ = ["StreamSession", "_BaseChannelSession", "_resolve_protocol"]
 

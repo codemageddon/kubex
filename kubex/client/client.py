@@ -3,11 +3,9 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import TYPE_CHECKING, Any, AsyncGenerator, NoReturn, Sequence
+from typing import TYPE_CHECKING, Any, AsyncGenerator, NoReturn, Self, Sequence
 
 if TYPE_CHECKING:
-    from typing_extensions import Self
-
     from kubex.client.websocket import WebSocketConnection
 
 from pydantic import ValidationError

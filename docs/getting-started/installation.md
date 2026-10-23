@@ -1,6 +1,6 @@
 # Installation
 
-Kubex requires **Python 3.10–3.14** and ships as a [PEP 561](https://peps.python.org/pep-0561/) typed package.
+Kubex requires **Python 3.11–3.15** and ships as a [PEP 561](https://peps.python.org/pep-0561/) typed package.
 
 ## Install
 
@@ -104,7 +104,7 @@ For most users, pick one HTTP client and one K8s version:
 
 ## Python version support
 
-Kubex is tested and supported on Python 3.10 through 3.14.
+Kubex is tested and supported on Python 3.11 through 3.15.
 
 ## Next steps
 
