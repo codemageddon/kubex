@@ -17,8 +17,8 @@ class LimitedPriorityLevelConfiguration(BaseK8sModel):
         alias="lendablePercent",
         description="`lendablePercent` prescribes the fraction of the level's NominalCL that can be borrowed by other priority levels. The value of this field must be between 0 and 100, inclusive, and it defaults to 0. The number of seats that other levels can borrow from this level, known as this level's LendableConcurrencyLimit (LendableCL), is defined as follows. LendableCL(i) = round( NominalCL(i) * lendablePercent(i)/100.0 )",
     )
-    limit_response: LimitResponse | None = Field(
-        default=None,
+    limit_response: LimitResponse = Field(
+        ...,
         alias="limitResponse",
         description="`limitResponse` indicates what to do with requests that can not be executed right now",
     )

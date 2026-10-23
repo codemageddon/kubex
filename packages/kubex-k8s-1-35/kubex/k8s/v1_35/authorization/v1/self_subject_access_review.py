@@ -15,7 +15,7 @@ from kubex_core.models.resource_config import ResourceConfig, Scope
 
 
 class SelfSubjectAccessReview(ClusterScopedEntity):
-    """SelfSubjectAccessReview checks whether or the current user can perform an action. Not filling in a spec.namespace means "in all namespaces". Self is a special case, because users should always be able to check whether they can perform an action"""
+    """SelfSubjectAccessReview checks whether or the current user can perform an action. Not filling in a spec.namespace means \"in all namespaces\". Self is a special case, because users should always be able to check whether they can perform an action"""
 
     __RESOURCE_CONFIG__: ClassVar[ResourceConfig["SelfSubjectAccessReview"]] = (
         ResourceConfig["SelfSubjectAccessReview"](

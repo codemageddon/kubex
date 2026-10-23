@@ -11,7 +11,7 @@ from kubex_core.models.resource_config import ResourceConfig, Scope
 
 
 class APIService(ClusterScopedEntity, HasStatusSubresource):
-    """APIService represents a server for a particular GroupVersion. Name must be "version.group"."""
+    """APIService represents a server for a particular GroupVersion. Name must be \"version.group\"."""
 
     __RESOURCE_CONFIG__: ClassVar[ResourceConfig["APIService"]] = ResourceConfig[
         "APIService"

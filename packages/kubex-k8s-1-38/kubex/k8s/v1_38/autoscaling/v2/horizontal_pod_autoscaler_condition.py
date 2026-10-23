@@ -1,0 +1,38 @@
+import datetime
+
+from pydantic import Field
+
+from kubex_core.models.base import BaseK8sModel
+
+
+class HorizontalPodAutoscalerCondition(BaseK8sModel):
+    """HorizontalPodAutoscalerCondition describes the state of a HorizontalPodAutoscaler at a certain point."""
+
+    last_transition_time: datetime.datetime | None = Field(
+        default=None,
+        alias="lastTransitionTime",
+        description="lastTransitionTime is the last time the condition transitioned from one status to another",
+    )
+    message: str | None = Field(
+        default=None,
+        alias="message",
+        description="message is a human-readable explanation containing details about the transition",
+    )
+    observed_generation: int | None = Field(
+        default=None,
+        alias="observedGeneration",
+        description="observedGeneration represents the .metadata.generation that the condition was set based upon. For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date with respect to the current state of the instance.",
+    )
+    reason: str | None = Field(
+        default=None,
+        alias="reason",
+        description="reason is the reason for the condition's last transition.",
+    )
+    status: str = Field(
+        ...,
+        alias="status",
+        description="status is the status of the condition (True, False, Unknown)",
+    )
+    type_: str = Field(
+        ..., alias="type", description="type describes the current condition"
+    )

@@ -6,7 +6,7 @@ from kubex_core.models.base import BaseK8sModel
 
 
 class Taint(BaseK8sModel):
-    """The node this Taint is attached to has the "effect" on any pod that does not tolerate the Taint."""
+    """The node this Taint is attached to has the \"effect\" on any pod that does not tolerate the Taint."""
 
     effect: str = Field(
         ...,

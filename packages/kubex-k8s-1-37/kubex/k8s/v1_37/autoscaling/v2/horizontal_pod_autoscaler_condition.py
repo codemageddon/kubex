@@ -18,6 +18,11 @@ class HorizontalPodAutoscalerCondition(BaseK8sModel):
         alias="message",
         description="message is a human-readable explanation containing details about the transition",
     )
+    observed_generation: int | None = Field(
+        default=None,
+        alias="observedGeneration",
+        description="observedGeneration represents the .metadata.generation that the condition was set based upon. For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date with respect to the current state of the instance.",
+    )
     reason: str | None = Field(
         default=None,
         alias="reason",

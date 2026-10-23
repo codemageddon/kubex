@@ -22,7 +22,7 @@ class HorizontalPodAutoscalerSpec(BaseK8sModel):
     scale_target_ref: CrossVersionObjectReference = Field(
         ...,
         alias="scaleTargetRef",
-        description="reference to scaled resource; horizontal pod autoscaler will learn the current resource consumption and will set the desired number of pods by using its Scale subresource.",
+        description="scaleTargetRef is the reference to scaled resource; horizontal pod autoscaler will learn the current resource consumption and will set the desired number of pods by using its Scale subresource.",
     )
     target_cpu_utilization_percentage: int | None = Field(
         default=None,

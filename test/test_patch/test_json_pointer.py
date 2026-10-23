@@ -111,13 +111,13 @@ class _PointerModel(BaseModel):
 
 
 def test_json_pointer_pydantic_accepts_valid_string() -> None:
-    m = _PointerModel(path="/a/b")  # ty: ignore[invalid-argument-type]
+    m = _PointerModel(path="/a/b")
     assert isinstance(m.path, JsonPointer)
     assert m.path == "/a/b"
 
 
 def test_json_pointer_pydantic_accepts_empty_string() -> None:
-    m = _PointerModel(path="")  # ty: ignore[invalid-argument-type]
+    m = _PointerModel(path="")
     assert isinstance(m.path, JsonPointer)
 
 
@@ -129,22 +129,22 @@ def test_json_pointer_pydantic_preserves_instance() -> None:
 
 def test_json_pointer_pydantic_rejects_invalid() -> None:
     with pytest.raises(ValidationError):
-        _PointerModel(path="no-slash")  # ty: ignore[invalid-argument-type]
+        _PointerModel(path="no-slash")
 
 
 def test_json_pointer_pydantic_serialization() -> None:
-    m = _PointerModel(path="/a/b")  # ty: ignore[invalid-argument-type]
+    m = _PointerModel(path="/a/b")
     assert m.model_dump() == {"path": "/a/b"}
 
 
 def test_json_pointer_pydantic_json_serialization() -> None:
-    m = _PointerModel(path="/a/b")  # ty: ignore[invalid-argument-type]
+    m = _PointerModel(path="/a/b")
     assert '"path":"/a/b"' in m.model_dump_json()
 
 
 def test_json_pointer_pydantic_rejects_non_string() -> None:
     with pytest.raises(ValidationError):
-        _PointerModel(path=123)  # ty: ignore[invalid-argument-type]
+        _PointerModel(path=123)
 
 
 @pytest.mark.parametrize(
@@ -168,7 +168,7 @@ def test_json_pointer_accepts_valid_tilde_escape(valid: str) -> None:
 
 def test_json_pointer_pydantic_rejects_invalid_tilde_escape() -> None:
     with pytest.raises(ValidationError):
-        _PointerModel(path="/bad~2")  # ty: ignore[invalid-argument-type]
+        _PointerModel(path="/bad~2")
 
 
 def test_json_pointer_model_json_schema() -> None:

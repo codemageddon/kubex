@@ -4,7 +4,7 @@ from kubex_core.models.base import BaseK8sModel
 
 
 class IPBlock(BaseK8sModel):
-    """IPBlock describes a particular CIDR (Ex. "192.168.1.0/24","2001:db8::/64") that is allowed to the pods matched by a NetworkPolicySpec's podSelector. The except entry describes CIDRs that should not be included within this rule."""
+    """IPBlock describes a particular CIDR (Ex. \"192.168.1.0/24\",\"2001:db8::/64\") that is allowed to the pods matched by a NetworkPolicySpec's podSelector. The except entry describes CIDRs that should not be included within this rule."""
 
     cidr: str = Field(
         ...,

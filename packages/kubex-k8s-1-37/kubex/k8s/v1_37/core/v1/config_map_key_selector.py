@@ -6,7 +6,11 @@ from kubex_core.models.base import BaseK8sModel
 class ConfigMapKeySelector(BaseK8sModel):
     """Selects a key from a ConfigMap."""
 
-    key: str = Field(..., alias="key", description="The key to select.")
+    key: str = Field(
+        ...,
+        alias="key",
+        description="The key to select from the ConfigMap's Data field. Keys in the BinaryData field are not currently propagated to container env vars.",
+    )
     name: str | None = Field(
         default=None,
         alias="name",

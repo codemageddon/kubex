@@ -28,7 +28,7 @@ class VolumeAttributesClass(ClusterScopedEntity):
     driver_name: str = Field(
         ...,
         alias="driverName",
-        description="Name of the CSI driver This field is immutable.",
+        description="driverName is the name of the CSI driver This field is immutable.",
     )
     kind: Literal["VolumeAttributesClass"] = Field(
         default="VolumeAttributesClass",

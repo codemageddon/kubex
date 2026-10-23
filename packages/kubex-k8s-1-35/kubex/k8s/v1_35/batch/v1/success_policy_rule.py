@@ -4,7 +4,7 @@ from kubex_core.models.base import BaseK8sModel
 
 
 class SuccessPolicyRule(BaseK8sModel):
-    """SuccessPolicyRule describes rule for declaring a Job as succeeded. Each rule must have at least one of the "succeededIndexes" or "succeededCount" specified."""
+    """SuccessPolicyRule describes rule for declaring a Job as succeeded. Each rule must have at least one of the \"succeededIndexes\" or \"succeededCount\" specified."""
 
     succeeded_count: int | None = Field(
         default=None,

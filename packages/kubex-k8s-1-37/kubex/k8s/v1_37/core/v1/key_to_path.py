@@ -17,3 +17,8 @@ class KeyToPath(BaseK8sModel):
         alias="path",
         description="path is the relative path of the file to map the key to. May not be an absolute path. May not contain the path element '..'. May not start with the string '..'.",
     )
+    user: int | None = Field(
+        default=None,
+        alias="user",
+        description="user is Optional: The owner UID of the created file. If specified, the item-level user field takes precedence over defaultUser. (Alpha) This field requires the AtomicWriteVolumeUserFields feature gate to be enabled.",
+    )

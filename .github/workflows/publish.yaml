@@ -4,7 +4,7 @@
 # have a trusted publisher configured in its PyPI project settings at:
 #   https://pypi.org/manage/project/<package-name>/settings/publishing/
 #
-# Configure the following trusted publisher for EACH of the 8 packages:
+# Configure the following trusted publisher for EACH of the 9 packages:
 #   - kubex
 #   - kubex-core
 #   - kubex-k8s-1-32
@@ -13,6 +13,7 @@
 #   - kubex-k8s-1-35
 #   - kubex-k8s-1-36
 #   - kubex-k8s-1-37
+#   - kubex-k8s-1-38
 #
 # Trusted publisher settings (same for all packages):
 #   Owner:         codemageddon

@@ -32,3 +32,8 @@ class ClusterTrustBundleProjection(BaseK8sModel):
         alias="signerName",
         description="Select all ClusterTrustBundles that match this signer name. Mutually-exclusive with name. The contents of all selected ClusterTrustBundles will be unified and deduplicated.",
     )
+    user: int | None = Field(
+        default=None,
+        alias="user",
+        description="user is Optional: The owner UID of the created file. If specified, the item-level user field takes precedence over defaultUser. (Alpha) This field requires the AtomicWriteVolumeUserFields feature gate to be enabled.",
+    )

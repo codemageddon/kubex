@@ -36,6 +36,11 @@ class PodCertificateProjection(BaseK8sModel):
         alias="signerName",
         description="Kubelet's generated CSRs will be addressed to this signer.",
     )
+    user: int | None = Field(
+        default=None,
+        alias="user",
+        description="user is Optional: The owner UID of the created file. If specified, the item-level user field takes precedence over defaultUser. (Alpha) This field requires the AtomicWriteVolumeUserFields feature gate to be enabled.",
+    )
     user_annotations: dict[str, str] | None = Field(
         default=None,
         alias="userAnnotations",

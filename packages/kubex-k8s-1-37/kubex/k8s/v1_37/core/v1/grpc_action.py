@@ -6,6 +6,11 @@ from kubex_core.models.base import BaseK8sModel
 class GRPCAction(BaseK8sModel):
     """GRPCAction specifies an action involving a GRPC service."""
 
+    mode: str | None = Field(
+        default=None,
+        alias="mode",
+        description='mode specifies the connection mode for the gRPC health probe. Set to "TLS" to use TLS without certificate verification. Set to "Plaintext" to use a plaintext (insecure) connection explicitly. If not specified, the probe uses a plaintext (insecure) connection.',
+    )
     port: int = Field(
         ...,
         alias="port",

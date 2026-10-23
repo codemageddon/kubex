@@ -25,6 +25,11 @@ class HTTPGetAction(BaseK8sModel):
         alias="port",
         description="Name or number of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.",
     )
+    protocol: str | None = Field(
+        default=None,
+        alias="protocol",
+        description="Protocol selects the wire protocol for the probe connection. Nil defaults to HTTP/1.1.",
+    )
     scheme: str | None = Field(
         default=None,
         alias="scheme",

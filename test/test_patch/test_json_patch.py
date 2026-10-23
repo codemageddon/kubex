@@ -72,7 +72,7 @@ def test_json_patch_add_value_can_be_any_type(value: Any) -> None:
 
 
 def test_json_patch_move_from_alias_in_json() -> None:
-    op = JsonPatchMove(path="/a/b", from_="/c/d")  # ty: ignore[missing-argument, unknown-argument, invalid-argument-type]
+    op = JsonPatchMove(path="/a/b", from_="/c/d")
     raw = json.loads(op.model_dump_json(by_alias=True))
     assert raw["from"] == "/c/d"
 
@@ -125,8 +125,8 @@ def test_discriminated_union_rejects_invalid(raw: dict[str, Any]) -> None:
 def test_serialize_produces_json_array() -> None:
     patch = JsonPatch(
         [
-            JsonPatchAdd(path="/a", value=1),  # ty: ignore[invalid-argument-type]
-            JsonPatchRemove(path="/b"),  # ty: ignore[invalid-argument-type]
+            JsonPatchAdd(path="/a", value=1),
+            JsonPatchRemove(path="/b"),
         ]
     )
     result = json.loads(patch.serialize())
@@ -137,7 +137,7 @@ def test_serialize_produces_json_array() -> None:
 
 
 def test_serialize_with_move_uses_from_alias() -> None:
-    patch = JsonPatch([JsonPatchMove(path="/a", from_="/b")])  # ty: ignore[missing-argument, unknown-argument, invalid-argument-type]
+    patch = JsonPatch([JsonPatchMove(path="/a", from_="/b")])
 
     result = json.loads(patch.serialize())
     assert result == [{"op": "move", "path": "/a", "from": "/b"}]
@@ -150,12 +150,12 @@ def test_serialize_empty_list() -> None:
 def test_serialize_all_operations() -> None:
     patch = JsonPatch(
         [
-            JsonPatchAdd(path="/a", value="v"),  # ty: ignore[invalid-argument-type]
-            JsonPatchRemove(path="/b"),  # ty: ignore[invalid-argument-type]
-            JsonPatchReplace(path="/c", value=3),  # ty: ignore[invalid-argument-type]
-            JsonPatchMove(path="/d", from_="/e"),  # ty: ignore[missing-argument, unknown-argument, invalid-argument-type]
-            JsonPatchCopy(path="/f", from_="/g"),  # ty: ignore[missing-argument, unknown-argument, invalid-argument-type]
-            JsonPatchTest(path="/h", value=True),  # ty: ignore[invalid-argument-type]
+            JsonPatchAdd(path="/a", value="v"),
+            JsonPatchRemove(path="/b"),
+            JsonPatchReplace(path="/c", value=3),
+            JsonPatchMove(path="/d", from_="/e"),
+            JsonPatchCopy(path="/f", from_="/g"),
+            JsonPatchTest(path="/h", value=True),
         ]
     )
     result = json.loads(patch.serialize())
@@ -171,7 +171,7 @@ def test_serialize_all_operations() -> None:
 
 def test_serialize_by_alias_false_still_uses_from_alias() -> None:
     """by_alias=False must not produce 'from_' — RFC 6902 requires 'from'."""
-    patch = JsonPatch([JsonPatchMove(path="/a", from_="/b")])  # ty: ignore[missing-argument, unknown-argument, invalid-argument-type]
+    patch = JsonPatch([JsonPatchMove(path="/a", from_="/b")])
     result = json.loads(patch.serialize(by_alias=False))
     assert result == [{"op": "move", "path": "/a", "from": "/b"}]
 
@@ -190,17 +190,17 @@ def test_content_type_header() -> None:
 )
 def test_json_patch_rejects_invalid_dicts(body: list[dict[str, Any]]) -> None:
     with pytest.raises(ValidationError):
-        JsonPatch(body)  # type: ignore[arg-type] # ty: ignore[invalid-argument-type]
+        JsonPatch(body)
 
 
 def test_json_patch_accepts_valid_dicts() -> None:
-    patch = JsonPatch([{"op": "add", "path": "/x", "value": 1}])  # type: ignore[list-item]  # ty: ignore[invalid-argument-type]
+    patch = JsonPatch([{"op": "add", "path": "/x", "value": 1}])
     result = json.loads(patch.serialize())
     assert result == [{"op": "add", "path": "/x", "value": 1}]
 
 
 def test_json_patch_accepts_model_instances() -> None:
-    patch = JsonPatch([JsonPatchAdd(path="/x", value=1)])  # ty: ignore[invalid-argument-type]
+    patch = JsonPatch([JsonPatchAdd(path="/x", value=1)])
     result = json.loads(patch.serialize())
     assert result == [{"op": "add", "path": "/x", "value": 1}]
 
@@ -279,12 +279,12 @@ def test_builder_chaining_returns_same_instance() -> None:
 )
 def test_operation_rejects_invalid_json_pointer(invalid_path: str) -> None:
     with pytest.raises(ValidationError):
-        JsonPatchAdd(path=invalid_path, value=1)  # ty: ignore[invalid-argument-type]
+        JsonPatchAdd(path=invalid_path, value=1)
 
 
 def test_operation_rejects_invalid_from_pointer() -> None:
     with pytest.raises(ValidationError):
-        JsonPatchMove(path="/valid", from_="not-a-pointer")  # ty: ignore[invalid-argument-type, missing-argument, unknown-argument]
+        JsonPatchMove(path="/valid", from_="not-a-pointer")
 
 
 @pytest.mark.parametrize(
@@ -303,18 +303,18 @@ def test_builder_move_rejects_invalid_from() -> None:
 
 def test_json_patch_from_dicts_rejects_invalid_path() -> None:
     with pytest.raises(ValidationError):
-        JsonPatch([{"op": "add", "path": "bad", "value": 1}])  # type: ignore[list-item]  # ty: ignore[invalid-argument-type]
+        JsonPatch([{"op": "add", "path": "bad", "value": 1}])
 
 
 def test_serialize_preserves_none_value() -> None:
-    patch = JsonPatch([JsonPatchAdd(path="/x", value=None)])  # ty: ignore[invalid-argument-type]
+    patch = JsonPatch([JsonPatchAdd(path="/x", value=None)])
     result = json.loads(patch.serialize())
     assert result == [{"op": "add", "path": "/x", "value": None}]
 
 
 def test_serialize_exclude_unset_still_includes_op() -> None:
     """exclude_unset is ignored: op defaults must still appear in output."""
-    patch = JsonPatch([JsonPatchAdd(path="/x", value=1)])  # ty: ignore[invalid-argument-type]
+    patch = JsonPatch([JsonPatchAdd(path="/x", value=1)])
     result = json.loads(patch.serialize(exclude_unset=True))
     assert result[0]["op"] == "add"
 
@@ -328,26 +328,26 @@ def test_builder_instances_are_independent() -> None:
 
 def test_move_rejects_from_proper_prefix_of_path() -> None:
     with pytest.raises(ValidationError, match="must not be a proper prefix"):
-        JsonPatchMove(path="/a/b", from_="/a")  # ty: ignore[invalid-argument-type, missing-argument, unknown-argument]
+        JsonPatchMove(path="/a/b", from_="/a")
 
 
 def test_move_rejects_from_deep_prefix_of_path() -> None:
     with pytest.raises(ValidationError, match="must not be a proper prefix"):
-        JsonPatchMove(path="/a/b/c", from_="/a/b")  # ty: ignore[invalid-argument-type, missing-argument, unknown-argument]
+        JsonPatchMove(path="/a/b/c", from_="/a/b")
 
 
 def test_move_allows_equal_paths() -> None:
-    m = JsonPatchMove(path="/a", from_="/a")  # ty: ignore[invalid-argument-type, missing-argument, unknown-argument]
+    m = JsonPatchMove(path="/a", from_="/a")
     assert m.path == "/a"
 
 
 def test_move_allows_non_prefix_paths() -> None:
-    m = JsonPatchMove(path="/a/b", from_="/c/d")  # ty: ignore[invalid-argument-type, missing-argument, unknown-argument]
+    m = JsonPatchMove(path="/a/b", from_="/c/d")
     assert m.from_ == "/c/d"
 
 
 def test_move_allows_reverse_prefix() -> None:
-    m = JsonPatchMove(path="/a", from_="/a/b")  # ty: ignore[invalid-argument-type, missing-argument, unknown-argument]
+    m = JsonPatchMove(path="/a", from_="/a/b")
     assert m.path == "/a"
 
 
@@ -364,8 +364,8 @@ def test_json_patch_model_json_schema() -> None:
 def test_json_patch_round_trip() -> None:
     original = JsonPatch(
         [
-            JsonPatchAdd(path="/a", value=1),  # ty: ignore[invalid-argument-type]
-            JsonPatchMove(path="/b", from_="/c"),  # ty: ignore[invalid-argument-type, missing-argument, unknown-argument]
+            JsonPatchAdd(path="/a", value=1),
+            JsonPatchMove(path="/b", from_="/c"),
         ]
     )
     serialized = original.serialize()

@@ -1,6 +1,7 @@
 from pydantic import Field
 
 from kubex.k8s.v1_37.core.v1.node_config_source import NodeConfigSource
+from kubex.k8s.v1_37.core.v1.node_pod_preemption_policy import NodePodPreemptionPolicy
 from kubex.k8s.v1_37.core.v1.taint import Taint
 from kubex_core.models.base import BaseK8sModel
 
@@ -27,6 +28,11 @@ class NodeSpec(BaseK8sModel):
         default=None,
         alias="podCIDRs",
         description="podCIDRs represents the IP ranges assigned to the node for usage by Pods on that node. If this field is specified, the 0th entry must match the podCIDR field. It may contain at most 1 value for each of IPv4 and IPv6.",
+    )
+    pod_preemption_policy: NodePodPreemptionPolicy | None = Field(
+        default=None,
+        alias="podPreemptionPolicy",
+        description="PodPreemptionPolicy controls the node-level preemption behaviors for pods on this node. This is an alpha field and requires enabling the InPlacePodVerticalScalingSchedulerPreemption feature gate.",
     )
     provider_id: str | None = Field(
         default=None,

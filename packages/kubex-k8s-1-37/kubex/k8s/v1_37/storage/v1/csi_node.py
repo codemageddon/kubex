@@ -5,11 +5,12 @@ from typing import ClassVar, Literal
 from pydantic import Field
 
 from kubex.k8s.v1_37.storage.v1.csi_node_spec import CSINodeSpec
-from kubex_core.models.interfaces import ClusterScopedEntity
+from kubex.k8s.v1_37.storage.v1.csi_node_status import CSINodeStatus
+from kubex_core.models.interfaces import ClusterScopedEntity, HasStatusSubresource
 from kubex_core.models.resource_config import ResourceConfig, Scope
 
 
-class CSINode(ClusterScopedEntity):
+class CSINode(ClusterScopedEntity, HasStatusSubresource):
     """CSINode holds information about all CSI drivers installed on a node. CSI drivers do not need to create the CSINode object directly. As long as they use the node-driver-registrar sidecar container, the kubelet will automatically populate the CSINode object for the CSI driver as part of kubelet plugin registration. CSINode has the same name as a node. If the object is missing, it means either there are no CSI Drivers available on the node, or the Kubelet version is low enough that it doesn't create this object. CSINode has an OwnerReference that points to the corresponding node object."""
 
     __RESOURCE_CONFIG__: ClassVar[ResourceConfig["CSINode"]] = ResourceConfig[
@@ -33,4 +34,9 @@ class CSINode(ClusterScopedEntity):
     )
     spec: CSINodeSpec = Field(
         ..., alias="spec", description="spec is the specification of CSINode"
+    )
+    status: CSINodeStatus | None = Field(
+        default=None,
+        alias="status",
+        description="status contains health and status information for the node's storage.",
     )

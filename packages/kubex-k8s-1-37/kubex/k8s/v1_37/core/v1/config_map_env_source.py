@@ -4,7 +4,7 @@ from kubex_core.models.base import BaseK8sModel
 
 
 class ConfigMapEnvSource(BaseK8sModel):
-    """ConfigMapEnvSource selects a ConfigMap to populate the environment variables with. The contents of the target ConfigMap's Data field will represent the key-value pairs as environment variables."""
+    """ConfigMapEnvSource selects a ConfigMap to populate the environment variables with. The contents of the target ConfigMap's Data field will represent the key-value pairs as environment variables. Keys in the BinaryData field are not currently propagated to container env vars."""
 
     name: str | None = Field(
         default=None,
