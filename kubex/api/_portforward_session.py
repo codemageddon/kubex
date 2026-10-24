@@ -104,10 +104,19 @@ class PortForwardSession(_BaseChannelSession):
             self._errors_recv[port].close()
 
     async def close_port_data(self, port: int) -> None:
-        """Send a half-close frame for the data channel of ``port``.
+        """Half-close the data channel of ``port``.
 
-        Idempotent: a second call for the same port is a no-op.
-        The emitted frame is ``protocol.encode(CHANNEL_CLOSE, bytes([data_channel_id]))``.
+        Idempotent: a second call for the same port is a no-op. On protocols
+        that support it (v5) this sends
+        ``protocol.encode(CHANNEL_CLOSE, bytes([data_channel_id]))``; on v4, the
+        only protocol the kubelet registers for portforward, the channel is only
+        marked closed locally, because the kubelet ignores close frames there.
+
+        Args:
+            port: A port forwarded by this session.
+
+        Raises:
+            ValueError: ``port`` is not part of this session.
         """
         if port not in self._ports:
             raise ValueError(

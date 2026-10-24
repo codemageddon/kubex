@@ -55,7 +55,34 @@ class ScaleAccessor(Generic[ResourceType]):
         namespace: ApiNamespaceTypes = Ellipsis,
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> Scale:
-        """Read the scale of the specified resource."""
+        """Read the scale of the specified resource.
+
+        Args:
+            name: The name of the resource to read.
+            namespace: The namespace of the namespaced resource to read. If not provided,
+                the namespace provided when creating the API will be used.
+                The namespace is required for namespaced resources.
+                If namespace is provided for cluster-scoped resources, an error will be raised.
+            request_timeout: HTTP-level timeout override for this call. A number is
+                interpreted as the total timeout in seconds. Pass ``None`` to disable
+                timeouts entirely for this call. Omit to use the client default.
+
+        Returns:
+            Scale: the resource's scale: ``spec.replicas`` is the desired replica
+                count and ``status.replicas`` the observed one.
+
+        Raises:
+            ValueError: an argument is invalid, e.g. an empty or malformed ``name``,
+                or a namespace that is missing for a namespace-scoped resource or
+                given for a cluster-scoped one.
+            NotFound: the resource does not exist.
+            KubexApiError: the API server rejected the request; the subclass
+                matches the HTTP status (e.g. ``Forbidden``, ``UnprocessableEntity``).
+            KubexConnectionError: the API server could not be reached.
+            KubexTimeoutError: the request timed out on the client side.
+            ConfigurationError: credentials could not be obtained, e.g. an exec
+                plugin or OIDC token refresh failed.
+        """
         _namespace = ensure_required_namespace(namespace, self._namespace, self._scope)
         request = self._request_builder.get_subresource(
             SCALE_SUBRESOURCE, name, _namespace, request_timeout=request_timeout
@@ -73,7 +100,44 @@ class ScaleAccessor(Generic[ResourceType]):
         field_manager: str | None = None,
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> Scale:
-        """Replace the scale of the specified resource."""
+        """Replace the scale of the specified resource.
+
+        Args:
+            name: The name of the resource whose scale to replace.
+            scale: The new scale, usually the ``Scale`` from ``get()`` with
+                ``spec.replicas`` changed. If its ``metadata.resource_version`` is set,
+                the request fails with ``409 Conflict`` when the resource has changed
+                since that version.
+            namespace: The namespace of the namespaced resource. If not provided,
+                the namespace provided when creating the API will be used.
+                The namespace is required for namespaced resources.
+                If namespace is provided for cluster-scoped resources, an error will be raised.
+            dry_run: Validate the request without persisting anything (``True``,
+                ``"All"`` or ``DryRun.ALL``).
+            field_manager: The field manager name recorded in ``managedFields`` as
+                the owner of the fields this request sets.
+            request_timeout: HTTP-level timeout override for this call. A number is
+                interpreted as the total timeout in seconds. Pass ``None`` to disable
+                timeouts entirely for this call. Omit to use the client default.
+
+        Returns:
+            Scale: the updated scale.
+
+        Raises:
+            ValueError: an argument is invalid, e.g. an empty or malformed ``name``,
+                a namespace that is missing for a namespace-scoped resource or given
+                for a cluster-scoped one, or an unknown option value (e.g. for
+                ``dry_run``).
+            NotFound: the resource does not exist.
+            Conflict: the resource has changed since the ``metadata.resource_version``
+                that was sent.
+            KubexApiError: the API server rejected the request; the subclass
+                matches the HTTP status (e.g. ``Forbidden``, ``UnprocessableEntity``).
+            KubexConnectionError: the API server could not be reached.
+            KubexTimeoutError: the request timed out on the client side.
+            ConfigurationError: credentials could not be obtained, e.g. an exec
+                plugin or OIDC token refresh failed.
+        """
         _namespace = ensure_required_namespace(namespace, self._namespace, self._scope)
         options = PostOptions(dry_run=dry_run, field_manager=field_manager)
         request = self._request_builder.replace_subresource(
@@ -99,7 +163,50 @@ class ScaleAccessor(Generic[ResourceType]):
         field_validation: FieldValidationTypes = None,
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> Scale:
-        """Patch the scale of the specified resource."""
+        """Patch the scale of the specified resource.
+
+        Args:
+            name: The name of the resource whose scale to patch.
+            patch: The patch to send: ``ApplyPatch`` (server-side apply),
+                ``MergePatch``, ``StrategicMergePatch`` or ``JsonPatch``, e.g. a
+                ``MergePatch`` setting ``spec.replicas``. Its type sets the
+                request's ``Content-Type``.
+            namespace: The namespace of the namespaced resource. If not provided,
+                the namespace provided when creating the API will be used.
+                The namespace is required for namespaced resources.
+                If namespace is provided for cluster-scoped resources, an error will be raised.
+            dry_run: Validate the request without persisting anything (``True``,
+                ``"All"`` or ``DryRun.ALL``).
+            field_manager: The field manager name recorded in ``managedFields`` as
+                the owner of the fields this patch sets. Required for ``ApplyPatch``.
+            force: Take over fields currently owned by another field manager instead
+                of failing with ``409 Conflict``. Only valid with ``ApplyPatch``.
+            field_validation: How the API server handles unknown or duplicate fields in
+                the patch: ``"Strict"`` (reject the request), ``"Warn"`` (accept it
+                with a warning; the server default) or ``"Ignore"`` (drop them
+                silently). Also accepts the ``FieldValidation`` enum.
+            request_timeout: HTTP-level timeout override for this call. A number is
+                interpreted as the total timeout in seconds. Pass ``None`` to disable
+                timeouts entirely for this call. Omit to use the client default.
+
+        Returns:
+            Scale: the scale after the patch.
+
+        Raises:
+            ValueError: an argument is invalid, e.g. an empty or malformed ``name``,
+                a namespace that is missing for a namespace-scoped resource or given
+                for a cluster-scoped one, or an unknown option value (e.g. for
+                ``dry_run``).
+            NotFound: the resource does not exist.
+            Conflict: an ``ApplyPatch`` conflicts with fields owned by another field
+                manager and ``force`` is not set.
+            KubexApiError: the API server rejected the request; the subclass
+                matches the HTTP status (e.g. ``Forbidden``, ``UnprocessableEntity``).
+            KubexConnectionError: the API server could not be reached.
+            KubexTimeoutError: the request timed out on the client side.
+            ConfigurationError: credentials could not be obtained, e.g. an exec
+                plugin or OIDC token refresh failed.
+        """
         _namespace = ensure_required_namespace(namespace, self._namespace, self._scope)
         options = PatchOptions(
             dry_run=dry_run,

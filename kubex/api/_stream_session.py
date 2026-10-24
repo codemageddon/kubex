@@ -334,14 +334,21 @@ class StreamSession(_BaseChannelSession):
 
     @property
     def stdout(self) -> MemoryObjectReceiveStream[bytes]:
+        """Stdout chunks as an async iterator; ends when the channel closes."""
         return self._stdout_recv
 
     @property
     def stderr(self) -> MemoryObjectReceiveStream[bytes]:
+        """Stderr chunks as an async iterator; ends at once if disabled or with ``tty=True``."""
         return self._stderr_recv
 
     @property
     def stdin(self) -> _StdinWriter:
+        """Writer for stdin: ``await stdin.write(data)``, ``await stdin.close()``.
+
+        ``write()`` sends the data in frames of at most 32 KiB and raises
+        ``RuntimeError`` if stdin was not enabled or is already closed.
+        """
         return self._stdin
 
     @property
@@ -377,11 +384,26 @@ class StreamSession(_BaseChannelSession):
         connection closes; ``None`` means the server closed without sending
         one. The status only arrives after earlier frames have been
         delivered, so keep draining enabled output channels while waiting.
+
+        Returns:
+            Status | None: the reported ``Status``; error-channel text that is not
+                a valid Status becomes a ``Failure`` Status carrying it. ``None``
+                if the connection closed without any error-channel data.
         """
         await self._status_event.wait()
         return self._status
 
     async def resize(self, *, width: int, height: int) -> None:
+        """Send a terminal resize event.
+
+        Args:
+            width: The new terminal width in columns; must be positive.
+            height: The new terminal height in rows; must be positive.
+
+        Raises:
+            ValueError: ``width`` or ``height`` is not positive.
+            KubexClientException: the session has already ended.
+        """
         if width <= 0 or height <= 0:
             raise ValueError(
                 f"resize requires positive width and height, got "
@@ -393,6 +415,14 @@ class StreamSession(_BaseChannelSession):
         await self._send_frame(CHANNEL_RESIZE, payload)
 
     async def close_stdin(self) -> None:
+        """Half-close stdin, signalling end-of-input to the process.
+
+        Idempotent, and a no-op when stdin was not enabled.
+
+        Raises:
+            KubexClientException: stdin is still open but the session has
+                already ended.
+        """
         # Holding the stdin lock makes the check-then-send atomic with
         # respect to concurrent stdin writes, so no stdin frame can follow
         # the half-close on the wire. The flag is only set after the send

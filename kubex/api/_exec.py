@@ -56,10 +56,12 @@ class ExecError(KubexClientException):
 
     @property
     def status(self) -> Status | None:
+        """The failed command's ``Status``, or ``None`` if none was reported."""
         return self.result.status
 
     @property
     def exit_code(self) -> int | None:
+        """The failed command's exit code, or ``None``; see :attr:`ExecResult.exit_code`."""
         return self.result.exit_code
 
 
@@ -91,6 +93,13 @@ class ExecResult:
         Covers non-zero exits as well as failures without an exit code (e.g.
         the binary does not exist) and a missing status. Returns ``self`` so
         it can be chained: ``(await api.exec.run(...)).raise_for_status()``.
+
+        Returns:
+            Self: this result, unchanged, when the status is ``Success``.
+
+        Raises:
+            ExecError: the status is missing or is not ``Success``. Its message is
+                the server's ``Status.message`` (or ``reason``) when there is one.
         """
         status = self.status
         if status is not None and status.status == "Success":
@@ -225,6 +234,50 @@ class ExecAccessor(Generic[ResourceType]):
         the whole session (backpressure). Drain every enabled output channel
         concurrently, or disable the ones you don't need (e.g.
         ``stderr=False``).
+
+        Leaving the ``async with`` block closes the session, even while the
+        command is still running.
+
+        Args:
+            name: The name of the Pod to run the command in.
+            command: The command and its arguments, e.g. ``["sh", "-c", "ls"]``.
+                Must be a non-empty sequence of strings, not a single string.
+            container: The container to run the command in. Required when the Pod
+                has more than one container.
+            namespace: The namespace of the Pod. If not provided,
+                the namespace provided when creating the API will be used.
+                The namespace is required for namespaced resources.
+                If namespace is provided for cluster-scoped resources, an error will be raised.
+            stdin: Open the stdin channel, for writing with ``session.stdin``.
+            stdout: Open the stdout channel.
+            stderr: Open the stderr channel. Ignored with ``tty=True``.
+            tty: Allocate a pseudo-terminal. The kubelet then merges stderr into
+                stdout, so ``session.stderr`` closes immediately.
+            request_timeout: HTTP-level timeout override for the WebSocket
+                handshake. A number is interpreted as the total timeout in
+                seconds. Pass ``None`` to disable timeouts entirely. Omit to use
+                the client default. It does not bound the session itself.
+
+        Yields:
+            StreamSession: the open session, with ``stdin``, ``stdout``,
+                ``stderr``, ``resize()``, ``close_stdin()`` and
+                ``wait_for_status()``.
+
+        Raises:
+            ValueError: an argument is invalid, e.g. an empty or malformed ``name``,
+                or a namespace that is missing for a namespace-scoped resource or
+                given for a cluster-scoped one; or ``command`` is empty.
+            TypeError: ``command`` is a single string (or bytes) instead of a
+                sequence of strings, or contains a non-string item.
+            KubexApiError: the WebSocket handshake was rejected; the subclass matches
+                the HTTP status (e.g. ``NotFound`` for a missing pod, ``BadRequest``
+                for an unknown container, ``Forbidden``).
+            KubexConnectionError: the API server could not be reached.
+            KubexTimeoutError: the WebSocket handshake timed out.
+            KubexClientException: the WebSocket handshake failed for another reason,
+                or the connection closed abnormally.
+            ConfigurationError: credentials could not be obtained, or the httpx
+                client is used without the ``httpx-ws`` extra installed.
         """
         session = await self._open_session(
             name,
@@ -277,6 +330,48 @@ class ExecAccessor(Generic[ResourceType]):
         all of it) is logged, not raised: the result reflects what the
         server reported. Use :meth:`ExecResult.raise_for_status` to turn a
         non-successful status into an exception.
+
+        Args:
+            name: The name of the Pod to run the command in.
+            command: The command and its arguments, e.g. ``["cat", "/etc/hostname"]``.
+                Must be a non-empty sequence of strings, not a single string.
+            container: The container to run the command in. Required when the Pod
+                has more than one container.
+            namespace: The namespace of the Pod. If not provided,
+                the namespace provided when creating the API will be used.
+                The namespace is required for namespaced resources.
+                If namespace is provided for cluster-scoped resources, an error will be raised.
+            stdin: Bytes to send to the command's stdin, which is then closed.
+                ``None`` (the default) does not open a stdin channel at all;
+                ``b""`` opens it and closes it right away.
+            stdout: Capture stdout.
+            stderr: Capture stderr.
+            request_timeout: Timeout override for this call, bounding both the
+                handshake and the command's run; see above. A number is
+                interpreted as the total timeout in seconds. Pass ``None`` to
+                disable timeouts entirely. Omit to use the client default for the
+                handshake only.
+
+        Returns:
+            ExecResult: the captured ``stdout`` and ``stderr`` bytes and the
+                ``status`` the server reported (``None`` if it reported none).
+
+        Raises:
+            ValueError: an argument is invalid, e.g. an empty or malformed ``name``,
+                or a namespace that is missing for a namespace-scoped resource or
+                given for a cluster-scoped one; or ``command`` is empty.
+            TypeError: ``command`` is a single string (or bytes) instead of a
+                sequence of strings, or contains a non-string item.
+            KubexApiError: the WebSocket handshake was rejected; the subclass matches
+                the HTTP status (e.g. ``NotFound`` for a missing pod, ``BadRequest``
+                for an unknown container, ``Forbidden``).
+            KubexConnectionError: the API server could not be reached.
+            KubexTimeoutError: the WebSocket handshake or the command did not finish
+                within ``request_timeout``.
+            KubexClientException: the WebSocket handshake failed for another reason,
+                or the connection closed abnormally.
+            ConfigurationError: credentials could not be obtained, or the httpx
+                client is used without the ``httpx-ws`` extra installed.
         """
         # Resolve the wall-clock bound for the post-handshake portion.
         # ``Ellipsis`` and a ``Timeout`` whose ``total`` and ``read`` are

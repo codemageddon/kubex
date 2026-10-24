@@ -10,16 +10,37 @@ from kubex_core.models.resource_config import Scope
 from kubex_core.models.typing import ResourceType
 
 ApiNamespaceTypes = NamespaceTypes | EllipsisType
+"""A per-call namespace argument: a namespace name, ``None`` (no namespace, or all
+namespaces for calls that allow it), or ``...`` (omitted: use the ``Api`` default)."""
 ApiRequestTimeoutTypes = TimeoutTypes | EllipsisType
+"""A per-call HTTP timeout: a ``Timeout``, a number of seconds, ``None`` (no timeout),
+or ``...`` (omitted: use the client default)."""
 
 
 class SubresourceNotAvailable:
+    """Type of a subresource accessor whose resource type does not support it.
+
+    Type checkers see this for e.g. ``Api[Pod].scale``: it has no attributes, so
+    any call on it is a type error. At runtime the attribute access raises
+    ``NotImplementedError`` instead.
+    """
+
     __slots__ = ()
 
 
 def get_namespace(
     namespace: ApiNamespaceTypes, default: NamespaceTypes
 ) -> NamespaceTypes:
+    """Resolve a per-call namespace argument against the ``Api`` default.
+
+    Args:
+        namespace: The namespace passed to the call, or ``...`` if it was omitted.
+        default: The ``Api`` instance's namespace.
+
+    Returns:
+        NamespaceTypes: ``default`` if ``namespace`` was omitted, otherwise
+            ``namespace`` (which may be ``None``).
+    """
     if namespace is Ellipsis:
         return default
     return namespace
@@ -30,6 +51,20 @@ def ensure_required_namespace(
     default: NamespaceTypes,
     scope: Scope,
 ) -> NamespaceTypes:
+    """Resolve the namespace for a call that targets a single object.
+
+    Args:
+        namespace: The namespace passed to the call, or ``...`` to use ``default``.
+        default: The ``Api`` instance's namespace.
+        scope: The resource's scope.
+
+    Returns:
+        NamespaceTypes: the namespace to use; ``None`` for a cluster-scoped resource.
+
+    Raises:
+        ValueError: no namespace resolves for a namespace-scoped resource, or one
+            resolves for a cluster-scoped resource.
+    """
     _namespace = get_namespace(namespace, default)
     if _namespace is None and scope == Scope.NAMESPACE:
         raise ValueError("Namespace is required")
@@ -43,6 +78,22 @@ def ensure_optional_namespace(
     default: NamespaceTypes,
     scope: Scope,
 ) -> NamespaceTypes:
+    """Resolve the namespace for a call that may span namespaces.
+
+    Used by ``list``, ``watch`` and ``delete_collection``.
+
+    Args:
+        namespace: The namespace passed to the call, or ``...`` to use ``default``.
+        default: The ``Api`` instance's namespace.
+        scope: The resource's scope.
+
+    Returns:
+        NamespaceTypes: the namespace to use, or ``None`` for all namespaces (always
+            ``None`` for a cluster-scoped resource).
+
+    Raises:
+        ValueError: a namespace resolves for a cluster-scoped resource.
+    """
     _namespace = get_namespace(namespace, default)
     if scope == Scope.CLUSTER and _namespace is not None:
         raise ValueError("Namespace is not supported for cluster-scoped resources")
@@ -50,6 +101,13 @@ def ensure_optional_namespace(
 
 
 class ApiProtocol(Protocol[ResourceType]):
+    """The parts of ``Api`` that subresource descriptors read.
+
+    The descriptors' ``__get__`` overloads match on ``ApiProtocol[T]`` to pick the
+    accessor type for resource type ``T``, or ``SubresourceNotAvailable`` when
+    ``T`` lacks the matching marker interface.
+    """
+
     _resource: Type[ResourceType]
     _client: BaseClient
     _request_builder: RequestBuilder

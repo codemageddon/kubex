@@ -172,6 +172,22 @@ class PortForwardStream(anyio.abc.ByteStream):
         self._send_lock = anyio.Lock()
 
     async def receive(self, max_bytes: int = 65536) -> bytes:
+        """Receive bytes from the remote port, waiting until some arrive.
+
+        A frame larger than ``max_bytes`` is returned over several calls.
+
+        Args:
+            max_bytes: The maximum number of bytes to return.
+
+        Returns:
+            bytes: between 1 and ``max_bytes`` bytes received from the pod.
+
+        Raises:
+            ValueError: ``max_bytes`` is not positive.
+            anyio.EndOfStream: no more data will arrive: the kubelet closed the
+                port's data channel, the session ended, or this stream was closed
+                with ``aclose()``.
+        """
         if max_bytes <= 0:
             raise ValueError(f"max_bytes must be positive, got {max_bytes}")
         while not self._buffer:
@@ -186,8 +202,12 @@ class PortForwardStream(anyio.abc.ByteStream):
     async def send(self, item: bytes) -> None:
         """Send ``item`` to the remote port, split into frames of at most 32 KiB.
 
-        Raises ``anyio.ClosedResourceError`` after ``send_eof()``/``aclose()``
-        and ``KubexClientException`` once the session has ended.
+        Args:
+            item: The bytes to send.
+
+        Raises:
+            anyio.ClosedResourceError: ``send_eof()`` or ``aclose()`` was called.
+            KubexClientException: the session has already ended.
         """
         # The closed-flag check happens under the same lock that
         # send_eof()/aclose() take, so no data frame can follow a half-close.
@@ -197,11 +217,27 @@ class PortForwardStream(anyio.abc.ByteStream):
             await self._session._send_data(self._data_channel_id, item)
 
     async def send_eof(self) -> None:
+        """Close the sending side of the stream; ``receive()`` keeps working.
+
+        Later ``send()`` calls raise ``anyio.ClosedResourceError``; calling this
+        again is a no-op. On the v4 portforward protocol (the only one the
+        kubelet supports) nothing is sent on the wire: the pod is not told about
+        the EOF and only sees the connection end when the session's WebSocket
+        closes.
+        """
         async with self._send_lock:
             self._send_closed = True
         await self._session.close_port_data(self._port)
 
     async def aclose(self) -> None:
+        """Close both directions of the stream.
+
+        The sending side is closed as by ``send_eof()``. On the receiving side,
+        ``receive()`` raises ``anyio.EndOfStream`` once any bytes left over from a
+        partly read frame are returned, and data that arrives for this port
+        afterwards is discarded, so an unread port no longer stalls the others.
+        The session and its other ports stay open.
+        """
         async with self._send_lock:
             self._send_closed = True
         try:
@@ -228,10 +264,12 @@ class PortForwarder:
 
     @property
     def streams(self) -> Mapping[int, PortForwardStream]:
+        """Per-port byte streams (``PortForwardStream``), keyed by remote port."""
         return MappingProxyType(self._session._streams)
 
     @property
     def errors(self) -> Mapping[int, MemoryObjectReceiveStream[str]]:
+        """Per-port async iterators of kubelet error messages, keyed by remote port."""
         return MappingProxyType(self._session._errors_recv)
 
     @property
@@ -336,12 +374,43 @@ class PortforwardAccessor(Generic[ResourceType]):
         a real local TCP port, use :meth:`listen` instead (which is built on
         top of this method).
 
-        Yields a ``PortForwarder`` exposing per-port ``ByteStream`` objects
-        (``pf.streams[port]``) and per-port error iterators (``pf.errors[port]``).
-
         Inbound data is never dropped; since the ports share one WebSocket, a
         port that is not read stalls all ports once its queue fills. Read
         every forwarded port (or ``aclose()`` the ones you don't need).
+
+        Args:
+            name: The name of the pod.
+            ports: The pod ports to forward: 1 to 127 unique ports in 1..65535.
+                Each becomes a key of ``streams`` and ``errors``.
+            namespace: The namespace of the pod. If not provided,
+                the namespace provided when creating the API will be used.
+                The namespace is required for namespaced resources.
+                If namespace is provided for cluster-scoped resources, an error will be raised.
+            request_timeout: HTTP-level timeout override for the WebSocket
+                handshake. A number is interpreted as the total timeout in
+                seconds. Pass ``None`` to disable timeouts entirely. Omit to use
+                the client default. It does not bound the session itself.
+
+        Yields:
+            PortForwarder: the per-port byte streams (``pf.streams[port]``) and
+                error iterators (``pf.errors[port]``). The session's WebSocket is
+                closed when the ``async with`` block exits.
+
+        Raises:
+            ValueError: an argument is invalid, e.g. an empty or malformed ``name``,
+                or a namespace that is missing for a namespace-scoped resource or
+                given for a cluster-scoped one; or ``ports`` is empty,
+                has duplicates or more than 127 entries, or a port is outside
+                1..65535.
+            TypeError: a port is not an ``int``.
+            KubexApiError: the WebSocket handshake was rejected; the subclass matches
+                the HTTP status (e.g. ``NotFound`` for a missing pod, ``Forbidden``).
+            KubexConnectionError: the API server could not be reached.
+            KubexTimeoutError: the WebSocket handshake timed out.
+            KubexClientException: the WebSocket handshake failed for another reason,
+                or the connection closed abnormally.
+            ConfigurationError: credentials could not be obtained, or the httpx
+                client is used without the ``httpx-ws`` extra installed.
         """
         session = await self._open_session(
             name,
@@ -381,16 +450,40 @@ class PortforwardAccessor(Generic[ResourceType]):
         directly without binding any sockets, use :meth:`forward` instead
         (which this method is built on top of).
 
-        ``port_map`` maps **remote port** (kubelet-side) to **local port**.
-        Example: ``{80: 18080}`` opens a local listener on port 18080 that
-        forwards to the pod's port 80.
-
         When the remote side finishes (or the kubelet reports an error), the
         local connection is closed; a local half-close (EOF) keeps the
         connection open until the remote response is complete. The v4
         protocol cannot pass that EOF to the pod, so after a local client
         disconnects its connection stays open until the pod closes it or
-        sends more data.
+        sends more data. Failures on individual connections (including a
+        rejected WebSocket handshake) are logged to the ``kubex.portforward``
+        logger rather than raised.
+
+        Args:
+            name: The name of the pod.
+            port_map: Maps each **remote port** (on the pod) to the **local port**
+                to listen on. Example: ``{80: 18080}`` opens a local listener on
+                port 18080 that forwards to the pod's port 80.
+            local_host: The local address the listeners bind to. The default,
+                ``127.0.0.1``, only accepts connections from this host.
+            namespace: The namespace of the pod. If not provided,
+                the namespace provided when creating the API will be used.
+                The namespace is required for namespaced resources.
+                If namespace is provided for cluster-scoped resources, an error will be raised.
+            request_timeout: HTTP-level timeout override for the WebSocket
+                handshake of each accepted connection. A number is interpreted as
+                the total timeout in seconds. Pass ``None`` to disable timeouts
+                entirely. Omit to use the client default. It does not bound the
+                connections themselves.
+
+        Yields:
+            None: the listeners stay open while the ``async with`` block runs;
+                leaving it closes them and tears down open connections.
+
+        Raises:
+            ValueError: ``port_map`` is empty, a port is outside 1..65535, or two
+                remote ports map to the same local port.
+            TypeError: a port is not an ``int``.
         """
         if not port_map:
             raise ValueError("port_map must contain at least one entry")

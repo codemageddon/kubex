@@ -52,7 +52,45 @@ class EvictionAccessor(Generic[ResourceType]):
         field_manager: str | None = None,
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> Status:
-        """Create an eviction for the specified resource."""
+        """Create an eviction for the specified resource.
+
+        Evicts the pod gracefully while respecting its PodDisruptionBudgets, the
+        mechanism behind ``kubectl drain``.
+
+        Args:
+            name: The name of the pod to evict.
+            eviction: The ``Eviction`` body to post; its ``delete_options`` (e.g.
+                ``grace_period_seconds``) control the resulting deletion.
+            namespace: The namespace of the pod to evict. If not provided,
+                the namespace provided when creating the API will be used.
+                The namespace is required for namespaced resources.
+                If namespace is provided for cluster-scoped resources, an error will be raised.
+            dry_run: Validate the request without evicting anything (``True``,
+                ``"All"`` or ``DryRun.ALL``).
+            field_manager: Sent as the Kubernetes ``fieldManager`` query parameter.
+            request_timeout: HTTP-level timeout override for this call. A number is
+                interpreted as the total timeout in seconds. Pass ``None`` to disable
+                timeouts entirely for this call. Omit to use the client default.
+
+        Returns:
+            Status: the API server's response once the eviction is accepted.
+
+        Raises:
+            ValueError: an argument is invalid, e.g. an empty or malformed ``name``,
+                a namespace that is missing for a namespace-scoped resource or given
+                for a cluster-scoped one, or an unknown option value (e.g. for
+                ``dry_run``).
+            NotFound: the pod does not exist.
+            TooManyRequests: the eviction would violate a PodDisruptionBudget
+                (HTTP 429). Retry later; ``retry_after`` holds the server's suggested
+                delay when it sends one.
+            KubexApiError: the API server rejected the request; the subclass
+                matches the HTTP status (e.g. ``Forbidden``, ``UnprocessableEntity``).
+            KubexConnectionError: the API server could not be reached.
+            KubexTimeoutError: the request timed out on the client side.
+            ConfigurationError: credentials could not be obtained, e.g. an exec
+                plugin or OIDC token refresh failed.
+        """
         _namespace = ensure_required_namespace(namespace, self._namespace, self._scope)
         options = PostOptions(dry_run=dry_run, field_manager=field_manager)
         request = self._request_builder.create_subresource(

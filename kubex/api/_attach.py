@@ -127,6 +127,46 @@ class AttachAccessor(Generic[ResourceType]):
         the whole session (backpressure). Drain every enabled output channel
         concurrently, or disable the ones you don't need (e.g.
         ``stderr=False``).
+
+        Attaches to the container's existing main process; no new command is
+        started. Leaving the ``async with`` block closes the session.
+
+        Args:
+            name: The name of the Pod to attach to.
+            container: The container to attach to. Required when the Pod has more
+                than one container.
+            namespace: The namespace of the Pod. If not provided,
+                the namespace provided when creating the API will be used.
+                The namespace is required for namespaced resources.
+                If namespace is provided for cluster-scoped resources, an error will be raised.
+            stdin: Attach to the process's stdin, for writing with ``session.stdin``.
+            stdout: Attach to the process's stdout.
+            stderr: Attach to the process's stderr. Ignored with ``tty=True``.
+            tty: Attach as a terminal. The kubelet then merges stderr into stdout,
+                so ``session.stderr`` closes immediately.
+            request_timeout: HTTP-level timeout override for the WebSocket
+                handshake. A number is interpreted as the total timeout in
+                seconds. Pass ``None`` to disable timeouts entirely. Omit to use
+                the client default. It does not bound the session itself.
+
+        Yields:
+            StreamSession: the open session, with ``stdin``, ``stdout``,
+                ``stderr``, ``resize()``, ``close_stdin()`` and
+                ``wait_for_status()``.
+
+        Raises:
+            ValueError: an argument is invalid, e.g. an empty or malformed ``name``,
+                or a namespace that is missing for a namespace-scoped resource or
+                given for a cluster-scoped one.
+            KubexApiError: the WebSocket handshake was rejected; the subclass matches
+                the HTTP status (e.g. ``NotFound`` for a missing pod, ``BadRequest``
+                for an unknown container, ``Forbidden``).
+            KubexConnectionError: the API server could not be reached.
+            KubexTimeoutError: the WebSocket handshake timed out.
+            KubexClientException: the WebSocket handshake failed for another reason,
+                or the connection closed abnormally.
+            ConfigurationError: credentials could not be obtained, or the httpx
+                client is used without the ``httpx-ws`` extra installed.
         """
         session = await self._open_session(
             name,

@@ -53,7 +53,22 @@ from ._status import _StatusDescriptor
 
 
 class Api(Generic[ResourceType]):
-    """API for interacting with Kubernetes resource."""
+    """API for interacting with a Kubernetes resource type.
+
+    Args:
+        resource_type: The resource model class to operate on, e.g. ``Pod``.
+        client: The client used to send requests.
+        namespace: The default namespace for this API's calls; each method can
+            override it. If omitted, a namespace-scoped resource uses the client's
+            configured namespace (the kubeconfig context's namespace, or the pod's
+            own namespace in-cluster). Pass ``None`` for no default, which means
+            "all namespaces" for ``list``, ``watch`` and ``delete_collection``.
+            Cluster-scoped resources never get a namespace; passing one for them
+            raises ``ValueError``.
+
+    Raises:
+        ValueError: ``namespace`` is given for a cluster-scoped resource.
+    """
 
     attach = _AttachDescriptor()
     logs = _LogsDescriptor()
@@ -120,12 +135,25 @@ class Api(Generic[ResourceType]):
                 If namespace is provided for cluster-scoped resources, an error will be raised.
             resource_version: The resource version to read. If not provided,
                 the current resource version will be read. For details look at
-                [Resource Version Semantics documentation](https://kubernetes.io/docs/reference/using-api/api-concepts/#semantics-for-get-and-list),
+                [Resource Version Semantics documentation](https://kubernetes.io/docs/reference/using-api/api-concepts/#semantics-for-get-and-list).
             request_timeout: HTTP-level timeout override for this call. A number is
                 interpreted as the total timeout in seconds. Pass ``None`` to disable
                 timeouts entirely for this call. Omit to use the client default.
+
         Returns:
             ResourceType: the resource instance.
+
+        Raises:
+            ValueError: an argument is invalid, e.g. an empty or malformed ``name``,
+                or a namespace that is missing for a namespace-scoped resource or
+                given for a cluster-scoped one.
+            NotFound: the resource does not exist.
+            KubexApiError: the API server rejected the request; the subclass
+                matches the HTTP status (e.g. ``Forbidden``, ``UnprocessableEntity``).
+            KubexConnectionError: the API server could not be reached.
+            KubexTimeoutError: the request timed out on the client side.
+            ConfigurationError: credentials could not be obtained, e.g. an exec
+                plugin or OIDC token refresh failed.
         """
         _namespace = ensure_required_namespace(
             namespace, self._namespace, self._resource.__RESOURCE_CONFIG__.scope
@@ -155,6 +183,7 @@ class Api(Generic[ResourceType]):
         Args:
             namespace: The namespace of the namespaced resource to list. If not provided,
                 the namespace provided when creating the API will be used.
+                Pass ``None`` to list across all namespaces.
                 If namespace is provided for cluster-scoped resources, an error will be raised.
             label_selector: A selector to restrict the list of returned objects by their labels.
                 For details look at [Label Selectors documentation](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors).
@@ -163,19 +192,34 @@ class Api(Generic[ResourceType]):
             timeout_seconds: Server-side timeout (in seconds) for the list/watch call;
                 sent as the Kubernetes ``timeoutSeconds`` query parameter. For an
                 HTTP client-side timeout, use ``request_timeout``.
-            limit: The maximum number of items to return.
-            continue_token: The continue token for the list call.
+            limit: The maximum number of items to return. If more items match, the
+                returned list's ``metadata.continue_`` holds a token for the next page.
+            continue_token: The ``metadata.continue_`` token from the previous page,
+                to fetch the next one. Pass the same filters as for that page.
             version_match: How the API server should interpret ``resource_version``; sent
                 as the Kubernetes ``resourceVersionMatch`` query parameter. See
                 [Resource Version Semantics documentation](https://kubernetes.io/docs/reference/using-api/api-concepts/#semantics-for-get-and-list).
             resource_version: The resource version to list. If not provided,
                 the current resource version will be listed. For details look at
-                [Resource Version Semantics documentation](https://kubernetes.io/docs/reference/using-api/api-concepts/#semantics-for-get-and-list),
+                [Resource Version Semantics documentation](https://kubernetes.io/docs/reference/using-api/api-concepts/#semantics-for-get-and-list).
             request_timeout: HTTP-level timeout override for this call. A number is
                 interpreted as the total timeout in seconds. Pass ``None`` to disable
                 timeouts entirely for this call. Omit to use the client default.
+
         Returns:
-            ListEntity[ResourceType]: the list of resource.
+            ListEntity[ResourceType]: the list of resources, with the list's
+                ``metadata`` (``resource_version``, ``continue_``).
+
+        Raises:
+            ValueError: an argument is invalid, e.g. a namespace given for a
+                cluster-scoped resource, or an unknown option value (e.g. for
+                ``version_match``).
+            KubexApiError: the API server rejected the request; the subclass
+                matches the HTTP status (e.g. ``Forbidden``, ``UnprocessableEntity``).
+            KubexConnectionError: the API server could not be reached.
+            KubexTimeoutError: the request timed out on the client side.
+            ConfigurationError: credentials could not be obtained, e.g. an exec
+                plugin or OIDC token refresh failed.
         """
         _namespace = ensure_optional_namespace(
             namespace, self._namespace, self._resource.__RESOURCE_CONFIG__.scope
@@ -208,18 +252,33 @@ class Api(Generic[ResourceType]):
         """Create a resource.
 
         Args:
-            data (ResourceType): The resource instance to create.
+            data: The resource instance to create.
             namespace: The namespace to create the resource in. If not provided,
                 the namespace provided when creating the API will be used.
                 The namespace is required for namespaced resources.
                 If namespace is provided for cluster-scoped resources, an error will be raised.
-            dry_run: Whether to perform a dry run of the operation.
-            field_manager (str): The value to use for the fieldManager attribute of the created resource.
+            dry_run: Validate the request without persisting anything (``True``,
+                ``"All"`` or ``DryRun.ALL``).
+            field_manager: The field manager name recorded in ``managedFields`` as
+                the owner of the fields this request sets.
             request_timeout: HTTP-level timeout override for this call. A number is
                 interpreted as the total timeout in seconds. Pass ``None`` to disable
                 timeouts entirely for this call. Omit to use the client default.
+
         Returns:
-            ResourceType: the created resource instance.
+            ResourceType: the created resource instance, as stored by the API server.
+
+        Raises:
+            ValueError: an argument is invalid, e.g. a namespace that is missing for
+                a namespace-scoped resource or given for a cluster-scoped one, or an
+                unknown option value (e.g. for ``dry_run``).
+            Conflict: a resource with this name already exists.
+            KubexApiError: the API server rejected the request; the subclass
+                matches the HTTP status (e.g. ``Forbidden``, ``UnprocessableEntity``).
+            KubexConnectionError: the API server could not be reached.
+            KubexTimeoutError: the request timed out on the client side.
+            ConfigurationError: credentials could not be obtained, e.g. an exec
+                plugin or OIDC token refresh failed.
         """
         _namespace = ensure_required_namespace(
             namespace, self._namespace, self._resource.__RESOURCE_CONFIG__.scope
@@ -253,19 +312,40 @@ class Api(Generic[ResourceType]):
                 the namespace provided when creating the API will be used.
                 The namespace is required for namespaced resources.
                 If namespace is provided for cluster-scoped resources, an error will be raised.
-            dry_run: Whether to perform a dry run of the operation.
-            grace_period_seconds: The duration in seconds before the object should be deleted.
-            propagation_policy: Whether and how garbage collection will be performed.
-            preconditions: Preconditions for the operation.
+            dry_run: Validate the request without deleting anything (``True``,
+                ``"All"`` or ``DryRun.ALL``).
+            grace_period_seconds: The duration in seconds before the object should be
+                deleted, overriding its default grace period. ``0`` deletes immediately.
+            propagation_policy: Whether and how dependents are garbage collected:
+                ``"Foreground"``, ``"Background"`` or ``"Orphan"`` (or the
+                ``PropagationPolicy`` enum).
+            preconditions: Conditions the object must meet to be deleted
+                (``Precondition(uid=..., resource_version=...)``); the server returns
+                ``409 Conflict`` if they don't hold.
             request_timeout: HTTP-level timeout override for this call. A number is
                 interpreted as the total timeout in seconds. Pass ``None`` to disable
                 timeouts entirely for this call. Omit to use the client default.
+
         Returns:
             Status: the resource has been fully deleted.
-            ResourceType: the resource instance deletion process has started,
-                but the resource is not gone yet due to finalization process.
-                For details see
+            ResourceType: deletion has started, but the resource still exists (e.g.
+                it has finalizers or a termination grace period); the returned
+                object has ``deletionTimestamp`` set. For details see
                 [Resource deletion documentation](https://kubernetes.io/docs/reference/using-api/api-concepts/#resource-deletion).
+
+        Raises:
+            ValueError: an argument is invalid, e.g. an empty or malformed ``name``,
+                a namespace that is missing for a namespace-scoped resource or given
+                for a cluster-scoped one, or an unknown option value (e.g. for
+                ``dry_run``).
+            NotFound: the resource does not exist.
+            Conflict: ``preconditions`` do not hold.
+            KubexApiError: the API server rejected the request; the subclass
+                matches the HTTP status (e.g. ``Forbidden``, ``UnprocessableEntity``).
+            KubexConnectionError: the API server could not be reached.
+            KubexTimeoutError: the request timed out on the client side.
+            ConfigurationError: credentials could not be obtained, e.g. an exec
+                plugin or OIDC token refresh failed.
         """
         _namespace = ensure_required_namespace(
             namespace, self._namespace, self._resource.__RESOURCE_CONFIG__.scope
@@ -304,13 +384,58 @@ class Api(Generic[ResourceType]):
     ) -> Status | ListEntity[ResourceType]:
         """Delete collection of resources.
 
+        Deletes every resource matching the filters in a single call. Without
+        any selector, that is every resource of this type in the namespace (or,
+        with ``namespace=None``, in all namespaces).
+
         Args:
+            namespace: The namespace to delete resources in. If not provided,
+                the namespace provided when creating the API will be used.
+                Pass ``None`` to delete matching resources in all namespaces.
+                If namespace is provided for cluster-scoped resources, an error will be raised.
+            label_selector: Only delete resources whose labels match this selector.
+                For details look at [Label Selectors documentation](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors).
+            field_selector: Only delete resources whose fields match this selector.
+                For details look at [Field Selectors documentation](https://kubernetes.io/docs/concepts/overview/working-with-objects/field-selectors/).
             timeout_seconds: Server-side timeout (in seconds) for the call;
                 sent as the Kubernetes ``timeoutSeconds`` query parameter. For an
                 HTTP client-side timeout, use ``request_timeout``.
+            limit: Sent as the Kubernetes ``limit`` list option, as in ``list()``.
+            continue_token: Sent as the Kubernetes ``continue`` list option, as in
+                ``list()``.
+            version_match: How the API server should interpret ``resource_version``; sent
+                as the Kubernetes ``resourceVersionMatch`` query parameter.
+            resource_version: The resource version at which to select the resources,
+                as in ``list()``.
+            dry_run: Validate the request without deleting anything (``True``,
+                ``"All"`` or ``DryRun.ALL``).
+            grace_period_seconds: The duration in seconds before each object should be
+                deleted, overriding its default grace period. ``0`` deletes immediately.
+            propagation_policy: Whether and how dependents are garbage collected:
+                ``"Foreground"``, ``"Background"`` or ``"Orphan"`` (or the
+                ``PropagationPolicy`` enum).
+            preconditions: Conditions each object must meet to be deleted
+                (``Precondition(uid=..., resource_version=...)``).
             request_timeout: HTTP-level timeout override for this call. A number is
                 interpreted as the total timeout in seconds. Pass ``None`` to disable
                 timeouts entirely for this call. Omit to use the client default.
+
+        Returns:
+            Status: the API server reported the result as a ``Status``.
+            ListEntity[ResourceType]: the API server returned the list of deleted
+                resources instead; which of the two you get depends on the
+                Kubernetes version.
+
+        Raises:
+            ValueError: an argument is invalid, e.g. a namespace given for a
+                cluster-scoped resource, or an unknown option value (e.g. for
+                ``dry_run`` or ``version_match``).
+            KubexApiError: the API server rejected the request; the subclass
+                matches the HTTP status (e.g. ``Forbidden``, ``UnprocessableEntity``).
+            KubexConnectionError: the API server could not be reached.
+            KubexTimeoutError: the request timed out on the client side.
+            ConfigurationError: credentials could not be obtained, e.g. an exec
+                plugin or OIDC token refresh failed.
         """
         _namespace = ensure_optional_namespace(
             namespace, self._namespace, self._resource.__RESOURCE_CONFIG__.scope
@@ -358,9 +483,47 @@ class Api(Generic[ResourceType]):
         """Patch the specified resource.
 
         Args:
+            name: The name of the resource to patch.
+            patch: The patch to send: ``ApplyPatch`` (server-side apply),
+                ``MergePatch``, ``StrategicMergePatch`` or ``JsonPatch``. Its type
+                sets the request's ``Content-Type``.
+            namespace: The namespace of the namespaced resource to patch. If not provided,
+                the namespace provided when creating the API will be used.
+                The namespace is required for namespaced resources.
+                If namespace is provided for cluster-scoped resources, an error will be raised.
+            dry_run: Validate the request without persisting anything (``True``,
+                ``"All"`` or ``DryRun.ALL``).
+            field_manager: The field manager name recorded in ``managedFields`` as
+                the owner of the fields this patch sets. Required for ``ApplyPatch``.
+            force: Take over fields currently owned by another field manager instead
+                of failing with ``409 Conflict``. Only valid with ``ApplyPatch``.
+            field_validation: How the API server handles unknown or duplicate fields in
+                the patch: ``"Strict"`` (reject the request), ``"Warn"`` (accept it
+                with a warning; the server default) or ``"Ignore"`` (drop them
+                silently). Also accepts the ``FieldValidation`` enum.
             request_timeout: HTTP-level timeout override for this call. A number is
                 interpreted as the total timeout in seconds. Pass ``None`` to disable
                 timeouts entirely for this call. Omit to use the client default.
+
+        Returns:
+            ResourceType: the patched resource. An ``ApplyPatch`` for a resource
+                that does not exist yet creates it and returns the new resource.
+
+        Raises:
+            ValueError: an argument is invalid, e.g. an empty or malformed ``name``,
+                a namespace that is missing for a namespace-scoped resource or given
+                for a cluster-scoped one, or an unknown option value (e.g. for
+                ``dry_run`` or ``field_validation``).
+            NotFound: the resource does not exist (an ``ApplyPatch`` creates it
+                instead).
+            Conflict: an ``ApplyPatch`` conflicts with fields owned by another
+                field manager and ``force`` is not set.
+            KubexApiError: the API server rejected the request; the subclass
+                matches the HTTP status (e.g. ``Forbidden``, ``UnprocessableEntity``).
+            KubexConnectionError: the API server could not be reached.
+            KubexTimeoutError: the request timed out on the client side.
+            ConfigurationError: credentials could not be obtained, e.g. an exec
+                plugin or OIDC token refresh failed.
         """
         _namespace = ensure_required_namespace(
             namespace, self._namespace, self._resource.__RESOURCE_CONFIG__.scope
@@ -390,9 +553,40 @@ class Api(Generic[ResourceType]):
         """Replace the specified resource.
 
         Args:
+            name: The name of the resource to replace.
+            data: The complete new state of the resource. If its
+                ``metadata.resource_version`` is set (e.g. from a previous ``get()``),
+                the request fails with ``409 Conflict`` when the resource has changed
+                since that version.
+            namespace: The namespace of the namespaced resource to replace. If not provided,
+                the namespace provided when creating the API will be used.
+                The namespace is required for namespaced resources.
+                If namespace is provided for cluster-scoped resources, an error will be raised.
+            dry_run: Validate the request without persisting anything (``True``,
+                ``"All"`` or ``DryRun.ALL``).
+            field_manager: The field manager name recorded in ``managedFields`` as
+                the owner of the fields this request sets.
             request_timeout: HTTP-level timeout override for this call. A number is
                 interpreted as the total timeout in seconds. Pass ``None`` to disable
                 timeouts entirely for this call. Omit to use the client default.
+
+        Returns:
+            ResourceType: the replaced resource, as stored by the API server.
+
+        Raises:
+            ValueError: an argument is invalid, e.g. an empty or malformed ``name``,
+                a namespace that is missing for a namespace-scoped resource or given
+                for a cluster-scoped one, or an unknown option value (e.g. for
+                ``dry_run``).
+            NotFound: the resource does not exist.
+            Conflict: the resource has changed since the
+                ``metadata.resource_version`` that was sent.
+            KubexApiError: the API server rejected the request; the subclass
+                matches the HTTP status (e.g. ``Forbidden``, ``UnprocessableEntity``).
+            KubexConnectionError: the API server could not be reached.
+            KubexTimeoutError: the request timed out on the client side.
+            ConfigurationError: credentials could not be obtained, e.g. an exec
+                plugin or OIDC token refresh failed.
         """
         _namespace = ensure_required_namespace(
             namespace, self._namespace, self._resource.__RESOURCE_CONFIG__.scope
@@ -423,6 +617,14 @@ class Api(Generic[ResourceType]):
         """Watch for changes to the specified resource.
 
         Args:
+            namespace: The namespace to watch. If not provided,
+                the namespace provided when creating the API will be used.
+                Pass ``None`` to watch all namespaces.
+                If namespace is provided for cluster-scoped resources, an error will be raised.
+            label_selector: Only watch resources whose labels match this selector.
+                For details look at [Label Selectors documentation](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors).
+            field_selector: Only watch resources whose fields match this selector.
+                For details look at [Field Selectors documentation](https://kubernetes.io/docs/concepts/overview/working-with-objects/field-selectors/).
             allow_bookmarks: Request periodic ``BOOKMARK`` events carrying a fresh
                 ``resourceVersion``. Defaults to ``True`` when ``send_initial_events``
                 is ``True`` (the server requires it); passing ``False`` together with
@@ -430,6 +632,12 @@ class Api(Generic[ResourceType]):
             send_initial_events: Start the stream with synthetic ``ADDED`` events for
                 the current state, followed by a bookmark annotated with
                 ``k8s.io/initial-events-end``.
+            resource_version: Only deliver changes made after this resource version,
+                e.g. the list ``metadata.resource_version`` from a previous
+                ``list()``. If not provided, the stream starts with synthetic
+                ``ADDED`` events for every existing resource and then follows
+                changes. For details look at
+                [Resource Version Semantics documentation](https://kubernetes.io/docs/reference/using-api/api-concepts/#semantics-for-watch).
             timeout_seconds: Server-side timeout (in seconds); the server ends the
                 stream cleanly after it.
             request_timeout: HTTP-level timeout override for this call. A number is
@@ -438,10 +646,27 @@ class Api(Generic[ResourceType]):
                 for streams, which does not cut off an idle watch. An explicit
                 short read/total timeout will terminate a quiet stream.
 
+        Yields:
+            WatchEvent[ResourceType]: one event per change, with its ``type``
+                (``ADDED``, ``MODIFIED``, ``DELETED`` or ``BOOKMARK``) and
+                ``object`` (the resource, or a ``Bookmark`` for ``BOOKMARK``
+                events). ``ERROR`` events are raised as exceptions instead.
+
         Raises:
+            ValueError: an argument is invalid, e.g. a namespace given for a
+                cluster-scoped resource, or ``allow_bookmarks=False`` together with
+                ``send_initial_events=True``.
             Gone: the requested ``resource_version`` is too old (HTTP 410), either
                 on connect or as an ``ERROR`` event mid-stream; re-list and watch
                 again from the new ``resourceVersion``.
+            KubexApiError: the API server rejected the request; the subclass
+                matches the HTTP status (e.g. ``Forbidden``, ``UnprocessableEntity``).
+            KubexConnectionError: the API server could not be reached, or the
+                connection broke mid-stream.
+            KubexTimeoutError: the request timed out on the client side, including
+                mid-stream.
+            ConfigurationError: credentials could not be obtained, e.g. an exec
+                plugin or OIDC token refresh failed.
         """
         _namespace = ensure_optional_namespace(
             namespace, self._namespace, self._resource.__RESOURCE_CONFIG__.scope
@@ -483,8 +708,16 @@ async def create_api(
             configured namespace (e.g. the in-cluster pod's own
             namespace); pass ``None`` explicitly for "all namespaces"
             instead. Cluster-scoped resources never receive a namespace.
+
     Returns:
         An Api instance for the specified resource type.
+
+    Raises:
+        ValueError: ``namespace`` is given for a cluster-scoped resource.
+        ConfigurationError: no ``client`` was given and no configuration could be
+            loaded (no usable kubeconfig, and not running inside a cluster).
+        ImportError: no ``client`` was given and neither ``aiohttp`` nor ``httpx``
+            is installed.
     """
     client = client or await create_client()
     return Api(resource_type, client=client, namespace=namespace)
