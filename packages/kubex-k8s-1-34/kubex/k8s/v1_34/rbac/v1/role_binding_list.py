@@ -7,6 +7,7 @@ from pydantic import Field
 from kubex.k8s.v1_34.rbac.v1.role_binding import RoleBinding
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.metadata import ListMetadata
+from kubex_core.models.types import NullAsEmptyList
 
 
 class RoleBindingList(ListEntity[RoleBinding]):
@@ -17,7 +18,7 @@ class RoleBindingList(ListEntity[RoleBinding]):
         alias="apiVersion",
         description="APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
     )
-    items: list[RoleBinding] = Field(
+    items: NullAsEmptyList[RoleBinding] = Field(
         ..., alias="items", description="Items is a list of RoleBindings"
     )
     kind: Literal["RoleBindingList"] = Field(

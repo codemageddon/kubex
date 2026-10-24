@@ -2,12 +2,13 @@ from pydantic import Field
 
 from kubex.k8s.v1_32.core.v1.secret_reference import SecretReference
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import NullAsEmptyList
 
 
 class CephFSPersistentVolumeSource(BaseK8sModel):
     """Represents a Ceph Filesystem mount that lasts the lifetime of a pod Cephfs volumes do not support ownership management or SELinux relabeling."""
 
-    monitors: list[str] = Field(
+    monitors: NullAsEmptyList[str] = Field(
         ...,
         alias="monitors",
         description="monitors is Required: Monitors is a collection of Ceph monitors More info: https://examples.k8s.io/volumes/cephfs/README.md#how-to-use-it",

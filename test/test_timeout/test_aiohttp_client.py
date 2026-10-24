@@ -56,3 +56,40 @@ def test_to_aiohttp_timeout_maps_read_to_sock_read() -> None:
 def test_to_aiohttp_timeout_none_means_disabled() -> None:
     translated = _to_aiohttp_timeout(None)
     assert translated.total is None
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("client_timeout", "expected"),
+    [
+        pytest.param(
+            ...,
+            {"total": None, "connect": 300, "sock_connect": 30, "sock_read": None},
+            id="default",
+        ),
+        pytest.param(
+            Timeout(total=30),
+            {"total": None, "connect": 30, "sock_connect": None, "sock_read": None},
+            id="total",
+        ),
+        pytest.param(
+            Timeout(connect=2, read=60),
+            {"total": None, "connect": None, "sock_connect": 2, "sock_read": None},
+            id="connect-read",
+        ),
+        pytest.param(
+            None,
+            {"total": None, "connect": None, "sock_connect": None, "sock_read": None},
+            id="disabled",
+        ),
+    ],
+)
+async def test_stream_timeout_keeps_connection_bounds_and_drops_total_and_read(
+    client_timeout: object, expected: dict[str, float | None]
+) -> None:
+    client = AioHttpClient(_configuration(), ClientOptions(timeout=client_timeout))
+    try:
+        timeout = client._stream_timeout()
+        assert {name: getattr(timeout, name) for name in expected} == expected
+    finally:
+        await client.close()

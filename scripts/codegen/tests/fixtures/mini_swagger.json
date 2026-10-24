@@ -36,6 +36,15 @@
       "format": "int-or-string",
       "description": "Alias target."
     },
+    "io.k8s.apimachinery.pkg.apis.meta.v1.Time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Alias target."
+    },
+    "io.k8s.apimachinery.pkg.api.resource.Quantity": {
+      "type": "string",
+      "description": "Alias target."
+    },
     "io.k8s.api.core.v1.NodeAddress": {
       "type": "object",
       "description": "NodeAddress reports a node address.",
@@ -51,7 +60,12 @@
     "io.k8s.api.core.v1.NodeStatus": {
       "type": "object",
       "description": "NodeStatus is information about the current status of a node.",
+      "required": ["addresses", "capacity"],
       "properties": {
+        "capacity": {
+          "type": "object",
+          "additionalProperties": {"$ref": "#/definitions/io.k8s.apimachinery.pkg.api.resource.Quantity"}
+        },
         "addresses": {
           "type": "array",
           "items": {"$ref": "#/definitions/io.k8s.api.core.v1.NodeAddress"}
@@ -94,7 +108,7 @@
     "io.k8s.api.apps.v1.DeploymentCondition": {
       "type": "object",
       "description": "DeploymentCondition describes a condition of a Deployment.",
-      "required": ["type", "status"],
+      "required": ["type", "status", "lastTransitionTime"],
       "properties": {
         "type": {
           "type": "string",
@@ -102,7 +116,8 @@
           "description": "Type of deployment condition."
         },
         "status": {"type": "string"},
-        "reason": {"type": "string"}
+        "reason": {"type": "string"},
+        "lastTransitionTime": {"$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Time"}
       }
     },
     "io.k8s.api.apps.v1.DeploymentSpec": {

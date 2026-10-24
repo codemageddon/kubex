@@ -1,15 +1,14 @@
-import datetime
-
 from pydantic import Field
 
 from kubex.k8s.v1_37.meta.v1.condition import Condition
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Time
 
 
 class PodCertificateRequestStatus(BaseK8sModel):
     """PodCertificateRequestStatus describes the status of the request, and holds the certificate data if the request is issued."""
 
-    begin_refresh_at: datetime.datetime | None = Field(
+    begin_refresh_at: Time | None = Field(
         default=None,
         alias="beginRefreshAt",
         description="beginRefreshAt is the time at which the kubelet should begin trying to refresh the certificate. This field is set via the /status subresource, and must be set at the same time as certificateChain. Once populated, this field is immutable. This field is only a hint. Kubelet may start refreshing before or after this time if necessary.",
@@ -24,12 +23,12 @@ class PodCertificateRequestStatus(BaseK8sModel):
         alias="conditions",
         description='conditions applied to the request. The types "Issued", "Denied", and "Failed" have special handling. At most one of these conditions may be present, and they must have status "True". If the request is denied with `Reason=UnsupportedKeyType`, the signer may suggest a key type that will work in the message field.',
     )
-    not_after: datetime.datetime | None = Field(
+    not_after: Time | None = Field(
         default=None,
         alias="notAfter",
         description="notAfter is the time at which the certificate expires. The value must be the same as the notAfter value in the leaf certificate in certificateChain. This field is set via the /status subresource. Once populated, it is immutable. The signer must set this field at the same time it sets certificateChain.",
     )
-    not_before: datetime.datetime | None = Field(
+    not_before: Time | None = Field(
         default=None,
         alias="notBefore",
         description="notBefore is the time at which the certificate becomes valid. The value must be the same as the notBefore value in the leaf certificate in certificateChain. This field is set via the /status subresource. Once populated, it is immutable. The signer must set this field at the same time it sets certificateChain.",

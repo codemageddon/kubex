@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
+from kubex.core.exceptions import ConfigurationError
 from kubex.configuration.incluster_config import (
     DEFAULT_CERT_FILENAME,
     DEFAULT_TOKEN_FILENAME,
@@ -179,3 +180,63 @@ async def test_try_refresh_token_can_be_set_to_false(
             try_refresh_token=False,
         )
     assert config.try_refresh_token is False
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("host", "expected"),
+    [
+        ("fd00:10:96::1", "https://[fd00:10:96::1]:443"),
+        ("[fd00:10:96::1]", "https://[fd00:10:96::1]:443"),
+        ("10.96.0.1", "https://10.96.0.1:443"),
+    ],
+)
+async def test_ipv6_service_host_is_bracketed(
+    host: str, expected: str, namespace_file: Path, token_file: Path, cert_file: Path
+) -> None:
+    with patch(f"{MODULE}.DEFAULT_NAMESAPCE_FILENAME", namespace_file):
+        config = await configure_from_pod_env(
+            token_filename=token_file,
+            cert_filename=cert_file,
+            kubernetes_service_host=host,
+            kubernetes_service_port="443",
+        )
+    assert config.base_url == expected
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "env",
+    [
+        {},
+        {KUBERNETES_SERVICE_HOST_ENV: "10.0.0.1"},
+        {KUBERNETES_SERVICE_PORT_ENV: "443"},
+        {KUBERNETES_SERVICE_HOST_ENV: "", KUBERNETES_SERVICE_PORT_ENV: "443"},
+    ],
+)
+async def test_missing_service_env_raises_configuration_error(
+    env: dict[str, str], token_file: Path, cert_file: Path
+) -> None:
+    with patch.dict("os.environ", env, clear=True):
+        with pytest.raises(ConfigurationError, match="not running inside a"):
+            await configure_from_pod_env(
+                token_filename=token_file, cert_filename=cert_file
+            )
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("contents", [None, "", "  \n"])
+async def test_namespace_falls_back_to_default(
+    contents: str | None, tmp_path: Path, token_file: Path, cert_file: Path
+) -> None:
+    ns_file = tmp_path / "namespace"
+    if contents is not None:
+        ns_file.write_text(contents)
+    with patch(f"{MODULE}.DEFAULT_NAMESAPCE_FILENAME", ns_file):
+        config = await configure_from_pod_env(
+            token_filename=token_file,
+            cert_filename=cert_file,
+            kubernetes_service_host="10.0.0.1",
+            kubernetes_service_port="443",
+        )
+    assert config.namespace == "default"

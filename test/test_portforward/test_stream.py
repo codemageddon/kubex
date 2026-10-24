@@ -6,7 +6,9 @@ import pytest
 
 from kubex.api._portforward import PortForwardStream
 from kubex.api._portforward_session import PortForwardSession
+from kubex.api._stream_session import _MAX_FRAME_PAYLOAD
 from kubex.client.websocket import WebSocketConnection
+from kubex.core.exceptions import KubexClientException
 from kubex.core.exec_channels import (
     CHANNEL_CLOSE,
     V5ChannelProtocol,
@@ -14,9 +16,9 @@ from kubex.core.exec_channels import (
 )
 
 
-@pytest.fixture
-def anyio_backend() -> str:
-    return "asyncio"
+@pytest.fixture(params=["asyncio", "trio"])
+def anyio_backend(request: pytest.FixtureRequest) -> str:
+    return str(request.param)
 
 
 class _FakeWebSocket(WebSocketConnection):
@@ -206,3 +208,53 @@ async def test_send_eof_is_idempotent() -> None:
         await stream.send_eof()
 
     assert fake.sent == [bytes([CHANNEL_CLOSE, 0])]
+
+
+@pytest.mark.anyio
+async def test_large_send_is_split_into_32k_frames() -> None:
+    data = bytes(range(256)) * 300  # 75 KiB
+    fake = _FakeWebSocket()
+
+    async with PortForwardSession(fake, V5ChannelProtocol(), ports=[8080]) as session:
+        await session._streams[8080].send(data)
+
+    assert len(fake.sent) == 3
+    assert all(frame[0] == 0 for frame in fake.sent)
+    assert all(len(frame) - 1 <= _MAX_FRAME_PAYLOAD for frame in fake.sent)
+    assert b"".join(frame[1:] for frame in fake.sent) == data
+
+
+@pytest.mark.anyio
+async def test_concurrent_sends_on_one_port_stay_contiguous() -> None:
+    class _YieldingWebSocket(_FakeWebSocket):
+        async def send_bytes(self, data: bytes) -> None:
+            self.sent.append(data)
+            await anyio.sleep(0)
+
+    fake = _YieldingWebSocket()
+    a = b"a" * (2 * _MAX_FRAME_PAYLOAD)
+    b = b"b" * (2 * _MAX_FRAME_PAYLOAD)
+
+    async with PortForwardSession(fake, V5ChannelProtocol(), ports=[8080]) as session:
+        stream = session._streams[8080]
+        async with anyio.create_task_group() as tg:
+            tg.start_soon(stream.send, a)
+            tg.start_soon(stream.send, b)
+
+    payload = b"".join(frame[1:] for frame in fake.sent)
+    assert payload in (a + b, b + a)
+
+
+@pytest.mark.anyio
+async def test_send_after_session_exit_raises_kubex_client_exception() -> None:
+    fake = _FakeWebSocket()
+    fake.feed_eof()
+
+    async with PortForwardSession(fake, V5ChannelProtocol(), ports=[8080]) as session:
+        stream = session._streams[8080]
+
+    with pytest.raises(KubexClientException, match="closed"):
+        await stream.send(b"late")
+    # Closing after the session ended is a quiet no-op.
+    await stream.aclose()
+    assert fake.sent == []

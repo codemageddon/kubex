@@ -25,6 +25,8 @@ Each yielded value is a `WatchEvent[ResourceType]`:
 | `event.type` | `EventType` | `ADDED`, `MODIFIED`, `DELETED`, or `BOOKMARK` |
 | `event.object` | `ResourceType | Bookmark` | Fully parsed resource (or `Bookmark` for bookmark events) |
 
+`ERROR` events are never yielded: the generator raises the matching exception instead — most importantly `Gone` (HTTP 410) when the requested `resourceVersion` is too old. See [Resuming after `Gone`](#resuming-after-gone).
+
 ```python
 from kubex.core.watch_event import EventType
 
@@ -71,44 +73,68 @@ async for event in api.watch(namespace=None):
 
 ## `send_initial_events` pattern
 
-Kubernetes 1.27+ supports `sendInitialEvents=true`, which causes the watch stream to first emit `ADDED` events for every existing resource before switching to live updates. Set `send_initial_events=True` together with `allow_bookmarks=True` to get a single stream that covers both current state and future changes:
+`send_initial_events=True` makes the stream start with synthetic `ADDED` events for every existing resource, then a `BOOKMARK` annotated with `k8s.io/initial-events-end: "true"`, then live updates — current state and future changes in one stream. The server requires bookmarks for this, so `allow_bookmarks` defaults to `True` when `send_initial_events=True` (passing `allow_bookmarks=False` together with it raises `ValueError`). It needs the API server's `WatchList` feature; a server without it rejects the request with `422`.
 
 ```python
-async for event in api.watch(send_initial_events=True, allow_bookmarks=True):
+async for event in api.watch(send_initial_events=True):
     if event.type == EventType.BOOKMARK:
-        print("initial list complete, watching for changes now")
-    else:
-        print(event.type, event.object.metadata.name)
+        annotations = event.object.metadata.annotations or {}
+        if annotations.get("k8s.io/initial-events-end") == "true":
+            print("initial state complete, watching for changes now")
+        continue
+    print(event.type, event.object.metadata.name)
 ```
 
-## Restart-on-`Gone` pattern
+Not every bookmark marks the end of the initial events — periodic checkpoint bookmarks look the same apart from the annotation.
 
-The Kubernetes API server expires watch streams with HTTP 410 `Gone` when the `resourceVersion` becomes too old, and closes streams on its own default `timeoutSeconds`. The simplest robust pattern is to re-call `watch()` with `send_initial_events=True` on every reconnect — the server replays a synthetic `ADDED` snapshot before resuming live updates, so you do not need a separate `list()` step:
+## Resuming after `Gone`
+
+A watch does not last forever. The server ends the stream cleanly after `timeout_seconds` (or its own default, usually 30–60 minutes), and it raises `Gone` (HTTP 410) — on connect, or as an `ERROR` event mid-stream — when the `resourceVersion` you resume from has been compacted away. A long-running watcher therefore tracks the last `resourceVersion` it saw, resumes from it after a normal end of stream, and re-lists to get a fresh one after `Gone`. Bookmarks keep that `resourceVersion` current while nothing changes, which makes `Gone` far less likely:
 
 ```python
 from kubex.core.exceptions import Gone
+from kubex.core.watch_event import EventType
 
-while True:
-    try:
-        async for event in api.watch(
-            allow_bookmarks=True,
-            send_initial_events=True,
-        ):
-            handle(event)
-    except Gone:
-        # resourceVersion expired — just re-watch.
-        # send_initial_events=True replays the snapshot before live updates.
-        continue
+
+async def watch_forever(api: Api[Pod]) -> None:
+    resource_version: str | None = None
+    while True:
+        if resource_version is None:
+            # (Re-)list: the current state plus a resourceVersion to watch from.
+            pods = await api.list()
+            for pod in pods.items:
+                handle_existing(pod)
+            resource_version = pods.metadata.resource_version
+        try:
+            async for event in api.watch(
+                resource_version=resource_version, allow_bookmarks=True
+            ):
+                resource_version = (
+                    event.object.metadata.resource_version or resource_version
+                )
+                if event.type != EventType.BOOKMARK:
+                    handle(event)
+        except Gone:
+            # Too old to resume from: start over with a fresh list.
+            resource_version = None
+        # A normal end of stream (server-side timeout) resumes from
+        # resource_version on the next iteration.
 ```
+
+Events between the list and the watch are not lost: watching from the list's `resourceVersion` delivers everything that changed after it. Changes that happened while the watcher was disconnected for longer than the server keeps history are covered by the re-list, so `handle_existing` should reconcile (update or create local state, and drop objects that no longer exist) rather than assume a clean slate.
 
 ## Server-side timeout
 
-Pass `timeout_seconds=` to set a server-side timeout on the watch call (sent as the Kubernetes `timeoutSeconds` query parameter). The server closes the stream after this many seconds; your loop can then reconnect:
+Pass `timeout_seconds=` to set a server-side timeout on the watch call (sent as the Kubernetes `timeoutSeconds` query parameter). The server closes the stream cleanly after this many seconds and the `async for` loop simply ends; reconnect as shown above:
 
 ```python
 async for event in api.watch(timeout_seconds=60):
     ...
 ```
+
+## Client-side timeouts
+
+A watch can stay quiet for minutes, so it does not inherit the client's short request timeouts: when `request_timeout` is left unset, a watch stream only applies the connect timeout and otherwise waits for the server to send events or end the stream (bound it with `timeout_seconds` instead). Passing an explicit `request_timeout` applies it as given — a short read or total timeout will cut off a quiet stream with a timeout error, so only do that deliberately (or pass `request_timeout=None` to disable client-side timeouts entirely).
 
 ## Example from `examples/watch_pods.py`
 

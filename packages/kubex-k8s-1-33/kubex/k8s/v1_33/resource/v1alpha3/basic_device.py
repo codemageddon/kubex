@@ -7,6 +7,7 @@ from kubex.k8s.v1_33.resource.v1alpha3.device_counter_consumption import (
 )
 from kubex.k8s.v1_33.resource.v1alpha3.device_taint import DeviceTaint
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Quantity
 
 
 class BasicDevice(BaseK8sModel):
@@ -22,7 +23,7 @@ class BasicDevice(BaseK8sModel):
         alias="attributes",
         description="Attributes defines the set of attributes for this device. The name of each attribute must be unique in that set. The maximum number of attributes and capacities combined is 32.",
     )
-    capacity: dict[str, str] | None = Field(
+    capacity: dict[str, Quantity] | None = Field(
         default=None,
         alias="capacity",
         description="Capacity defines the set of capacities for this device. The name of each capacity must be unique in that set. The maximum number of attributes and capacities combined is 32.",

@@ -7,6 +7,7 @@ from pydantic import Field
 from kubex.k8s.v1_33.networking.v1beta1.service_cidr import ServiceCIDR
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.metadata import ListMetadata
+from kubex_core.models.types import NullAsEmptyList
 
 
 class ServiceCIDRList(ListEntity[ServiceCIDR]):
@@ -17,7 +18,7 @@ class ServiceCIDRList(ListEntity[ServiceCIDR]):
         alias="apiVersion",
         description="APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
     )
-    items: list[ServiceCIDR] = Field(
+    items: NullAsEmptyList[ServiceCIDR] = Field(
         ..., alias="items", description="items is the list of ServiceCIDRs."
     )
     kind: Literal["ServiceCIDRList"] = Field(

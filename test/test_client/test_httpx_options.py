@@ -105,6 +105,52 @@ def test_build_httpx_limits(
     assert expected_subset.items() <= kw.items()
 
 
+@pytest.mark.parametrize(
+    "options,expected",
+    [
+        pytest.param(
+            ClientOptions(keep_alive_timeout=30.0),
+            {
+                "max_connections": 100,
+                "max_keepalive_connections": 20,
+                "keepalive_expiry": 30.0,
+            },
+            id="keep_alive_timeout",
+        ),
+        pytest.param(
+            ClientOptions(keep_alive=False),
+            {
+                "max_connections": 100,
+                "max_keepalive_connections": 0,
+                "keepalive_expiry": 5.0,
+            },
+            id="keep_alive_false",
+        ),
+        pytest.param(
+            ClientOptions(pool_size=7),
+            {
+                "max_connections": 7,
+                "max_keepalive_connections": 20,
+                "keepalive_expiry": 5.0,
+            },
+            id="pool_size",
+        ),
+    ],
+)
+def test_partial_limits_keep_httpx_defaults_for_unset_fields(
+    options: ClientOptions, expected: dict[str, Any]
+) -> None:
+    # httpx.Limits(**partial) treats omitted fields as unlimited, not default.
+    assert _build_httpx_limits(options) == expected
+
+
+def test_partial_limits_keep_connection_cap_on_real_pool() -> None:
+    pool = _pool(_client(ClientOptions(keep_alive_timeout=30.0)))
+    assert pool._max_connections == 100
+    assert pool._max_keepalive_connections == 20
+    assert pool._keepalive_expiry == 30.0
+
+
 def test_build_httpx_proxy_kwargs_none_returns_empty() -> None:
     import ssl
 

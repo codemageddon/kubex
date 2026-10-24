@@ -81,14 +81,21 @@ class ClientOptions(BaseModel):
 
     Accepted values:
 
-    - ``...`` (default) — use the HTTP library's own default timeout.
+    - ``...`` (default) — use the HTTP library's own default timeout (httpx:
+      5 s per phase — connect/read/write/pool — with no overall cap; aiohttp:
+      300 s total, 30 s socket connect).
     - ``None`` — disable timeouts entirely.
     - ``int`` or ``float`` — treat the value as a ``total`` timeout in seconds;
-      coerced to :class:`~kubex.core.params.Timeout` automatically.
+      coerced to :class:`~kubex.core.params.Timeout` automatically. ``total``
+      is a wall-clock bound for the whole request on both backends.
     - :class:`~kubex.core.params.Timeout` — used as-is for fine-grained
       per-phase control.
 
-    Individual calls can override this via the ``request_timeout=`` parameter.
+    For streaming calls (``watch()``, ``logs.stream()``) only the connection
+    bounds of this default apply (``connect``/``pool``, or ``total`` while the
+    connection is being set up); read and total bounds are dropped because
+    such streams legitimately idle. Individual calls can override this via
+    the ``request_timeout=`` parameter, which streams honour as given.
     """
 
     proxy: str | dict[str, str] | None = None
@@ -132,14 +139,17 @@ class ClientOptions(BaseModel):
     """
 
     buffer_size: int | None | EllipsisType = Field(default_factory=lambda: ...)
-    """HTTP-response read buffer size in bytes.
+    """HTTP-response read buffer size in bytes (aiohttp ``read_bufsize``).
+
+    Sets how much response data aiohttp buffers before it pauses reading from
+    the socket. It does not limit the length of a streamed line: ``watch()``
+    and ``logs.stream()`` accept lines of any size.
 
     Accepted values:
 
-    - ``...`` (default) — kubex default of ``2**21`` bytes (preserves current
-      aiohttp behavior).
-    - ``None`` — use the HTTP library's own default (aiohttp default: ``2**16``
-      bytes).
+    - ``...`` (default) — kubex default of ``2**21`` bytes (2 MiB).
+    - ``None`` — use aiohttp's own default (version-dependent: 64 KiB in
+      aiohttp 3.11, 256 KiB in 3.14).
     - ``int > 0`` — explicit buffer size in bytes.
 
     **Backend asymmetry**: httpx has no equivalent buffer-size knob. This field

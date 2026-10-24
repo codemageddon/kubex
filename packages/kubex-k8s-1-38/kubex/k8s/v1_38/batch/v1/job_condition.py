@@ -1,19 +1,18 @@
-import datetime
-
 from pydantic import Field
 
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Time
 
 
 class JobCondition(BaseK8sModel):
     """JobCondition describes current state of a job."""
 
-    last_probe_time: datetime.datetime | None = Field(
+    last_probe_time: Time | None = Field(
         default=None,
         alias="lastProbeTime",
         description="lastProbeTime is the last time the condition was checked.",
     )
-    last_transition_time: datetime.datetime | None = Field(
+    last_transition_time: Time | None = Field(
         default=None,
         alias="lastTransitionTime",
         description="lastTransitionTime is the last time the condition transit from one status to another.",

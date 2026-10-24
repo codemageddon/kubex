@@ -98,15 +98,18 @@ async def main() -> None:
 |-----------|------|-------------|
 | `streams` | `Mapping[int, PortForwardStream]` | One `anyio.abc.ByteStream` per forwarded port |
 | `errors` | `Mapping[int, MemoryObjectReceiveStream[str]]` | Per-port kubelet error messages (typically empty on success) |
-| `port_data_truncated` | `Mapping[int, bool]` | Per-port: `True` if that port's data buffer overflowed and the stream was closed locally |
-| `port_error_truncated` | `Mapping[int, bool]` | Per-port: `True` if that port's error buffer overflowed and the error stream was closed locally |
 
-`PortForwardStream` is an `anyio.abc.ByteStream`, so you can use `send()` and `receive()` on it directly.
+`PortForwardStream` is an `anyio.abc.ByteStream`, so you can use `send()` and `receive()` on it
+directly. `send()` splits large payloads into frames of at most 32 KiB and raises
+`KubexClientException` once the session has ended. `port_data_truncated`/`port_error_truncated`
+are deprecated and always `False`.
 
-Each port's incoming data — and, independently, its error messages — is buffered up to 128
-frames; if a consumer falls behind and a buffer fills, kubex closes that channel locally rather
-than blocking forever. Check `pf.port_data_truncated[port]`/`pf.port_error_truncated[port]` after
-the corresponding stream ends to tell that apart from a normal EOF.
+Incoming data is never dropped. Each port's data — and, independently, its error messages — is
+queued up to 128 frames; when a queue is full, kubex stops reading the WebSocket until you consume
+more, so backpressure reaches the pod. All ports of one `forward()` call share a single WebSocket,
+so **a port you don't read stalls the other ports** once its queue fills (as with
+`kubectl port-forward`). Read every forwarded port concurrently, or `aclose()` the streams you
+don't need. Leaving the `async with` block always tears the session down promptly.
 
 ### Forwarding multiple ports
 
@@ -189,9 +192,25 @@ async with api.portforward.listen(pod_name, port_map={5432: 15432}):
     ...
 ```
 
+### Connection lifecycle
+
+Like `kubectl port-forward`, each local connection is closed as soon as the remote side finishes
+(or the kubelet reports an error for it). A local half-close (`shutdown(SHUT_WR)`) only ends the
+local→pod direction; the pod's response keeps flowing until it is complete.
+
+The kubelet only offers the v4 portforward protocol, which cannot signal end-of-stream, so the pod
+never sees the local side's EOF. Two consequences:
+
+- A pod service that waits for EOF before it replies never replies.
+- When a local client disconnects, its connection stays open until the pod closes it or sends
+  more data (which then fails). A pod service that keeps idle connections open forever, such as an
+  HTTP server without an idle timeout, keeps one WebSocket open per disconnected client.
+
 ### Error logging
 
-`listen()` logs kubelet error frames via the `kubex.portforward` logger at `WARNING` level. Configure Python logging to capture them:
+`listen()` logs kubelet error frames, and connections that fail with a WebSocket error, via the
+`kubex.portforward` logger at `WARNING` level (without a traceback). Configure Python logging to
+capture them:
 
 ```python
 import logging

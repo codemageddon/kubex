@@ -109,3 +109,30 @@ async def test_portforward_listen_http_get_returns_200(
 
     assert response.startswith(b"HTTP/1.")
     assert b"200" in response
+
+
+@pytest.mark.anyio
+async def test_portforward_forward_late_reader_receives_whole_body(
+    client: BaseClient, tmp_namespace_name: str
+) -> None:
+    """Regression: once 128 frames were queued on a port, ``forward()`` closed
+    the stream and dropped the rest of the response."""
+    api: Api[Pod] = Api(Pod, client=client, namespace=tmp_namespace_name)
+    await _create_nginx_pod(api, "pf-fwd-big", tmp_namespace_name)
+    await _wait_for_running(api, "pf-fwd-big", tmp_namespace_name)
+    size = 8 << 20
+    created = await api.exec.run(
+        "pf-fwd-big",
+        command=["sh", "-c", f"head -c {size} /dev/zero > /usr/share/nginx/html/big"],
+    )
+    created.raise_for_status()
+
+    async with api.portforward.forward("pf-fwd-big", ports=[80]) as pf:
+        stream = pf.streams[80]
+        await stream.send(b"GET /big HTTP/1.0\r\nHost: localhost\r\n\r\n")
+        await anyio.sleep(2)  # let the response pile up before reading
+        response = await _read_bytes(stream, timeout=60)
+
+    head, _, body = response.partition(b"\r\n\r\n")
+    assert head.startswith(b"HTTP/1.") and b" 200 " in head
+    assert len(body) == size

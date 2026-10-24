@@ -40,4 +40,5 @@ class Response:
 
     @cached_property
     def text(self) -> str:
-        return self.content.decode("utf-8")
+        # Container logs are arbitrary bytes; never fail a read on bad UTF-8.
+        return self.content.decode("utf-8", errors="replace")

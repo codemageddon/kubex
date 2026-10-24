@@ -335,7 +335,8 @@ def test_delete_body_dry_run(ns_builder: RequestBuilder) -> None:
     req = ns_builder.delete("my-pod", "default", opts)
     assert req.body is not None
     body = json.loads(req.body)
-    assert body == {"dryRun": "All"}
+    # DeleteOptions.dryRun is a list in the body (unlike the query parameter).
+    assert body == {"dryRun": ["All"]}
 
 
 @pytest.mark.parametrize("request_timeout,expected", _TIMEOUT_CASES_SHORT)
@@ -662,3 +663,132 @@ def test_watch_timeout(
     kwargs = {} if request_timeout is ... else {"request_timeout": request_timeout}
     req = ns_builder.watch("default", WatchOptions(), **kwargs)  # type: ignore[arg-type]
     _assert_timeout(req.timeout, expected)
+
+
+# --- delete_collection dry-run body ---------------------------------------
+
+
+def test_delete_collection_body_dry_run_is_list(ns_builder: RequestBuilder) -> None:
+    req = ns_builder.delete_collection(
+        "default", ListOptions(), DeleteOptions(dry_run="All")
+    )
+    assert req.body is not None
+    assert json.loads(req.body) == {"dryRun": ["All"]}
+
+
+# --- string values for enum-typed options ---------------------------------
+
+
+@pytest.mark.parametrize(
+    "value", ["Strict", FieldValidation.STRICT], ids=["str", "enum"]
+)
+def test_patch_query_params_field_validation_accepts_str(
+    ns_builder: RequestBuilder, value: str
+) -> None:
+    req = ns_builder.patch(
+        "my-pod",
+        "default",
+        PatchOptions(field_validation=value),  # type: ignore[arg-type]
+        JsonPatch(),
+    )
+    assert req.query_params == {"fieldValidation": "Strict"}
+
+
+@pytest.mark.parametrize(
+    "value", ["NotOlderThan", VersionMatch.NOT_OLDER_THAN], ids=["str", "enum"]
+)
+def test_list_query_params_version_match_accepts_str(
+    ns_builder: RequestBuilder, value: str
+) -> None:
+    req = ns_builder.list(
+        "default",
+        ListOptions(version_match=value, resource_version="0"),  # type: ignore[arg-type]
+    )
+    assert req.query_params == {
+        "resourceVersionMatch": "NotOlderThan",
+        "resourceVersion": "0",
+    }
+
+
+def test_enum_options_reject_unknown_str() -> None:
+    with pytest.raises(ValueError):
+        PatchOptions(field_validation="Bogus")  # type: ignore[arg-type]
+    with pytest.raises(ValueError):
+        ListOptions(version_match="Bogus")  # type: ignore[arg-type]
+
+
+# --- send_initial_events requires bookmarks -------------------------------
+
+
+def test_watch_send_initial_events_defaults_allow_bookmarks(
+    ns_builder: RequestBuilder,
+) -> None:
+    req = ns_builder.watch("default", WatchOptions(send_initial_events=True))
+    assert req.query_params == {
+        "watch": "true",
+        "allowWatchBookmarks": "true",
+        "sendInitialEvents": "true",
+        "resourceVersionMatch": "NotOlderThan",
+        "resourceVersion": "",
+    }
+
+
+def test_watch_send_initial_events_with_explicit_false_bookmarks_raises() -> None:
+    with pytest.raises(ValueError, match="allow_bookmarks"):
+        WatchOptions(send_initial_events=True, allow_bookmarks=False)
+
+
+def test_watch_send_initial_events_false_leaves_bookmarks_unset(
+    ns_builder: RequestBuilder,
+) -> None:
+    req = ns_builder.watch("default", WatchOptions(send_initial_events=False))
+    assert req.query_params is not None
+    assert "allowWatchBookmarks" not in req.query_params
+
+
+# --- server-side apply body -----------------------------------------------
+
+
+class _Target(BaseModel):
+    """A body without resource config: apiVersion/kind come from the target."""
+
+    metadata: dict[str, str] | None = None
+
+
+def test_patch_apply_body_is_json_with_target_type(ns_builder: RequestBuilder) -> None:
+    req = ns_builder.patch(
+        "my-pod",
+        "default",
+        PatchOptions(field_manager="me", force=True),
+        ApplyPatch(_Target(metadata={"name": "my-pod"})),
+    )
+    assert req.headers is not None
+    assert req.headers["content-type"] == "application/apply-patch+yaml"
+    assert isinstance(req.body, str)
+    assert json.loads(req.body) == {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "metadata": {"name": "my-pod"},
+    }
+
+
+def test_patch_subresource_apply_body_keeps_body_type(
+    ns_builder: RequestBuilder,
+) -> None:
+    from kubex_core.models.metadata import ObjectMetadata
+    from kubex_core.models.scale import Scale, ScaleSpec
+
+    req = ns_builder.patch_subresource(
+        "scale",
+        "my-pod",
+        "default",
+        PatchOptions(),
+        ApplyPatch(Scale(metadata=ObjectMetadata(), spec=ScaleSpec(replicas=2))),
+    )
+    assert isinstance(req.body, str)
+    assert json.loads(req.body) == {
+        "apiVersion": "autoscaling/v1",
+        "kind": "Scale",
+        "metadata": {},
+        "spec": {"replicas": 2},
+    }

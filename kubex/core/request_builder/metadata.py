@@ -17,6 +17,8 @@ from kubex.core.request_builder.constants import (
     METADATA_LIST_MIME_TYPE,
     METADATA_MIME_TYPE,
 )
+from kubex.core.request_builder._patch_body import patch_body
+from kubex.core.request_builder._paths import collection_url, object_url
 from kubex.core.request_builder.subresource import RequestBuilderProtocol
 
 
@@ -36,7 +38,7 @@ class MetadataRequestBuilder(RequestBuilderProtocol):
         }
         return Request(
             method="GET",
-            url=self.resource_config.url(namespace, name),
+            url=object_url(self.resource_config, namespace, name),
             query_params=query_params,
             headers=headers,
             timeout=request_timeout,
@@ -56,7 +58,7 @@ class MetadataRequestBuilder(RequestBuilderProtocol):
         }
         return Request(
             method="GET",
-            url=self.resource_config.url(namespace),
+            url=collection_url(self.resource_config, namespace),
             query_params=query_params,
             headers=headers,
             timeout=request_timeout,
@@ -76,7 +78,7 @@ class MetadataRequestBuilder(RequestBuilderProtocol):
         }
         return Request(
             method="GET",
-            url=self.resource_config.url(namespace),
+            url=collection_url(self.resource_config, namespace),
             query_params=query_params,
             headers=headers,
             timeout=request_timeout,
@@ -93,12 +95,12 @@ class MetadataRequestBuilder(RequestBuilderProtocol):
     ) -> Request:
         return Request(
             method="PATCH",
-            url=self.resource_config.url(namespace, name),
+            url=object_url(self.resource_config, namespace, name),
             query_params=options.as_query_params(),
             headers={
                 ACCEPT_HEADER: METADATA_MIME_TYPE,
                 CONTENT_TYPE_HEADER: patch.content_type_header,
             },
-            body=patch.serialize(),
+            body=patch_body(patch, self.resource_config, drop_merge_type_fields=True),
             timeout=request_timeout,
         )

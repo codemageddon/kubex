@@ -1,8 +1,7 @@
-import datetime
-
 from pydantic import Field
 
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Time
 
 
 class StorageHealthCondition(BaseK8sModel):
@@ -13,7 +12,7 @@ class StorageHealthCondition(BaseK8sModel):
         alias="accessMode",
         description="accessMode is the access mode affected. Nil means all access modes are affected.",
     )
-    last_transition_time: datetime.datetime | None = Field(
+    last_transition_time: Time | None = Field(
         default=None,
         alias="lastTransitionTime",
         description="lastTransitionTime is when this condition first appeared at its current state.",

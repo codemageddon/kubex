@@ -119,3 +119,34 @@ async def test_create_client_aiohttp_propagates_options() -> None:
     assert isinstance(client, AioHttpClient)
     assert client.options is opts
     await client.close()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("anyio_backend", ["trio"])
+async def test_create_client_auto_picks_httpx_outside_asyncio() -> None:
+    # aiohttp is asyncio-only; AUTO must not hand trio users an aiohttp client.
+    pytest.importorskip("aiohttp")
+    from kubex.client.httpx import HttpxClient
+
+    client = await create_client(_config(), client_class=ClientChoice.AUTO)
+    assert isinstance(client, HttpxClient)
+    await client.close()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("anyio_backend", ["asyncio"])
+async def test_try_read_configuration_does_not_log_exception_text(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    secret = "token-abc123"
+    caplog.set_level("DEBUG", logger="kubex.client")
+    with patch(
+        "kubex.client.client.configure_from_kubeconfig",
+        new_callable=AsyncMock,
+        side_effect=ValueError(f"invalid kubeconfig: token={secret}"),
+    ):
+        with pytest.raises(ValueError):
+            await _try_read_configuration()
+    assert all(record.levelname != "ERROR" for record in caplog.records)
+    assert secret not in caplog.text
+    assert all(record.exc_info is None for record in caplog.records)

@@ -1,7 +1,10 @@
 from typing import Literal
 
+from pydantic import Field
+
 from .base import BaseK8sModel
 from .base_entity import BaseEntity
+from .metadata import ObjectMetadata
 from .resource_config import ResourceConfig, Scope
 
 
@@ -37,6 +40,10 @@ class StatusDetails(BaseK8sModel):
 class Status(BaseEntity):
     """Status is a return value for calls that don't return other objects."""
 
+    metadata: ObjectMetadata = Field(default_factory=ObjectMetadata)
+    """Standard list metadata (`ListMeta` on the wire; its `continue` and
+    `remainingItemCount` are kept as extra fields). Optional: exec error
+    frames and many error bodies carry no `metadata` at all."""
     api_version: Literal["v1"] | None = "v1"
     """APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"""
     kind: Literal["Status"] | None = "Status"

@@ -22,13 +22,20 @@ async def main() -> None:
             ),
         )
         pod_name = cast(str, pod.metadata.name)
-        await asyncio.sleep(5)
 
         async def _consume_log_stream() -> None:
             async for line in api.logs.stream(pod_name):
                 print(line)
 
         try:
+            # Logs are only available once the container has started: wait
+            # for the pod to reach Running instead of sleeping a fixed time.
+            async for event in api.watch(
+                field_selector=f"metadata.name={pod_name}", timeout_seconds=120
+            ):
+                status = getattr(event.object, "status", None)
+                if status is not None and status.phase == "Running":
+                    break
             logs = await api.logs.get(pod_name)
             print(logs)
             # stream() uses follow=true, so the loop runs until the pod

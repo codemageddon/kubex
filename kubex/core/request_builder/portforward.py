@@ -8,6 +8,7 @@ from kubex.core.params import (
     TimeoutTypes,
 )
 from kubex.core.request import Request
+from kubex.core.request_builder._paths import object_url
 from kubex.core.request_builder.subresource import RequestBuilderProtocol
 from kubex_core.models.resource_config import Scope
 
@@ -27,7 +28,7 @@ class PortforwardRequestBuilder(RequestBuilderProtocol):
             raise ValueError("namespace is required for portforward")
         return Request(
             method="GET",
-            url=f"{self.resource_config.url(namespace, name)}/portforward",
+            url=object_url(self.resource_config, namespace, name, "portforward"),
             query_param_pairs=options.to_query_params(),
             timeout=request_timeout,
         )

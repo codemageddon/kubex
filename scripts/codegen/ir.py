@@ -25,6 +25,9 @@ class EmittedField:
     description: str | None
     # Overrides `default=None` / `...` when set (e.g. Literal defaults on api_version).
     default_expression: str | None = None
+    # Required, but the server may send `null` (see `MappedType.nullable`):
+    # rendered as `T | None = Field(...)`.
+    nullable: bool = False
 
 
 @dataclass

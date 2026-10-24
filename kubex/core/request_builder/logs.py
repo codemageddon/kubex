@@ -6,6 +6,7 @@ from kubex.core.params import (
     TimeoutTypes,
 )
 from kubex.core.request import Request
+from kubex.core.request_builder._paths import object_url
 from kubex.core.request_builder.subresource import RequestBuilderProtocol
 
 
@@ -21,7 +22,7 @@ class LogsRequestBuilder(RequestBuilderProtocol):
         query_params = options.as_query_params()
         return Request(
             method="GET",
-            url=f"{self.resource_config.url(namespace, name)}/log",
+            url=object_url(self.resource_config, namespace, name, "log"),
             query_params=query_params,
             timeout=request_timeout,
         )
@@ -41,7 +42,7 @@ class LogsRequestBuilder(RequestBuilderProtocol):
             query_params["follow"] = "true"
         return Request(
             method="GET",
-            url=f"{self.resource_config.url(namespace, name)}/log",
+            url=object_url(self.resource_config, namespace, name, "log"),
             query_params=query_params,
             timeout=request_timeout,
         )

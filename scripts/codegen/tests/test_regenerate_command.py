@@ -199,6 +199,32 @@ def test_regenerate_passes_package_version_and_output(
     assert call_kwargs["output"] == tmp_path / "out"
 
 
+@patch("scripts.codegen.__main__.run_verify")
+@patch("scripts.codegen.__main__.run_generate")
+@patch("scripts.codegen.fetch_specs.download_specs")
+@patch("scripts.codegen.fetch_specs.resolve_latest_release")
+def test_regenerate_without_package_version_keeps_existing(
+    mock_resolve: MagicMock,
+    mock_download: MagicMock,
+    mock_generate: MagicMock,
+    mock_verify: MagicMock,
+    tmp_path: Path,
+) -> None:
+    mock_resolve.return_value = "v1.35.4"
+    mock_download.return_value = DownloadedSpecs(
+        swagger_path=tmp_path / "v1.35.4" / "swagger.json",
+        v3_dir=tmp_path / "v1.35.4" / "v3",
+    )
+    mock_generate.return_value = tmp_path / "packages" / "kubex-k8s-1-35"
+    mock_verify.return_value = 0
+
+    result = runner.invoke(app, ["regenerate", "--versions", "1.35"])
+
+    assert result.exit_code == 0
+    # None means "keep the package's current version" (resolved at write time).
+    assert mock_generate.call_args.kwargs["package_version"] is None
+
+
 @pytest.mark.parametrize(
     ("versions_arg", "expected_parsed"),
     [

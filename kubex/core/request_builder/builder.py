@@ -19,6 +19,8 @@ from kubex.core.request_builder.metadata import MetadataRequestBuilder
 from kubex.core.request_builder.portforward import PortforwardRequestBuilder
 from kubex_core.models.resource_config import ResourceConfig
 
+from ._patch_body import patch_body
+from ._paths import collection_url, object_url
 from .constants import ACCEPT_HEADER, APPLICATION_JSON_MIME_TYPE, CONTENT_TYPE_HEADER
 from .subresource import SubresourceRequestBuilder
 
@@ -45,7 +47,7 @@ class RequestBuilder(
         query_params = options.as_query_params()
         return Request(
             method="GET",
-            url=self.resource_config.url(namespace, name),
+            url=object_url(self.resource_config, namespace, name),
             query_params=query_params,
             timeout=request_timeout,
         )
@@ -60,7 +62,7 @@ class RequestBuilder(
         query_params = options.as_query_params()
         return Request(
             method="GET",
-            url=self.resource_config.url(namespace),
+            url=collection_url(self.resource_config, namespace),
             query_params=query_params,
             timeout=request_timeout,
         )
@@ -76,7 +78,7 @@ class RequestBuilder(
         query_params = options.as_query_params()
         return Request(
             method="POST",
-            url=self.resource_config.url(namespace),
+            url=collection_url(self.resource_config, namespace),
             query_params=query_params,
             body=data,
             timeout=request_timeout,
@@ -93,7 +95,7 @@ class RequestBuilder(
         body = options.as_request_body()
         return Request(
             method="DELETE",
-            url=self.resource_config.url(namespace, name),
+            url=object_url(self.resource_config, namespace, name),
             body=body,
             timeout=request_timeout,
         )
@@ -110,7 +112,7 @@ class RequestBuilder(
         body = delete_options.as_request_body()
         return Request(
             method="DELETE",
-            url=self.resource_config.url(namespace),
+            url=collection_url(self.resource_config, namespace),
             query_params=query_params,
             body=body,
             timeout=request_timeout,
@@ -127,8 +129,8 @@ class RequestBuilder(
     ) -> Request:
         return Request(
             method="PATCH",
-            url=self.resource_config.url(namespace, name),
-            body=patch.serialize(by_alias=True, exclude_unset=True),
+            url=object_url(self.resource_config, namespace, name),
+            body=patch_body(patch, self.resource_config),
             query_params=options.as_query_params(),
             headers={
                 ACCEPT_HEADER: APPLICATION_JSON_MIME_TYPE,
@@ -149,7 +151,7 @@ class RequestBuilder(
         query_params = options.as_query_params()
         return Request(
             method="PUT",
-            url=self.resource_config.url(namespace, name),
+            url=object_url(self.resource_config, namespace, name),
             query_params=query_params,
             body=data,
             timeout=request_timeout,
@@ -165,7 +167,7 @@ class RequestBuilder(
         query_params = options.as_query_params()
         return Request(
             method="GET",
-            url=self.resource_config.url(namespace),
+            url=collection_url(self.resource_config, namespace),
             query_params=query_params,
             timeout=request_timeout,
         )

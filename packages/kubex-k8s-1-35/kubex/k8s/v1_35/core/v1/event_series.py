@@ -1,8 +1,7 @@
-import datetime
-
 from pydantic import Field
 
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import MicroTime
 
 
 class EventSeries(BaseK8sModel):
@@ -13,7 +12,7 @@ class EventSeries(BaseK8sModel):
         alias="count",
         description="Number of occurrences in this series up to the last heartbeat time",
     )
-    last_observed_time: datetime.datetime | None = Field(
+    last_observed_time: MicroTime | None = Field(
         default=None,
         alias="lastObservedTime",
         description="Time of the last occurrence observed",

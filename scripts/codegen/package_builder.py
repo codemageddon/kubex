@@ -3,6 +3,7 @@
 Produces a directory tree:
 
     packages/kubex-k8s-1-30/
+    ├── LICENSE
     ├── pyproject.toml
     ├── README.md
     └── kubex/k8s/v1_30/
@@ -23,15 +24,48 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
+from packaging.version import Version
 
 from scripts.codegen import enum_emitter
 from scripts.codegen.ir import EmittedClass, EmittedField, EmittedModule
 
 _TEMPLATE_DIR = Path(__file__).parent / "templates"
+_REPO_LICENSE = Path(__file__).resolve().parents[2] / "LICENSE"
+
+DEFAULT_PACKAGE_VERSION = "0.1.0-alpha.1"
+
+
+def resolve_package_version(pkg_root: Path, requested: str | None) -> str:
+    """Pick the version to write into a generated package's pyproject.toml.
+
+    An explicit version wins. Otherwise an existing package keeps its current
+    version, so regenerating models never resets a released version (which
+    would also make `skip-existing` publishing silently drop the new models).
+    A brand-new package starts at `DEFAULT_PACKAGE_VERSION`.
+    """
+    if requested is not None:
+        return requested
+    pyproject = pkg_root / "pyproject.toml"
+    if pyproject.is_file():
+        version = tomllib.loads(pyproject.read_text()).get("project", {}).get("version")
+        if isinstance(version, str) and version:
+            return version
+    return DEFAULT_PACKAGE_VERSION
+
+
+def development_status(package_version: str) -> str:
+    """Map a version to its trove `Development Status` classifier value."""
+    version = Version(package_version)
+    if version.pre is None and not version.is_devrelease:
+        return "5 - Production/Stable"
+    if version.pre is not None and version.pre[0] in ("b", "rc"):
+        return "4 - Beta"
+    return "3 - Alpha"
 
 
 @dataclass
@@ -41,7 +75,9 @@ class RenderInputs:
     output_root: Path  # e.g. packages/
     k8s_version: str  # "1.30"
     k8s_version_tag: str  # "v1_30"
-    package_version: str  # package release version string
+    # Package release version; None keeps the existing package's version
+    # (see `resolve_package_version`).
+    package_version: str | None
     modules: dict[str, EmittedModule]
     shared_enums: list[enum_emitter.EmittedEnum]  # enums destined for _common.py
     # Remove the existing module tree before writing; skipped for --only-groups,
@@ -71,13 +107,17 @@ def write_package(inputs: RenderInputs) -> Path:
         shutil.rmtree(src_root)
     src_root.mkdir(parents=True, exist_ok=True)
 
-    # pyproject.toml, README.
+    # pyproject.toml, README, LICENSE.
+    package_version = resolve_package_version(pkg_root, inputs.package_version)
     pyproject = env.get_template("pyproject.toml.j2").render(
         k8s_version=inputs.k8s_version,
         k8s_version_dashed=k8s_version_dashed,
-        package_version=inputs.package_version,
+        package_version=package_version,
+        development_status=development_status(package_version),
     )
     (pkg_root / "pyproject.toml").write_text(pyproject)
+    if _REPO_LICENSE.is_file():
+        shutil.copyfile(_REPO_LICENSE, pkg_root / "LICENSE")
     readme_path = pkg_root / "README.md"
     if not readme_path.exists():
         readme_path.write_text(
@@ -213,6 +253,8 @@ def _render_field(field_: EmittedField, class_name: str) -> str:
     elif field_.required:
         default_part = "..."
         annotation = field_.type_expression
+        if field_.nullable:
+            annotation = f"{annotation} | None"
     else:
         default_part = "default=None"
         annotation = f"{field_.type_expression} | None"

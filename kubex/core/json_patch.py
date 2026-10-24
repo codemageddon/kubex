@@ -44,7 +44,9 @@ class JsonPatchMove(BaseModel):
 
 
 class JsonPatchCopy(BaseModel):
-    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True)
+    # populate_by_name (not validate_by_name/validate_by_alias, which need
+    # pydantic>=2.11) keeps the declared `pydantic>=2.0` floor working.
+    model_config = ConfigDict(populate_by_name=True)
     op: Literal["copy"] = "copy"
     path: JsonPointer
     from_: JsonPointer = Field(alias="from")

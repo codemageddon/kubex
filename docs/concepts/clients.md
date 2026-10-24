@@ -14,7 +14,7 @@ async with await create_client() as client:
     ...
 ```
 
-Auto-detection order: **aiohttp** is tried first, then **httpx**. If neither is installed, `create_client()` raises `ImportError`.
+Auto-detection order: **aiohttp** is tried first, then **httpx**. If neither is installed, `create_client()` raises `ImportError`. aiohttp only runs on asyncio, so under any other runtime (e.g. trio) auto-detection always picks **httpx**.
 
 To force a specific client:
 
@@ -69,12 +69,12 @@ Controls the default HTTP timeout applied to every request made by this client. 
 
 | Value | Meaning |
 |---|---|
-| `...` (the default) | Use the HTTP library's own default (httpx: 5 s total; aiohttp: 300 s total, 30 s sock_connect) |
+| `...` (the default) | Use the HTTP library's own default (httpx: 5 s per phase — connect, read, write, pool — with no overall cap; aiohttp: 300 s total, 30 s sock_connect) |
 | `None` | Disable timeouts entirely |
-| `int` or `float` | Treat as a `total` timeout in seconds; coerced to `Timeout` automatically |
+| `int` or `float` | Treat as a `total` timeout in seconds (a wall-clock bound on both backends); coerced to `Timeout` automatically |
 | `Timeout(...)` | Use as-is for fine-grained per-phase control |
 
-Individual calls can override this via the `request_timeout=` parameter. See [Timeouts](../operations/timeouts.md) for the full picture.
+Individual calls can override this via the `request_timeout=` parameter. Streaming calls (`watch()`, `logs.stream()`) only inherit the connection-setup part of this default. See [Timeouts](../operations/timeouts.md) for the full picture.
 
 ### `log_api_warnings`
 
@@ -127,12 +127,12 @@ options = ClientOptions(keep_alive_timeout=None)
 
 ### `buffer_size`
 
-HTTP-response read buffer size in bytes. Uses the three-state sentinel pattern:
+HTTP-response read buffer size in bytes — how much response data aiohttp buffers before it pauses reading from the socket. It does not limit the length of a streamed line: `watch()` and `logs.stream()` accept lines of any size. Uses the three-state sentinel pattern:
 
 | Value | Meaning |
 |---|---|
-| `...` (the default) | Kubex default of `2**21` bytes (preserves current aiohttp behavior) |
-| `None` | Library default (aiohttp: `2**16` bytes) |
+| `...` (the default) | Kubex default of `2**21` bytes (2 MiB) |
+| `None` | aiohttp's own default (version-dependent: 64 KiB in aiohttp 3.11, 256 KiB in 3.14) |
 | `int > 0` | Explicit buffer size in bytes |
 
 ```python
@@ -182,6 +182,13 @@ options = ClientOptions(pool_size=10)
 # Unlimited
 options = ClientOptions(pool_size=None)
 ```
+
+!!! note "Long-lived streams hold a pool connection"
+    Every open watch, log stream, `exec`/`attach`/`portforward` session and each
+    connection accepted by `api.portforward.listen()` holds one connection from this
+    pool for as long as it stays open. With the default of 100, an application that
+    keeps many streams open at once can starve its own regular requests (they wait
+    for a free connection) — raise `pool_size` accordingly.
 
 ### `pool_size_per_host`
 
@@ -272,6 +279,16 @@ Some `ClientOptions` fields behave differently (or are unsupported) depending on
 | `trust_env=True` | If a proxy env var is found at construction, it is materialized into `httpx.Proxy(auth=...)` (snapshot). If none is found, httpx receives `trust_env=True` and re-reads env vars per-request. | Env vars read per-request (aiohttp native behavior) |
 
 Cross-reference: see [Timeouts](../operations/timeouts.md) for the note on `Timeout.write` and `Timeout.pool` being httpx-only fields.
+
+## Connection behavior
+
+These apply to both backends:
+
+- **Errors are backend-independent.** Connection failures (refused, DNS, TLS, the connection dropping mid-response) raise `KubexConnectionError`; client-side timeouts raise `KubexTimeoutError` (also a `TimeoutError`). The original httpx/aiohttp exception is kept as `__cause__`. See [Exceptions](exceptions.md).
+- **TLS material is loaded once.** The CA bundle and client certificate/key files are read when the client is constructed. If they are rotated on disk (e.g. a renewed client certificate), create a new client to pick them up.
+- **`tls-server-name`** from the kubeconfig (`ClientConfiguration(tls_server_name=...)`) is used both as the SNI name and as the name the server certificate is verified against, for REST and WebSocket connections. Exception: the httpx backend cannot apply it through an HTTP proxy (explicit `proxy` or one picked up with `trust_env=True`) and warns at construction; certificate verification then uses the host in the server URL. Use aiohttp for that setup.
+- **Impersonation headers** (`Impersonate-User`, `Impersonate-Group`, …) from the configuration are sent on every REST and WebSocket request; repeated headers such as several `Impersonate-Group` values are preserved.
+- **WebSocket keepalive.** `exec`, `attach` and `portforward` connections send a ping every 20 seconds so idle connections survive load balancers. No pong deadline is enforced: a consumer that pauses reading (backpressure) is not disconnected.
 
 ## `AioHttpClient`
 

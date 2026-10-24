@@ -7,6 +7,7 @@ from pydantic import Field
 from kubex.k8s.v1_35.core.v1.config_map import ConfigMap
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.metadata import ListMetadata
+from kubex_core.models.types import NullAsEmptyList
 
 
 class ConfigMapList(ListEntity[ConfigMap]):
@@ -17,7 +18,7 @@ class ConfigMapList(ListEntity[ConfigMap]):
         alias="apiVersion",
         description="APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
     )
-    items: list[ConfigMap] = Field(
+    items: NullAsEmptyList[ConfigMap] = Field(
         ..., alias="items", description="Items is the list of ConfigMaps."
     )
     kind: Literal["ConfigMapList"] = Field(

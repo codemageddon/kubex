@@ -2,6 +2,7 @@ from pydantic import Field
 
 from kubex.k8s.v1_34.core.v1.local_object_reference import LocalObjectReference
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import NullAsEmptyList
 
 
 class RBDVolumeSource(BaseK8sModel):
@@ -22,7 +23,7 @@ class RBDVolumeSource(BaseK8sModel):
         alias="keyring",
         description="keyring is the path to key ring for RBDUser. Default is /etc/ceph/keyring. More info: https://examples.k8s.io/volumes/rbd/README.md#how-to-use-it",
     )
-    monitors: list[str] = Field(
+    monitors: NullAsEmptyList[str] = Field(
         ...,
         alias="monitors",
         description="monitors is a collection of Ceph monitors. More info: https://examples.k8s.io/volumes/rbd/README.md#how-to-use-it",

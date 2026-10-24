@@ -1,6 +1,6 @@
 # Patch
 
-`api.patch(name, patch)` applies a partial update to an existing resource. Kubex supports all three patch strategies used by the Kubernetes API.
+`api.patch(name, patch)` applies a partial update to an existing resource. Kubex supports all four patch types accepted by the Kubernetes API.
 
 ## Patch types
 
@@ -9,6 +9,7 @@
 | `MergePatch` | `kubex.core.patch` | `application/merge-patch+json` |
 | `StrategicMergePatch` | `kubex.core.patch` | `application/strategic-merge-patch+json` |
 | `JsonPatch` | `kubex.core.patch` | `application/json-patch+json` |
+| `ApplyPatch` | `kubex.core.patch` | `application/apply-patch+yaml` (server-side apply) |
 
 ## `MergePatch`
 
@@ -128,16 +129,47 @@ patch = JsonPatch(
 )
 ```
 
+## `ApplyPatch` (server-side apply)
+
+Server-side apply sends the fields you want to own; the API server merges them into the live object and records `field_manager` as their owner. It creates the object if it does not exist yet. A `field_manager` is required, and `force=True` takes over fields currently owned by another manager instead of failing with `409 Conflict`:
+
+```python
+from kubex.core.patch import ApplyPatch
+
+patched = await api.patch(
+    "example-deploy",
+    ApplyPatch(
+        Deployment(
+            metadata=ObjectMetadata(name="example-deploy"),
+            spec=DeploymentSpec(
+                replicas=2,
+                selector=LabelSelector(match_labels={"app": "example"}),
+                template=PodTemplateSpec(
+                    metadata=ObjectMetadata(labels={"app": "example"}),
+                    spec=PodSpec(
+                        containers=[Container(name="nginx", image="nginx:latest")]
+                    ),
+                ),
+            ),
+        )
+    ),
+    field_manager="my-controller",
+    force=True,
+)
+```
+
+Only the fields you set on the model are sent (`exclude_unset`), plus `apiVersion` and `kind`, which are always included — taken from the target resource, so you never need to set them yourself. The body is serialized as JSON (valid YAML, and what `kubectl apply --server-side` sends), so timestamps such as a condition's `lastTransitionTime` use their RFC 3339 wire format. `metadata.managedFields` is always stripped (the server rejects it in an apply body), so an object returned by `get()` can be modified and applied back directly.
+
 ## Patch options
 
-All three patch types accept these optional keyword arguments on `api.patch()`:
+All patch types accept these optional keyword arguments on `api.patch()`:
 
 | Parameter | Description |
 |---|---|
-| `dry_run` | Validate without persisting (`True` or `DryRun.ALL`) |
-| `field_manager` | Field manager name for server-side apply tracking |
-| `force` | Force apply even when field ownership conflicts (server-side apply only) |
-| `field_validation` | `FieldValidation.STRICT` (default), `WARN`, or `IGNORE` |
+| `dry_run` | Validate without persisting (`True`, `"All"` or `DryRun.ALL`) |
+| `field_manager` | Field manager name recorded in `managedFields`; required for `ApplyPatch` |
+| `force` | Force apply even when field ownership conflicts (`ApplyPatch` only) |
+| `field_validation` | `"Strict"`, `"Warn"` (the server default) or `"Ignore"` — or the `FieldValidation` enum |
 
 ```python
 patched = await api.patch(
@@ -155,7 +187,7 @@ from typing import cast
 
 from kubex.api import Api
 from kubex.client import create_client
-from kubex.core.patch import JsonPatch, MergePatch, StrategicMergePatch
+from kubex.core.patch import ApplyPatch, JsonPatch, MergePatch, StrategicMergePatch
 from kubex.k8s.v1_35.apps.v1.deployment import Deployment
 from kubex.k8s.v1_35.apps.v1.deployment_spec import DeploymentSpec
 from kubex.k8s.v1_35.core.v1.container import Container
@@ -228,6 +260,32 @@ async def main() -> None:
             json_patch = JsonPatch().add("/metadata/labels/version", "v1")
             patched = await api.patch(name, json_patch)
             print(f"After JsonPatch: labels={patched.metadata.labels}")
+
+            # ApplyPatch — server-side apply: send the fields this manager owns.
+            # apiVersion/kind are filled in automatically.
+            apply_patch = ApplyPatch(
+                Deployment(
+                    metadata=ObjectMetadata(name=name),
+                    spec=DeploymentSpec(
+                        replicas=2,
+                        selector=LabelSelector(match_labels={"app": "example"}),
+                        template=PodTemplateSpec(
+                            metadata=ObjectMetadata(labels={"app": "example"}),
+                            spec=PodSpec(
+                                containers=[
+                                    Container(name="nginx", image="nginx:latest")
+                                ],
+                            ),
+                        ),
+                    ),
+                )
+            )
+            patched = await api.patch(
+                name, apply_patch, field_manager="kubex-example", force=True
+            )
+            print(
+                f"After ApplyPatch: replicas={patched.spec and patched.spec.replicas}"
+            )
         finally:
             await api.delete(name)
 ```

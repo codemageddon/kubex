@@ -6,7 +6,7 @@ Contains:
 
 - `kubex_core.models.base.BaseK8sModel` — Pydantic base with camelCase aliasing.
 - `kubex_core.models.base_entity.BaseEntity` — base class for all K8s resources.
-- `kubex_core.models.interfaces` — marker interfaces (`NamespaceScopedEntity`, `ClusterScopedEntity`, `HasLogs`, `HasStatusSubresource`, `HasScaleSubresource`, `Evictable`).
+- `kubex_core.models.interfaces` — marker interfaces (`NamespaceScopedEntity`, `ClusterScopedEntity`, `HasLogs`, `HasStatusSubresource`, `HasScaleSubresource`, `Evictable`, `HasEphemeralContainers`, `HasResize`, `HasExec`, `HasAttach`, `HasPortForward`).
 - `kubex_core.models.resource_config` — `ResourceConfig` descriptor + `Scope`.
 - `kubex_core.models.metadata` — `ObjectMetadata`, `ListMetadata`, `OwnerReference`.
 - `kubex_core.models.list_entity`, `partial_object_meta`, `status`, `scale`.

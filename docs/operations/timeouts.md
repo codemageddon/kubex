@@ -19,7 +19,7 @@ t = Timeout(total=30.0, connect=5.0, read=25.0)  # granular override
 
 | Field | Description |
 |---|---|
-| `total` | Overall timeout in seconds. Acts as the default for unset granular fields. |
+| `total` | Overall wall-clock timeout in seconds for the whole request, on both backends. Also the default for unset granular fields. |
 | `connect` | Timeout for establishing the TCP connection. |
 | `read` | Timeout for reading the response body. |
 | `write` | Timeout for writing the request body (httpx only). |
@@ -40,7 +40,9 @@ client = await create_client(
 )
 ```
 
-If no `options` is provided (or `timeout=...`, the default), the underlying HTTP library's own default applies (httpx: 5 s total; aiohttp: 300 s total, 30 s sock_connect).
+If no `options` is provided (or `timeout=...`, the default), the underlying HTTP library's own default applies (httpx: 5 s per phase — connect, read, write, pool — with no overall cap; aiohttp: 300 s total, 30 s sock_connect).
+
+A client-level default applies in full to regular (non-streaming) requests. Streaming calls only inherit its connection-setup part — see [Watch and long-lived streams](#watch-and-long-lived-streams).
 
 ## Per-call override with `request_timeout`
 
@@ -74,29 +76,61 @@ Passing `request_timeout=...` explicitly is the same as omitting it — both mea
 ## Watch and long-lived streams
 
 !!! warning "Server-side default closes the stream"
-    The Kubernetes API server applies its own default `timeoutSeconds` (typically
-    around 5 minutes) when the client does not provide one. A `watch()` call
+    The Kubernetes API server applies its own default `timeoutSeconds` (usually
+    somewhere between 30 and 60 minutes) when the client does not provide one. A `watch()` call
     will *not* stream forever — your loop must reconnect when the server closes
     the stream. Pass an explicit `timeout_seconds=` to make the bound visible
-    in code, and combine with the [restart-on-`Gone` pattern](watch.md#restart-on-gone-pattern)
+    in code, and combine with the [resume-after-`Gone` pattern](watch.md#resuming-after-gone)
     to keep the watch alive across reconnects.
 
-For `api.watch()` and log streaming, a short `read` timeout will terminate the stream prematurely. Either disable the HTTP timeout for these calls or set a generous `read` value:
+A watch or a followed log stream legitimately goes quiet for long periods, so when `request_timeout` is **not** passed, `api.watch()`, `api.metadata.watch()` and `api.logs.stream()` use a *connect-only* timeout: the connection-setup bounds of the client default are kept (`connect`/`pool`, or `total` while connecting — the library defaults if `ClientOptions.timeout` is not set), and the `read` and `total` bounds are dropped. A stream therefore never fails just because no event arrived for a while.
+
+An explicit `request_timeout` is applied to the stream as given — a short value will terminate the stream. (On streams, httpx applies a `total` per phase — e.g. as the longest allowed gap between chunks — rather than as a wall-clock limit; aiohttp applies it to the whole stream.)
 
 ```python
-# No HTTP timeout on watch — the Kubernetes server-side timeout controls duration
-async for event in api.watch(request_timeout=None, timeout_seconds=300):
+# Connect-only (the default): runs until the server closes the stream
+async for event in api.watch(timeout_seconds=300):
     ...
 
-# Or use a long read timeout
-async for event in api.watch(request_timeout=Timeout(connect=5.0, read=600.0)):
+# No HTTP timeout at all, not even for connecting
+async for event in api.watch(request_timeout=None, timeout_seconds=300):
     ...
 ```
+
+!!! tip "Detecting a dead connection"
+    Without a read timeout, a connection that dies silently (e.g. a dropped NAT
+    entry, no TCP reset) keeps the stream waiting. To bound that, pass
+    `timeout_seconds` *and* a slightly larger client-side `request_timeout`:
+    the server ends a healthy stream after `timeout_seconds`, so hitting the
+    client timeout means the connection is gone.
+
+    ```python
+    async for event in api.watch(timeout_seconds=300, request_timeout=330):
+        ...
+    ```
+
+    For log follows (which have no server-side timeout), use a generous `read`
+    timeout instead, e.g. `request_timeout=Timeout(connect=10, read=600)`.
 
 !!! warning "Two timeout parameters on `watch()`"
     `watch(timeout_seconds=N)` tells the *API server* to close the stream after N seconds.
     `watch(request_timeout=M)` tells the *HTTP client* to abort the connection after M seconds.
     They are independent — set both if you want server-side control *and* a client-side safety net.
+
+## When a timeout fires
+
+A client-side timeout raises `KubexTimeoutError` on both backends — for regular requests, streams (including mid-stream) and WebSocket handshakes. It subclasses both `KubexClientException` and the built-in `TimeoutError`, so either `except` clause catches it:
+
+```python
+from kubex.core.exceptions import KubexTimeoutError
+
+try:
+    pod = await api.get("my-pod", request_timeout=5)
+except KubexTimeoutError:
+    ...
+```
+
+Cancelling the calling task (e.g. an enclosing `anyio.move_on_after()`) is never converted: it propagates as the runtime's own cancellation.
 
 ## `timeout_seconds` on `list()` and `delete_collection()`
 

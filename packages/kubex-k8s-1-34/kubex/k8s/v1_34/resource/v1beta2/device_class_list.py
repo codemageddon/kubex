@@ -7,6 +7,7 @@ from pydantic import Field
 from kubex.k8s.v1_34.resource.v1beta2.device_class import DeviceClass
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.metadata import ListMetadata
+from kubex_core.models.types import NullAsEmptyList
 
 
 class DeviceClassList(ListEntity[DeviceClass]):
@@ -17,7 +18,7 @@ class DeviceClassList(ListEntity[DeviceClass]):
         alias="apiVersion",
         description="APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
     )
-    items: list[DeviceClass] = Field(
+    items: NullAsEmptyList[DeviceClass] = Field(
         ..., alias="items", description="Items is the list of resource classes."
     )
     kind: Literal["DeviceClassList"] = Field(

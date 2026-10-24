@@ -7,6 +7,7 @@ from pydantic import Field
 from kubex.k8s.v1_33.rbac.v1.role import Role
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.metadata import ListMetadata
+from kubex_core.models.types import NullAsEmptyList
 
 
 class RoleList(ListEntity[Role]):
@@ -17,7 +18,7 @@ class RoleList(ListEntity[Role]):
         alias="apiVersion",
         description="APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
     )
-    items: list[Role] = Field(
+    items: NullAsEmptyList[Role] = Field(
         ..., alias="items", description="Items is a list of Roles"
     )
     kind: Literal["RoleList"] = Field(

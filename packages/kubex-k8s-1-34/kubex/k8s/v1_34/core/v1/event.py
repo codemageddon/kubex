@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import datetime
 from typing import ClassVar, Literal
 
 from pydantic import Field
@@ -10,6 +9,7 @@ from kubex.k8s.v1_34.core.v1.event_source import EventSource
 from kubex.k8s.v1_34.core.v1.object_reference import ObjectReference
 from kubex_core.models.interfaces import NamespaceScopedEntity
 from kubex_core.models.resource_config import ResourceConfig, Scope
+from kubex_core.models.types import MicroTime, Time
 
 
 class Event(NamespaceScopedEntity):
@@ -37,12 +37,12 @@ class Event(NamespaceScopedEntity):
         alias="count",
         description="The number of times this event has occurred.",
     )
-    event_time: datetime.datetime | None = Field(
+    event_time: MicroTime | None = Field(
         default=None,
         alias="eventTime",
         description="Time when this Event was first observed.",
     )
-    first_timestamp: datetime.datetime | None = Field(
+    first_timestamp: Time | None = Field(
         default=None,
         alias="firstTimestamp",
         description="The time at which the event was first recorded. (Time of server receipt is in TypeMeta.)",
@@ -55,7 +55,7 @@ class Event(NamespaceScopedEntity):
         alias="kind",
         description="Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
     )
-    last_timestamp: datetime.datetime | None = Field(
+    last_timestamp: Time | None = Field(
         default=None,
         alias="lastTimestamp",
         description="The time at which the most recent occurrence of this event was recorded.",

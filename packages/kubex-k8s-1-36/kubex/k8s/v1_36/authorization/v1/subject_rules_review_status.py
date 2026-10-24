@@ -3,6 +3,7 @@ from pydantic import Field
 from kubex.k8s.v1_36.authorization.v1.non_resource_rule import NonResourceRule
 from kubex.k8s.v1_36.authorization.v1.resource_rule import ResourceRule
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import NullAsEmptyList
 
 
 class SubjectRulesReviewStatus(BaseK8sModel):
@@ -18,12 +19,12 @@ class SubjectRulesReviewStatus(BaseK8sModel):
         alias="incomplete",
         description="incomplete is true when the rules returned by this call are incomplete. This is most commonly encountered when an authorizer, such as an external authorizer, doesn't support rules evaluation.",
     )
-    non_resource_rules: list[NonResourceRule] = Field(
+    non_resource_rules: NullAsEmptyList[NonResourceRule] = Field(
         ...,
         alias="nonResourceRules",
         description="nonResourceRules is the list of actions the subject is allowed to perform on non-resources. The list ordering isn't significant, may contain duplicates, and possibly be incomplete.",
     )
-    resource_rules: list[ResourceRule] = Field(
+    resource_rules: NullAsEmptyList[ResourceRule] = Field(
         ...,
         alias="resourceRules",
         description="resourceRules is the list of actions the subject is allowed to perform on resources. The list ordering isn't significant, may contain duplicates, and possibly be incomplete.",

@@ -1,11 +1,46 @@
 from __future__ import annotations
 
+from pathlib import Path
+
+import pytest
+
 from scripts.codegen.ir import EmittedClass, EmittedField
 from scripts.codegen.package_builder import (
+    DEFAULT_PACKAGE_VERSION,
     _escape_string_literal,
     _render_class,
     _render_field,
+    development_status,
+    resolve_package_version,
 )
+
+
+def test_resolve_package_version_explicit_wins(tmp_path: Path) -> None:
+    (tmp_path / "pyproject.toml").write_text('[project]\nversion = "0.1.0-beta.3"\n')
+    assert resolve_package_version(tmp_path, "2.0.0") == "2.0.0"
+
+
+def test_resolve_package_version_keeps_existing(tmp_path: Path) -> None:
+    (tmp_path / "pyproject.toml").write_text('[project]\nversion = "0.1.0-beta.3"\n')
+    assert resolve_package_version(tmp_path, None) == "0.1.0-beta.3"
+
+
+def test_resolve_package_version_defaults_for_new_package(tmp_path: Path) -> None:
+    assert resolve_package_version(tmp_path, None) == DEFAULT_PACKAGE_VERSION
+
+
+@pytest.mark.parametrize(
+    ("version", "expected"),
+    [
+        ("0.1.0-alpha.1", "3 - Alpha"),
+        ("0.0.0.dev0", "3 - Alpha"),
+        ("0.1.0-beta.3", "4 - Beta"),
+        ("0.1.0rc1", "4 - Beta"),
+        ("1.0.0", "5 - Production/Stable"),
+    ],
+)
+def test_development_status(version: str, expected: str) -> None:
+    assert development_status(version) == expected
 
 
 def test_escape_string_literal_escapes_quotes_and_backslashes() -> None:

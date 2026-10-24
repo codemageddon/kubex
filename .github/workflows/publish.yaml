@@ -56,12 +56,19 @@ jobs:
             ERRORS=$((ERRORS + 1))
           fi
 
+          # kubex pins kubex-core exactly (they ship in lock-step), so the pin
+          # in the root pyproject.toml must name the same release.
+          if ! grep -qF "\"kubex-core==${TAG_VERSION}\"" pyproject.toml; then
+            echo "::error::pyproject.toml must pin \"kubex-core==${TAG_VERSION}\""
+            ERRORS=$((ERRORS + 1))
+          fi
+
           if [ "$ERRORS" -gt 0 ]; then
             echo "::error::${ERRORS} package(s) have version mismatches with tag ${GITHUB_REF_NAME}"
             exit 1
           fi
 
-          echo "kubex and kubex-core versions match tag ${GITHUB_REF_NAME}"
+          echo "kubex, kubex-core and the kubex-core pin match tag ${GITHUB_REF_NAME}"
 
   build:
     needs: verify-versions

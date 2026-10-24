@@ -7,6 +7,7 @@ from pydantic import Field
 from kubex.k8s.v1_35.core.v1.namespace import Namespace
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.metadata import ListMetadata
+from kubex_core.models.types import NullAsEmptyList
 
 
 class NamespaceList(ListEntity[Namespace]):
@@ -17,7 +18,7 @@ class NamespaceList(ListEntity[Namespace]):
         alias="apiVersion",
         description="APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
     )
-    items: list[Namespace] = Field(
+    items: NullAsEmptyList[Namespace] = Field(
         ...,
         alias="items",
         description="Items is the list of Namespace objects in the list. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/",

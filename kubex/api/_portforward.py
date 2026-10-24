@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 from contextlib import asynccontextmanager
 from types import MappingProxyType
 from typing import (
@@ -18,9 +19,10 @@ import anyio
 import anyio.abc
 from anyio.streams.memory import MemoryObjectReceiveStream
 
-from kubex.api._stream_session import _resolve_protocol
+from kubex.api._stream_session import _DEFAULT_CHANNEL_BUFFER, _resolve_protocol
 from kubex.api._portforward_session import PortForwardSession
 from kubex.client.client import BaseClient
+from kubex.core.exceptions import KubexClientException
 from kubex.core.exec_channels import (
     PORTFORWARD_PROTOCOLS,
     ChannelProtocol,
@@ -43,16 +45,25 @@ from ._protocol import (
 _logger = logging.getLogger("kubex.portforward")
 
 
+_COPY_ERRORS = (
+    anyio.ClosedResourceError,
+    anyio.BrokenResourceError,
+    KubexClientException,
+)
+
+
 async def _copy(
     src: anyio.abc.ByteStream,
     dst: anyio.abc.ByteStream,
-) -> None:
+    *,
+    direction: str,
+    port: int,
+) -> bool:
     """Copy bytes from src to dst until EOF, then half-close dst.
 
-    On natural EOF on the source, sends EOF on the destination so the peer
-    can keep streaming in the opposite direction (TCP half-close support).
-    Broken or closed stream errors are silently ignored — the task exits and
-    the other direction tears down naturally via the outer ``async with`` blocks.
+    Returns ``True`` when ``src`` reached EOF, ``False`` when the copy stopped
+    on a closed/broken stream or a WebSocket error. Those are expected
+    disconnects, so they are logged at debug level without a traceback.
     """
     try:
         while True:
@@ -61,12 +72,28 @@ async def _copy(
             except anyio.EndOfStream:
                 break
             await dst.send(chunk)
-    except (anyio.ClosedResourceError, anyio.BrokenResourceError):
-        return
+    except _COPY_ERRORS as exc:
+        _logger.debug(
+            "portforward %s copy on port %d stopped: %r", direction, port, exc
+        )
+        return False
     try:
         await dst.send_eof()
-    except (anyio.ClosedResourceError, anyio.BrokenResourceError):
+    except _COPY_ERRORS:
         pass
+    return True
+
+
+async def _copy_local_to_remote(
+    local: anyio.abc.ByteStream,
+    remote: anyio.abc.ByteStream,
+    port: int,
+    cancel_scope: anyio.CancelScope,
+) -> None:
+    # Local EOF is only a half-close: keep waiting for the remote response.
+    # A local error tears the connection down (kubectl does the same).
+    if not await _copy(local, remote, direction="local->remote", port=port):
+        cancel_scope.cancel()
 
 
 async def _drain_errors(
@@ -87,6 +114,16 @@ async def _drain_errors(
                 break
     except anyio.ClosedResourceError:
         pass
+
+
+def _log_pending_errors(error_recv: MemoryObjectReceiveStream[str], port: int) -> None:
+    """Log error messages already queued when the connection is torn down."""
+    while True:
+        try:
+            error_text = error_recv.receive_nowait()
+        except (anyio.WouldBlock, anyio.EndOfStream, anyio.ClosedResourceError):
+            return
+        _logger.warning("portforward error on port %d: %s", port, error_text)
 
 
 __all__ = [
@@ -130,6 +167,9 @@ class PortForwardStream(anyio.abc.ByteStream):
         self._recv_stream = recv_stream
         self._buffer = b""
         self._send_closed = False
+        # Keeps the frames of one ``send()`` contiguous and orders them
+        # against ``send_eof()`` / ``aclose()``.
+        self._send_lock = anyio.Lock()
 
     async def receive(self, max_bytes: int = 65536) -> bytes:
         if max_bytes <= 0:
@@ -144,24 +184,25 @@ class PortForwardStream(anyio.abc.ByteStream):
         return data
 
     async def send(self, item: bytes) -> None:
-        # Acquire the session write lock *before* the closed-flag check so
-        # check-then-send is atomic with respect to concurrent send_eof()
-        # and aclose() callers (which set the flag under the same lock).
-        # Without this, a writer that snapshotted the flag as ``False``
-        # could still emit a data frame after the half-close had completed,
-        # violating the half-close contract on protocols where it matters.
-        async with self._session._write_lock:
+        """Send ``item`` to the remote port, split into frames of at most 32 KiB.
+
+        Raises ``anyio.ClosedResourceError`` after ``send_eof()``/``aclose()``
+        and ``KubexClientException`` once the session has ended.
+        """
+        # The closed-flag check happens under the same lock that
+        # send_eof()/aclose() take, so no data frame can follow a half-close.
+        async with self._send_lock:
             if self._send_closed:
                 raise anyio.ClosedResourceError("stream send side is closed")
-            await self._session._send_locked(self._data_channel_id, item)
+            await self._session._send_data(self._data_channel_id, item)
 
     async def send_eof(self) -> None:
-        async with self._session._write_lock:
+        async with self._send_lock:
             self._send_closed = True
         await self._session.close_port_data(self._port)
 
     async def aclose(self) -> None:
-        async with self._session._write_lock:
+        async with self._send_lock:
             self._send_closed = True
         try:
             await self._session.close_port_data(self._port)
@@ -176,9 +217,10 @@ class PortForwarder:
     sending and receiving raw bytes to/from the remote port.
     ``errors[port]`` is an async iterator of error-text strings sent by the kubelet
     on the error channel for that port.
-    ``port_data_truncated[port]`` reflects the live overflow flag — ``True`` when the
-    per-port data buffer filled and the stream was closed locally. ``port_error_truncated[port]``
-    is the same for the per-port error channel.
+
+    All ports share one WebSocket and inbound data is never dropped: a port
+    whose stream (or error iterator) is not read stalls every port once its
+    queue is full. Read each forwarded port, or ``aclose()`` its stream.
     """
 
     def __init__(self, session: PortForwardSession) -> None:
@@ -194,11 +236,22 @@ class PortForwarder:
 
     @property
     def port_data_truncated(self) -> Mapping[int, bool]:
-        return MappingProxyType(self._session._truncated)
+        """Deprecated: always ``False`` for every port (data is no longer dropped)."""
+        return self._deprecated_truncated("port_data_truncated")
 
     @property
     def port_error_truncated(self) -> Mapping[int, bool]:
-        return MappingProxyType(self._session._error_truncated)
+        """Deprecated: always ``False`` for every port (errors are no longer dropped)."""
+        return self._deprecated_truncated("port_error_truncated")
+
+    def _deprecated_truncated(self, name: str) -> Mapping[int, bool]:
+        warnings.warn(
+            f"PortForwarder.{name} is deprecated and always False: "
+            "data is no longer dropped",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+        return MappingProxyType(dict.fromkeys(self._session._ports, False))
 
 
 class PortforwardAccessor(Generic[ResourceType]):
@@ -234,8 +287,7 @@ class PortforwardAccessor(Generic[ResourceType]):
         ports: Sequence[int],
         namespace: ApiNamespaceTypes,
         request_timeout: ApiRequestTimeoutTypes,
-        buffer_size: float = 128,
-        block_on_full: bool = False,
+        buffer_size: float = _DEFAULT_CHANNEL_BUFFER,
     ) -> PortForwardSession:
         _namespace = ensure_required_namespace(namespace, self._namespace, self._scope)
         options = PortForwardOptions(ports=ports)
@@ -249,11 +301,7 @@ class PortforwardAccessor(Generic[ResourceType]):
         try:
             protocol = _resolve_protocol(connection, self._channel_protocols)
             return PortForwardSession(
-                connection,
-                protocol,
-                ports,
-                buffer_size=buffer_size,
-                block_on_full=block_on_full,
+                connection, protocol, ports, buffer_size=buffer_size
             )
         except BaseException:
             try:
@@ -290,6 +338,10 @@ class PortforwardAccessor(Generic[ResourceType]):
 
         Yields a ``PortForwarder`` exposing per-port ``ByteStream`` objects
         (``pf.streams[port]``) and per-port error iterators (``pf.errors[port]``).
+
+        Inbound data is never dropped; since the ports share one WebSocket, a
+        port that is not read stalls all ports once its queue fills. Read
+        every forwarded port (or ``aclose()`` the ones you don't need).
         """
         session = await self._open_session(
             name,
@@ -332,6 +384,13 @@ class PortforwardAccessor(Generic[ResourceType]):
         ``port_map`` maps **remote port** (kubelet-side) to **local port**.
         Example: ``{80: 18080}`` opens a local listener on port 18080 that
         forwards to the pod's port 80.
+
+        When the remote side finishes (or the kubelet reports an error), the
+        local connection is closed; a local half-close (EOF) keeps the
+        connection open until the remote response is complete. The v4
+        protocol cannot pass that EOF to the pod, so after a local client
+        disconnects its connection stays open until the pod closes it or
+        sends more data.
         """
         if not port_map:
             raise ValueError("port_map must contain at least one entry")
@@ -399,7 +458,6 @@ class PortforwardAccessor(Generic[ResourceType]):
                             ports=[remote_port],
                             namespace=namespace,
                             request_timeout=request_timeout,
-                            block_on_full=True,
                         )
                         async with session:
                             pf = PortForwarder(session)
@@ -412,16 +470,30 @@ class PortforwardAccessor(Generic[ResourceType]):
                                     remote_port,
                                     conn_tg.cancel_scope,
                                 )
-                                # Run the two copy directions in a nested task
-                                # group so their natural EOFs (half-close) do
-                                # not tear down the whole connection — only
-                                # when both directions complete do we cancel
-                                # the surrounding scope (which stops the error
-                                # drain task).
-                                async with anyio.create_task_group() as copy_tg:
-                                    copy_tg.start_soon(_copy, stream, port_stream)
-                                    copy_tg.start_soon(_copy, port_stream, stream)
+                                conn_tg.start_soon(
+                                    _copy_local_to_remote,
+                                    stream,
+                                    port_stream,
+                                    remote_port,
+                                    conn_tg.cancel_scope,
+                                )
+                                # Once the remote side is done, stop reading
+                                # the local socket and close it (kubectl
+                                # semantics) instead of leaving it half-open.
+                                await _copy(
+                                    port_stream,
+                                    stream,
+                                    direction="remote->local",
+                                    port=remote_port,
+                                )
                                 conn_tg.cancel_scope.cancel()
+                            _log_pending_errors(error_recv, remote_port)
+                except KubexClientException as exc:
+                    _logger.warning(
+                        "portforward connection on port %d failed: %s",
+                        remote_port,
+                        exc,
+                    )
                 except Exception:
                     _logger.exception(
                         "portforward connection error on port %d", remote_port

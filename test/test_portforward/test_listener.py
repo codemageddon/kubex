@@ -20,9 +20,9 @@ from kubex.k8s.v1_35.core.v1.pod import Pod
 from kubex_core.models.resource_config import Scope
 
 
-@pytest.fixture
-def anyio_backend() -> str:
-    return "asyncio"
+@pytest.fixture(params=["asyncio", "trio"])
+def anyio_backend(request: pytest.FixtureRequest) -> str:
+    return str(request.param)
 
 
 def _get_free_port() -> int:
@@ -478,3 +478,110 @@ async def test_listen_applies_backpressure_without_data_loss(
     # Backpressure must not produce a "data dropped" warning — data is stalled,
     # not silently discarded.
     assert not any("data dropped" in r.message for r in caplog.records)
+
+
+async def _wait_until(predicate: Callable[[], bool], timeout: float = 2.0) -> None:
+    with anyio.fail_after(timeout):
+        while not predicate():
+            await anyio.sleep(0.01)
+
+
+@pytest.mark.anyio
+async def test_remote_eof_closes_local_connection_and_session() -> None:
+    """Regression: once the remote side finished, the local connection (and
+    its WebSocket session) stayed open until the local client closed it.
+    kubectl closes the local connection as soon as the remote copy ends."""
+    local_port = _get_free_port()
+    ws_list: list[_FakeWebSocket] = []
+
+    def ws_factory() -> _FakeWebSocket:
+        ws = _FakeWebSocket()
+        ws.feed(bytes([0]) + _port_prefix(80) + b"response")
+        ws.feed(bytes([1]) + _port_prefix(80))
+        ws.feed_eof()
+        ws_list.append(ws)
+        return ws
+
+    accessor = _accessor_for_pod(_DynamicFakeClient(ws_factory))
+
+    async with accessor.listen("my-pod", port_map={80: local_port}):
+        async with await anyio.connect_tcp("127.0.0.1", local_port) as sock:
+            received = b""
+            with anyio.fail_after(2.0):
+                while True:
+                    try:
+                        received += await sock.receive()
+                    except anyio.EndOfStream:
+                        break
+            assert received == b"response"
+            # The client never half-closed, yet the session is torn down.
+            await _wait_until(lambda: bool(ws_list) and ws_list[0].closed)
+
+
+class _SendFailingWebSocket(_FakeWebSocket):
+    async def send_bytes(self, data: bytes) -> None:
+        from kubex.core.exceptions import KubexClientException
+
+        raise KubexClientException("WebSocket send failed: connection reset")
+
+
+@pytest.mark.anyio
+async def test_websocket_send_error_closes_local_connection_without_traceback(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    local_port = _get_free_port()
+    ws_list: list[_FakeWebSocket] = []
+
+    def ws_factory() -> _FakeWebSocket:
+        ws = _SendFailingWebSocket()
+        ws.feed(bytes([0]) + _port_prefix(80))
+        ws.feed(bytes([1]) + _port_prefix(80))
+        ws_list.append(ws)
+        return ws
+
+    accessor = _accessor_for_pod(_DynamicFakeClient(ws_factory))
+
+    with caplog.at_level(logging.DEBUG, logger="kubex.portforward"):
+        async with accessor.listen("my-pod", port_map={80: local_port}):
+            async with await anyio.connect_tcp("127.0.0.1", local_port) as sock:
+                await sock.send(b"GET / HTTP/1.0\r\n\r\n")
+                with anyio.fail_after(2.0):
+                    with pytest.raises(anyio.EndOfStream):
+                        await sock.receive()
+                await _wait_until(lambda: bool(ws_list) and ws_list[0].closed)
+
+    assert any("connection reset" in r.getMessage() for r in caplog.records)
+    assert all(r.exc_info is None for r in caplog.records)
+    assert all(r.levelno < logging.ERROR for r in caplog.records)
+
+
+class _ReceiveFailingWebSocket(_FakeWebSocket):
+    async def receive_bytes(self) -> bytes:
+        from kubex.core.exceptions import KubexClientException
+
+        await anyio.sleep(0.05)
+        raise KubexClientException("WebSocket network error: keepalive timeout")
+
+
+@pytest.mark.anyio
+async def test_websocket_receive_error_is_logged_as_warning_without_traceback(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    local_port = _get_free_port()
+    accessor = _accessor_for_pod(_DynamicFakeClient(_ReceiveFailingWebSocket))
+
+    with caplog.at_level(logging.DEBUG, logger="kubex.portforward"):
+        async with accessor.listen("my-pod", port_map={80: local_port}):
+            async with await anyio.connect_tcp("127.0.0.1", local_port) as sock:
+                with anyio.fail_after(2.0):
+                    with pytest.raises(anyio.EndOfStream):
+                        await sock.receive()
+            await _wait_until(
+                lambda: any(
+                    "keepalive timeout" in r.getMessage() for r in caplog.records
+                )
+            )
+
+    warnings = [r for r in caplog.records if "keepalive timeout" in r.getMessage()]
+    assert warnings and all(r.levelno == logging.WARNING for r in warnings)
+    assert all(r.exc_info is None for r in caplog.records)

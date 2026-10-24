@@ -9,12 +9,13 @@ from kubex.k8s.v1_36.admissionregistration.v1.webhook_client_config import (
 )
 from kubex.k8s.v1_36.meta.v1.label_selector import LabelSelector
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import NullAsEmptyList
 
 
 class MutatingWebhook(BaseK8sModel):
     """MutatingWebhook describes an admission webhook and the resources and operations it applies to."""
 
-    admission_review_versions: list[str] = Field(
+    admission_review_versions: NullAsEmptyList[str] = Field(
         ...,
         alias="admissionReviewVersions",
         description="admissionReviewVersions is an ordered list of preferred `AdmissionReview` versions the Webhook expects. API server will try to use first version in the list which it supports. If none of the versions specified in this list supported by API server, validation will fail for this object. If a persisted webhook configuration specifies allowed versions and does not include any versions known to the API Server, calls to the webhook will fail and be subject to the failure policy.",

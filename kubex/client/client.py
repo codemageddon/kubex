@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from abc import ABC, abstractmethod
 from enum import Enum
@@ -10,6 +11,7 @@ if TYPE_CHECKING:
 
 from pydantic import ValidationError
 
+from kubex.client._common import parse_retry_after
 from kubex.client.options import ClientOptions
 from kubex.configuration import ClientConfiguration
 from kubex.configuration.file_config import configure_from_kubeconfig
@@ -25,6 +27,8 @@ from kubex_core.models.status import Status
 
 logger = logging.getLogger("kubex.client")
 
+_RETRY_AFTER = "Retry-After"
+
 
 async def _try_read_configuration() -> ClientConfiguration:
     try:
@@ -32,9 +36,18 @@ async def _try_read_configuration() -> ClientConfiguration:
     except FileNotFoundError:
         logger.debug("No kubeconfig file found, falling back to in-cluster config")
         return await configure_from_pod_env()
-    except Exception as e:
-        logger.error("Failed to read configuration from kubeconfig", exc_info=e)
+    except Exception:
+        # No exception text: kubeconfig validation errors can embed credentials.
+        logger.debug("Failed to read configuration from kubeconfig")
         raise
+
+
+def _running_under_asyncio() -> bool:
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return False
+    return True
 
 
 class ClientChoice(str, Enum):
@@ -64,6 +77,27 @@ class BaseClient(ABC):
 
     @abstractmethod
     def _create_inner_client(self) -> Any: ...
+
+    async def _request_headers(self, request: Request) -> list[tuple[str, str]]:
+        """Auth + impersonation + per-request headers, as (possibly repeated) pairs.
+
+        A header set on the request replaces the client-level header of the same
+        name.
+        """
+        explicit = request.headers or {}
+        overridden = {name.lower() for name in explicit}
+        headers: list[tuple[str, str]] = []
+        if "authorization" not in overridden:
+            authorization = await self.configuration.get_authorization_header()
+            if authorization is not None:
+                headers.append(("Authorization", authorization))
+        headers.extend(
+            (name, value)
+            for name, value in self.configuration.impersonation_headers
+            if name.lower() not in overridden
+        )
+        headers.extend(explicit.items())
+        return headers
 
     async def __aenter__(self) -> Self:
         await self._inner_client.__aenter__()
@@ -127,6 +161,17 @@ async def create_client(
 
             return AioHttpClient(configuration, options)
         case ClientChoice.AUTO:
+            if not _running_under_asyncio():
+                # aiohttp is asyncio-only; under trio (or any other runtime)
+                # only httpx can work.
+                try:
+                    return await create_client(
+                        configuration, ClientChoice.HTTPX, options
+                    )
+                except ImportError:
+                    raise ImportError(
+                        "You need to install httpx to use the client outside asyncio"
+                    )
             try:
                 return await create_client(configuration, ClientChoice.AIOHTTP, options)
             except ImportError:
@@ -142,17 +187,21 @@ async def create_client(
 
 def handle_request_error(response: Response) -> NoReturn:
     status_code = response.status_code
-    # Decode tolerantly here rather than via the shared (strict-UTF-8)
-    # `Response.text` property: an error body from an intermediary (proxy,
-    # gateway, minimal API server) is not guaranteed to be UTF-8 or even JSON,
-    # and a decode failure here must not shadow the actual API error with an
-    # unrelated UnicodeDecodeError. `Response.text` itself stays strict since
-    # it is also used for legitimate (always-UTF-8) log reads.
-    content: Status | str = response.content.decode("utf-8", errors="replace")
+    # An error body from an intermediary (proxy, gateway) is not guaranteed to
+    # be UTF-8 or JSON; `Response.text` decodes tolerantly.
+    content: Status | str = response.text
     if content_types := response.headers.get_all(CONTENT_TYPE_HEADER):
         if any(ct.startswith(APPLICATION_JSON_MIME_TYPE) for ct in content_types):
             try:
-                content = Status.model_validate_json(response.content)
+                status = Status.model_validate_json(response.content)
             except ValidationError:
-                content = response.content.decode("utf-8", errors="replace")
-    raise build_exception(status_code, content)
+                pass
+            else:
+                # Any JSON object validates (all Status fields are optional);
+                # keep the raw text for bodies that are not a Status at all.
+                if "kind" in status.model_fields_set:
+                    content = status
+    retry_after = parse_retry_after(
+        next(iter(response.headers.get_all(_RETRY_AFTER)), None)
+    )
+    raise build_exception(status_code, content, retry_after=retry_after)

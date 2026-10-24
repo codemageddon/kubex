@@ -1,14 +1,13 @@
-import datetime
-
 from pydantic import Field
 
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import MicroTime
 
 
 class LeaseSpec(BaseK8sModel):
     """LeaseSpec is a specification of a Lease."""
 
-    acquire_time: datetime.datetime | None = Field(
+    acquire_time: MicroTime | None = Field(
         default=None,
         alias="acquireTime",
         description="acquireTime is a time when the current lease was acquired.",
@@ -33,7 +32,7 @@ class LeaseSpec(BaseK8sModel):
         alias="preferredHolder",
         description="preferredHolder signals to a lease holder that the lease has a more optimal holder and should be given up. This field can only be set if Strategy is also set.",
     )
-    renew_time: datetime.datetime | None = Field(
+    renew_time: MicroTime | None = Field(
         default=None,
         alias="renewTime",
         description="renewTime is a time when the current holder of a lease has last updated the lease.",

@@ -7,6 +7,7 @@ from pydantic import Field
 from kubex.k8s.v1_33.core.v1.component_status import ComponentStatus
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.metadata import ListMetadata
+from kubex_core.models.types import NullAsEmptyList
 
 
 class ComponentStatusList(ListEntity[ComponentStatus]):
@@ -17,7 +18,7 @@ class ComponentStatusList(ListEntity[ComponentStatus]):
         alias="apiVersion",
         description="APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
     )
-    items: list[ComponentStatus] = Field(
+    items: NullAsEmptyList[ComponentStatus] = Field(
         ..., alias="items", description="List of ComponentStatus objects."
     )
     kind: Literal["ComponentStatusList"] = Field(

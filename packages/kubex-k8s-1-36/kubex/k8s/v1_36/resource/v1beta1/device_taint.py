@@ -1,8 +1,7 @@
-import datetime
-
 from pydantic import Field
 
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Time
 
 
 class DeviceTaint(BaseK8sModel):
@@ -18,7 +17,7 @@ class DeviceTaint(BaseK8sModel):
         alias="key",
         description="The taint key to be applied to a device. Must be a label name.",
     )
-    time_added: datetime.datetime | None = Field(
+    time_added: Time | None = Field(
         default=None,
         alias="timeAdded",
         description="TimeAdded represents the time at which the taint was added or (only in a DeviceTaintRule) the effect was modified. Added automatically during create or update if not set. In addition, in a DeviceTaintRule a value provided during an update gets replaced with the current time if the provided value is the same as the old one and the new effect is different. Changing the key and/or value while keeping the effect unchanged is possible and does not update the time stamp because the eviction which uses it is either already started (NoExecute) or not started yet (NoEffect, NoSchedule).",

@@ -1,12 +1,13 @@
 from pydantic import Field
 
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Quantity
 
 
 class NodeAllocatableResourceMapping(BaseK8sModel):
     """NodeAllocatableResourceMapping defines the translation between the DRA device/capacity units requested to the corresponding quantity of the node allocatable resource."""
 
-    allocation_multiplier: str | None = Field(
+    allocation_multiplier: Quantity | None = Field(
         default=None,
         alias="allocationMultiplier",
         description='AllocationMultiplier is used as a multiplier for the allocated device count or the allocated capacity in the claim. It defaults to 1 if not specified. How the field is used also depends on whether `capacityKey` is set. 1. If `capacityKey` is NOT set: `allocationMultiplier` multiplies the device count allocated to the claim. a. A DRA driver representing each CPU core as a device would have {ResourceName: "cpu", allocationMultiplier: "2"} in its `nodeAllocatableResourceMappings`. If 4 devices are allocated to the claim, 4 * 2 CPUs would be considered as allocated and subtracted from the node\'s capacity. b. A GPU device that needs additional node memory per GPU allocation would have {ResourceName: "memory", allocationMultiplier: "2Gi"}. Each allocated GPU device instance of this type will account for 2Gi of memory. 2. If `capacityKey` IS set: `allocationMultiplier` is multiplied by the amount of that capacity consumed. The final node allocatable resource amount is `consumedCapacity[capacityKey]` * `allocationMultiplier`. For example, if a Device\'s capacity "dra.example.com/cores" is consumed, and each "core" provides 2 "cpu"s, the mapping would be: {ResourceName: "cpu", capacityKey: "dra.example.com/cores", allocationMultiplier: "2"}. If a claim consumes 8 "dra.example.com/cores", the CPU footprint is 8 * 2 = 16.',

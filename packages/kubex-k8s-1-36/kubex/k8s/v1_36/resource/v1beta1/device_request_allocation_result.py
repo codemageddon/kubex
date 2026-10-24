@@ -2,6 +2,7 @@ from pydantic import Field
 
 from kubex.k8s.v1_36.resource.v1beta1.device_toleration import DeviceToleration
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Quantity
 
 
 class DeviceRequestAllocationResult(BaseK8sModel):
@@ -22,7 +23,7 @@ class DeviceRequestAllocationResult(BaseK8sModel):
         alias="bindingFailureConditions",
         description="BindingFailureConditions contains a copy of the BindingFailureConditions from the corresponding ResourceSlice at the time of allocation. This is a beta field and requires enabling the DRADeviceBindingConditions and DRAResourceClaimDeviceStatus feature gates.",
     )
-    consumed_capacity: dict[str, str] | None = Field(
+    consumed_capacity: dict[str, Quantity] | None = Field(
         default=None,
         alias="consumedCapacity",
         description="ConsumedCapacity tracks the amount of capacity consumed per device as part of the claim request. The consumed amount may differ from the requested amount: it is rounded up to the nearest valid value based on the device’s requestPolicy if applicable (i.e., may not be less than the requested amount). The total consumed capacity for each device must not exceed the DeviceCapacity's Value. This field is populated only for devices that allow multiple allocations. All capacity entries are included, even if the consumed amount is zero.",

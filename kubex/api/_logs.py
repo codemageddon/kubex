@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, AsyncGenerator, Generic, Type, TypeVar, overload
 
 from kubex.client.client import BaseClient
@@ -48,11 +49,16 @@ class LogsAccessor(Generic[ResourceType]):
         pretty: bool | None = None,
         previous: bool | None = None,
         since_seconds: int | None = None,
+        since_time: datetime | None = None,
         tail_lines: int | None = None,
         timestamps: bool | None = None,
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> str:
-        """Read logs of the specified resource."""
+        """Read logs of the specified resource.
+
+        ``since_seconds`` and ``since_time`` (a timezone-aware datetime, sent as
+        an RFC 3339 UTC ``sinceTime``) are mutually exclusive.
+        """
         _namespace = ensure_required_namespace(namespace, self._namespace, self._scope)
         options = LogOptions(
             container=container,
@@ -60,6 +66,7 @@ class LogsAccessor(Generic[ResourceType]):
             pretty=pretty,
             previous=previous,
             since_seconds=since_seconds,
+            since_time=since_time,
             tail_lines=tail_lines,
             timestamps=timestamps,
         )
@@ -79,11 +86,16 @@ class LogsAccessor(Generic[ResourceType]):
         pretty: bool | None = None,
         previous: bool | None = None,
         since_seconds: int | None = None,
+        since_time: datetime | None = None,
         tail_lines: int | None = None,
         timestamps: bool | None = None,
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> AsyncGenerator[str, None]:
-        """Stream logs of the specified resource."""
+        """Stream logs of the specified resource.
+
+        ``since_seconds`` and ``since_time`` (a timezone-aware datetime, sent as
+        an RFC 3339 UTC ``sinceTime``) are mutually exclusive.
+        """
         _namespace = ensure_required_namespace(namespace, self._namespace, self._scope)
         options = LogOptions(
             container=container,
@@ -91,6 +103,7 @@ class LogsAccessor(Generic[ResourceType]):
             pretty=pretty,
             previous=previous,
             since_seconds=since_seconds,
+            since_time=since_time,
             tail_lines=tail_lines,
             timestamps=timestamps,
         )

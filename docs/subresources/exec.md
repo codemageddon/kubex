@@ -88,7 +88,9 @@ async def main() -> None:
 |-----------|------|-------------|
 | `stdout` | `bytes` | All stdout output collected from the command |
 | `stderr` | `bytes` | All stderr output collected from the command |
+| `status` | `Status | None` | The final `Status` the server sent on the error channel |
 | `exit_code` | `int | None` | Exit code of the command — see semantics below |
+| `raise_for_status()` | method | Raise `ExecError` unless the command succeeded; returns the result otherwise |
 
 ### Exit code semantics
 
@@ -98,7 +100,24 @@ async def main() -> None:
 - an `int` — the non-zero exit code parsed from `status.details.causes` (where `reason == "ExitCode"`)
 - `None` — the status frame was missing or carried no recognisable exit information
 
-**`None` does not imply success.** If the WebSocket connection closed unexpectedly before a status frame arrived, `exit_code` is `None`.
+**`None` does not imply success.** If the WebSocket connection closed unexpectedly before a status frame arrived, `exit_code` is `None`. So is a command that could not start at all (e.g. a missing binary): the server reports `status="Failure"` without an exit code, so `if result.exit_code:` would wrongly treat it as success.
+
+### Checking for success
+
+`ExecResult.raise_for_status()` raises `ExecError` (a `KubexClientException` subclass) unless the
+server reported `Success`, covering non-zero exits, commands that failed to start, and a missing
+status. The exception message is the server's `Status.message`; `exc.result`, `exc.status` and
+`exc.exit_code` carry the details. It returns the result, so it chains:
+
+```python
+from kubex.api._exec import ExecError
+
+try:
+    result = (await api.exec.run(pod_name, command=["cat", "/etc/hostname"])).raise_for_status()
+    print(result.stdout.decode())
+except ExecError as e:
+    print(f"command failed (exit code {e.exit_code}): {e}")
+```
 
 ### Passing stdin to `run()`
 
@@ -107,6 +126,11 @@ Pass `stdin=None` (default) to skip opening a stdin channel entirely. Pass `stdi
 ```python
 result = await api.exec.run(pod_name, command=["cat", "/etc/hostname"], stdin=None)
 ```
+
+`stdin` is sent in frames of at most 32 KiB (the API server rejects oversized WebSocket messages),
+then half-closed. If sending it fails part-way — typically because the command exited without
+reading all of its input — the error is logged (`kubex.exec` logger, `DEBUG`) and `run()` still
+returns whatever status the server reported.
 
 ### `run()` options
 
@@ -192,15 +216,50 @@ async def main() -> None:
 | `stdin` | writer | Call `await session.stdin.write(data)` to send bytes to the container |
 | `stdout` | `MemoryObjectReceiveStream[bytes]` | Async iterable yielding stdout chunks |
 | `stderr` | `MemoryObjectReceiveStream[bytes]` | Async iterable yielding stderr chunks |
-| `stdout_truncated` | `bool` | `True` if the stdout buffer overflowed and frames were dropped |
-| `stderr_truncated` | `bool` | `True` if the stderr buffer overflowed and frames were dropped |
 | `resize(width, height)` | coroutine | Send a terminal resize event |
 | `close_stdin()` | coroutine | Half-close the stdin channel (idempotent) |
-| `wait_for_status()` | coroutine | Await the final status frame; returns `Status | None` |
+| `wait_for_status()` | coroutine | Await the final status; returns `Status | None` (`None` if the server closed without one) |
 
-`stdout`/`stderr` are each bounded at 128 buffered frames; if a consumer falls behind and the
-buffer fills, kubex closes that channel locally rather than blocking forever. Check
-`stdout_truncated`/`stderr_truncated` after the iterator ends to tell that apart from a normal EOF.
+`stdin.write()` sends large payloads in frames of at most 32 KiB; frames of one write are never
+interleaved with another write. Calling `stdin.write()`, `resize()` or `close_stdin()` after the
+session has ended raises `KubexClientException`. `stdout_truncated`/`stderr_truncated` are
+deprecated and always `False`.
+
+### Reading output: backpressure
+
+Output is never dropped. `stdout` and `stderr` each queue up to 128 frames; when a queue is full,
+kubex stops reading from the WebSocket until you consume more (the same backpressure `kubectl`
+and client-go apply), which in turn pauses the remote process once its pipes fill.
+
+Because both channels — and the final status — share one WebSocket, **a channel you don't read
+stalls the others**: a consumer that only iterates `stdout` while the command floods `stderr`
+will stop receiving stdout once the stderr queue fills, and `wait_for_status()` waits behind
+unread output too. For every channel you enable, do one of:
+
+- read it concurrently with the others (e.g. one task per channel),
+- disable it in the request (`stderr=False`), or
+- close it to discard its data: `session.stderr.close()`.
+
+```python
+import sys
+
+import anyio
+
+async with api.exec.stream(pod_name, command=["sh", "-c", "./run-job.sh"]) as session:
+
+    async def drain_stderr() -> None:
+        async for chunk in session.stderr:
+            sys.stderr.buffer.write(chunk)
+
+    async with anyio.create_task_group() as tg:
+        tg.start_soon(drain_stderr)
+        async for chunk in session.stdout:
+            sys.stdout.buffer.write(chunk)
+    status = await session.wait_for_status()
+```
+
+Leaving the `async with` block (or cancelling the surrounding scope) always tears the session
+down promptly, even while kubex is waiting on a full queue.
 
 ### TTY mode and stderr
 
@@ -228,12 +287,14 @@ Exiting the `async with api.exec.stream(...)` block cancels the read loop before
 WebSocket handshake failures, abnormal close codes, and per-call timeouts surface as `KubexClientException`. A missing WebSocket dependency raises `ConfigurationError`.
 
 ```python
+from kubex.api._exec import ExecError
 from kubex.core.exceptions import KubexClientException
 
 try:
     result = await api.exec.run(pod_name, command=["false"])
-    if result.exit_code != 0:
-        print(f"command failed with exit code {result.exit_code}")
+    result.raise_for_status()
+except ExecError as e:
+    print(f"command failed (exit code {e.exit_code}): {e}")
 except KubexClientException as e:
     print(f"WebSocket error: {e}")
 ```

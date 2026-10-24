@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import datetime
 from typing import ClassVar, Literal
 
 from pydantic import Field
@@ -10,6 +9,7 @@ from kubex.k8s.v1_36.core.v1.object_reference import ObjectReference
 from kubex.k8s.v1_36.events.v1.event_series import EventSeries
 from kubex_core.models.interfaces import NamespaceScopedEntity
 from kubex_core.models.resource_config import ResourceConfig, Scope
+from kubex_core.models.types import MicroTime, Time
 
 
 class Event(NamespaceScopedEntity):
@@ -37,12 +37,12 @@ class Event(NamespaceScopedEntity):
         alias="deprecatedCount",
         description="deprecatedCount is the deprecated field assuring backward compatibility with core.v1 Event type.",
     )
-    deprecated_first_timestamp: datetime.datetime | None = Field(
+    deprecated_first_timestamp: Time | None = Field(
         default=None,
         alias="deprecatedFirstTimestamp",
         description="deprecatedFirstTimestamp is the deprecated field assuring backward compatibility with core.v1 Event type.",
     )
-    deprecated_last_timestamp: datetime.datetime | None = Field(
+    deprecated_last_timestamp: Time | None = Field(
         default=None,
         alias="deprecatedLastTimestamp",
         description="deprecatedLastTimestamp is the deprecated field assuring backward compatibility with core.v1 Event type.",
@@ -52,7 +52,7 @@ class Event(NamespaceScopedEntity):
         alias="deprecatedSource",
         description="deprecatedSource is the deprecated field assuring backward compatibility with core.v1 Event type.",
     )
-    event_time: datetime.datetime = Field(
+    event_time: MicroTime | None = Field(
         ...,
         alias="eventTime",
         description="eventTime is the time when this Event was first observed. It is required.",

@@ -18,9 +18,9 @@ from kubex_core.models.resource_config import Scope
 from test.stub_client import StubClient
 
 
-@pytest.fixture
-def anyio_backend() -> str:
-    return "asyncio"
+@pytest.fixture(params=["asyncio", "trio"])
+def anyio_backend(request: pytest.FixtureRequest) -> str:
+    return str(request.param)
 
 
 class _FakeWebSocket(WebSocketConnection):

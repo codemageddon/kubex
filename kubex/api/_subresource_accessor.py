@@ -5,7 +5,7 @@ from typing import ClassVar, Generic, Type
 from kubex.client.client import BaseClient
 from kubex.core.params import (
     DryRunTypes,
-    FieldValidation,
+    FieldValidationTypes,
     NamespaceTypes,
     PatchOptions,
     PostOptions,
@@ -92,7 +92,7 @@ class ResourceSubresourceAccessor(Generic[ResourceType]):
         dry_run: DryRunTypes = None,
         field_manager: str | None = None,
         force: bool | None = None,
-        field_validation: FieldValidation | None = None,
+        field_validation: FieldValidationTypes = None,
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> ResourceType:
         """Patch this subresource of the specified resource."""

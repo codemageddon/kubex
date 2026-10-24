@@ -57,7 +57,10 @@ async def main() -> None:
             await _wait_for_running(api, pod_name)
 
             # 1. One-shot: capture stdout/stderr and exit code from a single command.
+            #    raise_for_status() raises ExecError unless the command succeeded
+            #    (non-zero exit, missing binary, or no status at all).
             result = await api.exec.run(pod_name, command=["ls", "-la", "/"])
+            result.raise_for_status()
             print(f"exit code: {result.exit_code}")
             print(result.stdout.decode())
             if result.stderr:
@@ -88,6 +91,29 @@ async def main() -> None:
 
                 status = await session.wait_for_status()
                 print(f"session status: {status.status if status else 'unknown'}")
+
+            # 3. Streaming without a TTY: stdout and stderr are separate channels.
+            #    Output is never dropped — a channel nobody reads pauses the whole
+            #    session — so drain both concurrently (or pass stderr=False).
+            async with api.exec.stream(
+                pod_name,
+                command=[
+                    "sh",
+                    "-c",
+                    "for i in 1 2 3; do echo out$i; echo err$i >&2; done",
+                ],
+            ) as session:
+
+                async def print_stderr() -> None:
+                    async for chunk in session.stderr:
+                        print("stderr:", chunk.decode(errors="replace"), end="")
+
+                async with anyio.create_task_group() as tg:
+                    tg.start_soon(print_stderr)
+                    async for chunk in session.stdout:
+                        print("stdout:", chunk.decode(errors="replace"), end="")
+                status = await session.wait_for_status()
+                print(f"stream status: {status.status if status else 'unknown'}")
         finally:
             await api.delete(pod_name)
 

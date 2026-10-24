@@ -1,5 +1,3 @@
-import datetime
-
 from pydantic import Field
 
 from kubex.k8s.v1_38.autoscaling.v2.horizontal_pod_autoscaler_condition import (
@@ -7,6 +5,7 @@ from kubex.k8s.v1_38.autoscaling.v2.horizontal_pod_autoscaler_condition import (
 )
 from kubex.k8s.v1_38.autoscaling.v2.metric_status import MetricStatus
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Time
 
 
 class HorizontalPodAutoscalerStatus(BaseK8sModel):
@@ -32,7 +31,7 @@ class HorizontalPodAutoscalerStatus(BaseK8sModel):
         alias="desiredReplicas",
         description="desiredReplicas is the desired number of replicas of pods managed by this autoscaler, as last calculated by the autoscaler.",
     )
-    last_scale_time: datetime.datetime | None = Field(
+    last_scale_time: Time | None = Field(
         default=None,
         alias="lastScaleTime",
         description="lastScaleTime is the last time the HorizontalPodAutoscaler scaled the number of pods, used by the autoscaler to control how often the number of pods is changed.",

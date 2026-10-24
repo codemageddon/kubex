@@ -50,13 +50,16 @@ class ResourceConfig(Generic[ResourceType]):
         """
         config = owner.__dict__.get("__RESOURCE_CONFIG__")
         if config is None:
+            # The list model is not copied: an inherited one is typed for the
+            # parent (e.g. `PodList` for `class MyPod(Pod)`), so `list()`
+            # would return parent instances. `_fill_from` builds one for
+            # `owner` instead.
             config = ResourceConfig(
                 version=self._version,
                 kind=self._kind,
                 plural=self._plural,
                 scope=self._scope,
                 group=self._group,
-                list_model=self._list_model,
             )
             setattr(owner, "__RESOURCE_CONFIG__", config)
         return cast(Self, config._fill_from(owner))
@@ -83,12 +86,7 @@ class ResourceConfig(Generic[ResourceType]):
         if self._plural is None:
             if self._kind is None:
                 raise ValueError("kind is not set")
-            if self._kind.endswith("y"):
-                self._plural = f"{self._kind[:-1].lower()}ies"
-            elif self._kind.endswith("s") or self._kind.endswith("x"):
-                self._plural = f"{self._kind.lower()}es"
-            else:
-                self._plural = f"{self._kind.lower()}s"
+            self._plural = guess_plural(self._kind)
         return self
 
     @property
@@ -158,6 +156,7 @@ def create_list_model(
 ) -> Type[ListEntity[ResourceType]]:
     from kubex_core.models.list_entity import ListEntity
     from kubex_core.models.metadata import ListMetadata
+    from kubex_core.models.types import NullAsEmptyList
 
     kind = f"{resource_config.kind}List"
     list_model = create_model(
@@ -165,12 +164,39 @@ def create_list_model(
         api_version=(Literal[resource_config.api_version], resource_config.api_version),
         kind=(Literal[kind], kind),
         metadata=(ListMetadata, ...),
-        items=(list[single_model], ...),  # type: ignore[valid-type]
+        items=(NullAsEmptyList[single_model], ...),  # type: ignore[valid-type]
         __base__=ListEntity[single_model],  # type: ignore[valid-type]
     )
     # pydantic.create_model's return type is `type[BaseModel]`; we know the
     # __base__ narrows it to ListEntity[ResourceType], but mypy cannot prove it.
     return cast("Type[ListEntity[ResourceType]]", list_model)
+
+
+# Kinds whose resource name is not a regular English plural. Matched against
+# the lowercased kind's suffix, so `FooEndpoints` stays `fooendpoints` too
+# (mirrors apimachinery's `UnsafeGuessKindToResource`).
+_UNPLURALIZED_SUFFIXES = ("endpoints",)
+_VOWELS = frozenset("aeiou")
+
+
+def guess_plural(kind: str) -> str:
+    """Guess the resource (plural) name for `kind`, e.g. `Policy` -> `policies`.
+
+    Uses regular English rules, matching what controller-gen/kubebuilder
+    produce for CRDs: `y` -> `ies` only after a consonant (`Gateway` ->
+    `gateways`), `es` after `s`/`x`/`z`/`ch`/`sh` (`Mesh` -> `meshes`).
+    Resources with irregular plurals should pass `plural=` explicitly.
+    """
+    singular = kind.lower()
+    if not singular:
+        raise ValueError("kind is empty")
+    if singular.endswith(_UNPLURALIZED_SUFFIXES):
+        return singular
+    if singular.endswith("y") and len(singular) > 1 and singular[-2] not in _VOWELS:
+        return f"{singular[:-1]}ies"
+    if singular.endswith(("s", "x", "z", "ch", "sh")):
+        return f"{singular}es"
+    return f"{singular}s"
 
 
 def get_version_and_group_from_api_version(api_version: str | None) -> tuple[str, str]:

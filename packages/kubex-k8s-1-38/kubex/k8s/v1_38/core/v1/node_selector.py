@@ -2,12 +2,13 @@ from pydantic import Field
 
 from kubex.k8s.v1_38.core.v1.node_selector_term import NodeSelectorTerm
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import NullAsEmptyList
 
 
 class NodeSelector(BaseK8sModel):
     """A node selector represents the union of the results of one or more label queries over a set of nodes; that is, it represents the OR of the selectors represented by the node selector terms."""
 
-    node_selector_terms: list[NodeSelectorTerm] = Field(
+    node_selector_terms: NullAsEmptyList[NodeSelectorTerm] = Field(
         ...,
         alias="nodeSelectorTerms",
         description="nodeSelectorTerms is a list of node selector terms. The terms are ORed. Required. A list of node selector terms. The terms are ORed.",

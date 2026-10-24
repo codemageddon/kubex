@@ -1,12 +1,13 @@
 from pydantic import Field
 
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Quantity
 
 
 class CapacityRequirements(BaseK8sModel):
     """CapacityRequirements defines the capacity requirements for a specific device request."""
 
-    requests: dict[str, str] | None = Field(
+    requests: dict[str, Quantity] | None = Field(
         default=None,
         alias="requests",
         description='requests represent individual device resource requests for distinct resources, all of which must be provided by the device. This value is used as an additional filtering condition against the available capacity on the device. This is semantically equivalent to a CEL selector with `device.capacity[<domain>].<name>.compareTo(quantity(<request quantity>)) >= 0`. For example, device.capacity[\'test-driver.cdi.k8s.io\'].counters.compareTo(quantity(\'2\')) >= 0. The domain prefix can be omitted, in which case it defaults to the driver of the device under evaluation. For example, "bandwidth: 1Gi" is equivalent to "<driver>/bandwidth: 1Gi" for a device published by driver "<driver>", regardless of which other, differently-domained "bandwidth" capacities that device might also have. To request one of those, the domain must be given explicitly, for example "example.com/bandwidth". Requesting the same driver capacity with and without the driver name as domain, for example "bandwidth: 1Gi" and "<driver>/bandwidth: 2Gi", is ambiguous and causes scheduling to fail with an error. For the sake of consistency there\'s no exception for such a conflict where the value is the same - that is still an error. When a requestPolicy is defined, the requested amount is adjusted upward to the nearest valid value based on the policy. If the requested amount cannot be adjusted to a valid value—because it exceeds what the requestPolicy allows— the device is considered ineligible for allocation. For any capacity that is not explicitly requested: - If no requestPolicy is set, the default consumed capacity is equal to the full device capacity (i.e., the whole device is claimed). - If a requestPolicy is set, the default consumed capacity is determined according to that policy. If the device allows multiple allocation, the aggregated amount across all requests must not exceed the capacity value. The consumed capacity, which may be adjusted based on the requestPolicy if defined, is recorded in the resource claim’s status.devices[*].consumedCapacity field.',

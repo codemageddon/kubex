@@ -13,10 +13,9 @@ from kubex.core.patch import Patch
 from kubex.core.request import Request
 from kubex_core.models.resource_config import ResourceConfig
 
+from ._patch_body import patch_body
+from ._paths import object_url
 from .constants import ACCEPT_HEADER, CONTENT_TYPE_HEADER
-
-if typing.TYPE_CHECKING:
-    pass
 
 
 class RequestBuilderProtocol(typing.Protocol):
@@ -35,7 +34,7 @@ class SubresourceRequestBuilder(RequestBuilderProtocol):
     ) -> Request:
         return Request(
             method="GET",
-            url=self.resource_config.url(namespace, name) + f"/{subresource}",
+            url=object_url(self.resource_config, namespace, name, subresource),
             timeout=request_timeout,
         )
 
@@ -51,7 +50,7 @@ class SubresourceRequestBuilder(RequestBuilderProtocol):
     ) -> Request:
         return Request(
             method="PUT",
-            url=self.resource_config.url(namespace, name) + f"/{subresource}",
+            url=object_url(self.resource_config, namespace, name, subresource),
             body=data,
             query_params=options.as_query_params(),
             timeout=request_timeout,
@@ -69,7 +68,7 @@ class SubresourceRequestBuilder(RequestBuilderProtocol):
     ) -> Request:
         return Request(
             method="POST",
-            url=self.resource_config.url(namespace, name) + f"/{subresource}",
+            url=object_url(self.resource_config, namespace, name, subresource),
             body=data,
             query_params=options.as_query_params(),
             timeout=request_timeout,
@@ -87,8 +86,8 @@ class SubresourceRequestBuilder(RequestBuilderProtocol):
     ) -> Request:
         return Request(
             method="PATCH",
-            url=self.resource_config.url(namespace, name) + f"/{subresource}",
-            body=patch.serialize(),
+            url=object_url(self.resource_config, namespace, name, subresource),
+            body=patch_body(patch),
             headers={
                 ACCEPT_HEADER: "application/json",
                 CONTENT_TYPE_HEADER: patch.content_type_header,

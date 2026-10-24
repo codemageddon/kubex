@@ -3,6 +3,7 @@ from enum import Enum
 from pydantic import Field
 
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Time
 
 
 class DeploymentConditionType(str, Enum):
@@ -14,6 +15,7 @@ class DeploymentConditionType(str, Enum):
 class DeploymentCondition(BaseK8sModel):
     """DeploymentCondition describes a condition of a Deployment."""
 
+    last_transition_time: Time | None = Field(..., alias="lastTransitionTime")
     reason: str | None = Field(default=None, alias="reason")
     status: str = Field(..., alias="status")
     type_: DeploymentConditionType = Field(

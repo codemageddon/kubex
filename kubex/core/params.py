@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Sequence
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Literal, Union
 from uuid import UUID
@@ -100,6 +101,8 @@ PropagationPolicyTypes = (
     PropagationPolicy | Literal["Background", "Foreground", "Orphan"] | None
 )
 DryRunTypes = DryRun | bool | Literal["All"] | None
+VersionMatchTypes = VersionMatch | Literal["Exact", "NotOlderThan"] | None
+FieldValidationTypes = FieldValidation | Literal["Ignore", "Strict", "Warn"] | None
 UidTypes = UUID | str | None
 ResourceVersionTypes = str | None
 NamespaceTypes = str | None
@@ -123,7 +126,7 @@ class ListOptions:
         timeout_seconds: int | None = None,
         limit: int | None = None,
         continue_token: str | None = None,
-        version_match: VersionMatch | None = None,
+        version_match: VersionMatchTypes = None,
         resource_version: ResourceVersionTypes = None,
     ) -> None:
         self.label_selector = label_selector
@@ -131,7 +134,9 @@ class ListOptions:
         self.timeout_seconds = timeout_seconds
         self.limit = limit
         self.continue_token = continue_token
-        self.version_match = version_match
+        self.version_match = (
+            VersionMatch(version_match) if version_match is not None else None
+        )
         self.resource_version = resource_version
 
     @classmethod
@@ -167,6 +172,16 @@ class WatchOptions:
         timeout_seconds: int | None = None,
         resource_version: ResourceVersionTypes = None,
     ) -> None:
+        if send_initial_events:
+            # The apiserver rejects sendInitialEvents=true without
+            # allowWatchBookmarks=true (422): the end of the initial events is
+            # signalled by a bookmark.
+            if allow_bookmarks is None:
+                allow_bookmarks = True
+            elif not allow_bookmarks:
+                raise ValueError(
+                    "send_initial_events=True requires allow_bookmarks=True"
+                )
         self.label_selector = label_selector
         self.field_selector = field_selector
         self.allow_bookmarks = allow_bookmarks
@@ -255,12 +270,14 @@ class PatchOptions:
         dry_run: DryRunTypes = None,
         field_manager: str | None = None,
         force: bool | None = None,
-        field_validation: FieldValidation | None = None,
+        field_validation: FieldValidationTypes = None,
     ) -> None:
         self.dry_run = dry_run
         self.field_manager = field_manager
         self.force = force
-        self.field_validation = field_validation
+        self.field_validation = (
+            FieldValidation(field_validation) if field_validation is not None else None
+        )
 
     @classmethod
     def default(cls) -> PatchOptions:
@@ -301,7 +318,9 @@ class DeleteOptions:
         body: dict[str, Any] = {}
         dry_run = convert_dry_run(self.dry_run)
         if dry_run is not None:
-            body["dryRun"] = dry_run.value
+            # `DeleteOptions.dryRun` is a list in the request body (unlike the
+            # `dryRun` query parameter); a bare string is rejected with a 500.
+            body["dryRun"] = [dry_run.value]
         if self.grace_period_seconds is not None:
             body["gracePeriodSeconds"] = self.grace_period_seconds
         if self.propagation_policy is not None:
@@ -452,6 +471,19 @@ class PortForwardOptions:
         return [("ports", str(p)) for p in self.ports]
 
 
+def format_rfc3339(value: datetime) -> str:
+    """Format a timezone-aware datetime as an RFC 3339 UTC timestamp (`...Z`).
+
+    Naive datetimes are rejected rather than guessed at (local time or UTC).
+    """
+    if value.tzinfo is None or value.tzinfo.utcoffset(value) is None:
+        raise ValueError("datetime must be timezone-aware, e.g. datetime.now(UTC)")
+    utc = value.astimezone(timezone.utc)
+    if utc.microsecond:
+        return utc.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+    return utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 class LogOptions:
     def __init__(
         self,
@@ -462,7 +494,10 @@ class LogOptions:
         since_seconds: int | None = None,
         tail_lines: int | None = None,
         timestamps: bool | None = None,
+        since_time: datetime | None = None,
     ) -> None:
+        if since_seconds is not None and since_time is not None:
+            raise ValueError("since_seconds and since_time are mutually exclusive")
         self.container = container
         self.limit_bytes = limit_bytes
         self.pretty = pretty
@@ -470,6 +505,9 @@ class LogOptions:
         self.since_seconds = since_seconds
         self.tail_lines = tail_lines
         self.timestamps = timestamps
+        if since_time is not None:
+            format_rfc3339(since_time)  # fail fast on a naive datetime
+        self.since_time = since_time
 
     @classmethod
     def default(cls) -> LogOptions:
@@ -487,6 +525,8 @@ class LogOptions:
             result["previous"] = "true" if self.previous else "false"
         if self.since_seconds is not None:
             result["sinceSeconds"] = str(self.since_seconds)
+        if self.since_time is not None:
+            result["sinceTime"] = format_rfc3339(self.since_time)
         if self.tail_lines is not None:
             result["tailLines"] = str(self.tail_lines)
         if self.timestamps is not None:

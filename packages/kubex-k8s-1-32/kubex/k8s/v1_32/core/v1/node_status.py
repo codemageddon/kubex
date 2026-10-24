@@ -10,6 +10,7 @@ from kubex.k8s.v1_32.core.v1.node_features import NodeFeatures
 from kubex.k8s.v1_32.core.v1.node_runtime_handler import NodeRuntimeHandler
 from kubex.k8s.v1_32.core.v1.node_system_info import NodeSystemInfo
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Quantity
 
 
 class NodeStatus(BaseK8sModel):
@@ -20,12 +21,12 @@ class NodeStatus(BaseK8sModel):
         alias="addresses",
         description="List of addresses reachable to the node. Queried from cloud provider, if available. More info: https://kubernetes.io/docs/reference/node/node-status/#addresses Note: This field is declared as mergeable, but the merge key is not sufficiently unique, which can cause data corruption when it is merged. Callers should instead use a full-replacement patch. See https://pr.k8s.io/79391 for an example. Consumers should assume that addresses can change during the lifetime of a Node. However, there are some exceptions where this may not be possible, such as Pods that inherit a Node's address in its own status or consumers of the downward API (status.hostIP).",
     )
-    allocatable: dict[str, str] | None = Field(
+    allocatable: dict[str, Quantity] | None = Field(
         default=None,
         alias="allocatable",
         description="Allocatable represents the resources of a node that are available for scheduling. Defaults to Capacity.",
     )
-    capacity: dict[str, str] | None = Field(
+    capacity: dict[str, Quantity] | None = Field(
         default=None,
         alias="capacity",
         description="Capacity represents the total resources of a node. More info: https://kubernetes.io/docs/reference/node/node-status/#capacity",

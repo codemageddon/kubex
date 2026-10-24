@@ -14,13 +14,20 @@ maintainers = [
 dependencies = [
     "pydantic>=2.0,<3",
     "pyyaml>=6.0.2",
-    "kubex-core",
+    # Released in lock-step with kubex: keep equal to kubex/__version__.py.
+    "kubex-core==0.1.0-beta.3",
     "anyio>=4.6.0",
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
-  "Topic :: Software Development :: Build Tools",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: System :: Clustering",
+  "Framework :: AsyncIO",
+  "Framework :: Trio",
+  "Framework :: AnyIO",
+  "Framework :: Pydantic :: 2",
+  "Typing :: Typed",
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.11",
@@ -110,6 +117,7 @@ dev = [
     "types-pyyaml>=6.0.12.20240917",
     "types-ujson>=5.10.0.20240515",
     "jinja2>=3.1",
+    "packaging>=24.0",
     "httpx>=0.27.2",
     "httpx-ws>=0.7",
     "typer>=0.24.1",

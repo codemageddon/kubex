@@ -1,6 +1,7 @@
 from pydantic import Field
 
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import NullAsEmptyList
 
 
 class PolicyRule(BaseK8sModel):
@@ -26,7 +27,7 @@ class PolicyRule(BaseK8sModel):
         alias="resources",
         description="Resources is a list of resources this rule applies to. '*' represents all resources.",
     )
-    verbs: list[str] = Field(
+    verbs: NullAsEmptyList[str] = Field(
         ...,
         alias="verbs",
         description="Verbs is a list of Verbs that apply to ALL the ResourceKinds contained in this rule. '*' represents all verbs.",

@@ -122,6 +122,11 @@ class AttachAccessor(Generic[ResourceType]):
 
            **Experimental.** This WebSocket-based API is still under active
            development and may change in future releases without notice.
+
+        Output is never dropped: a channel whose consumer falls behind pauses
+        the whole session (backpressure). Drain every enabled output channel
+        concurrently, or disable the ones you don't need (e.g.
+        ``stderr=False``).
         """
         session = await self._open_session(
             name,

@@ -13,7 +13,7 @@ from kubex.client.client import BaseClient, create_client
 from kubex.core.params import (
     DeleteOptions,
     DryRunTypes,
-    FieldValidation,
+    FieldValidationTypes,
     GetOptions,
     ListOptions,
     PatchOptions,
@@ -21,7 +21,7 @@ from kubex.core.params import (
     Precondition,
     PropagationPolicyTypes,
     ResourceVersionTypes,
-    VersionMatch,
+    VersionMatchTypes,
     WatchOptions,
 )
 from kubex.core.patch import Patch
@@ -85,8 +85,12 @@ class Api(Generic[ResourceType]):
             # never receive a namespace, configured or not. An explicit `None`
             # (rather than omitting the argument) still means "all namespaces"
             # and is never overridden by the client's configured namespace.
+            # An empty configured namespace (e.g. `namespace: ""` in a kubeconfig
+            # context) means "not set", not an empty path segment.
             namespace = (
-                client.configuration.namespace if scope == Scope.NAMESPACE else None
+                client.configuration.namespace or None
+                if scope == Scope.NAMESPACE
+                else None
             )
         self._namespace = namespace
         ensure_optional_namespace(namespace, self._namespace, scope)
@@ -142,7 +146,7 @@ class Api(Generic[ResourceType]):
         timeout_seconds: int | None = None,
         limit: int | None = None,
         continue_token: str | None = None,
-        version_match: VersionMatch | None = None,
+        version_match: VersionMatchTypes = None,
         resource_version: ResourceVersionTypes = None,
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> ListEntity[ResourceType]:
@@ -290,7 +294,7 @@ class Api(Generic[ResourceType]):
         timeout_seconds: int | None = None,
         limit: int | None = None,
         continue_token: str | None = None,
-        version_match: VersionMatch | None = None,
+        version_match: VersionMatchTypes = None,
         resource_version: ResourceVersionTypes = None,
         dry_run: DryRunTypes = None,
         grace_period_seconds: int | None = None,
@@ -348,7 +352,7 @@ class Api(Generic[ResourceType]):
         dry_run: DryRunTypes = None,
         field_manager: str | None = None,
         force: bool | None = None,
-        field_validation: FieldValidation | None = None,
+        field_validation: FieldValidationTypes = None,
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
     ) -> ResourceType:
         """Patch the specified resource.
@@ -419,11 +423,25 @@ class Api(Generic[ResourceType]):
         """Watch for changes to the specified resource.
 
         Args:
+            allow_bookmarks: Request periodic ``BOOKMARK`` events carrying a fresh
+                ``resourceVersion``. Defaults to ``True`` when ``send_initial_events``
+                is ``True`` (the server requires it); passing ``False`` together with
+                ``send_initial_events=True`` raises ``ValueError``.
+            send_initial_events: Start the stream with synthetic ``ADDED`` events for
+                the current state, followed by a bookmark annotated with
+                ``k8s.io/initial-events-end``.
+            timeout_seconds: Server-side timeout (in seconds); the server ends the
+                stream cleanly after it.
             request_timeout: HTTP-level timeout override for this call. A number is
                 interpreted as the total timeout in seconds. Pass ``None`` to disable
-                timeouts entirely for this call. Omit to use the client default. For
-                long-lived watches a short read/total timeout will terminate the
-                stream; disable the read timeout or leave this unset.
+                timeouts entirely for this call. Omit to use the client's default
+                for streams, which does not cut off an idle watch. An explicit
+                short read/total timeout will terminate a quiet stream.
+
+        Raises:
+            Gone: the requested ``resource_version`` is too old (HTTP 410), either
+                on connect or as an ``ERROR`` event mid-stream; re-list and watch
+                again from the new ``resourceVersion``.
         """
         _namespace = ensure_optional_namespace(
             namespace, self._namespace, self._resource.__RESOURCE_CONFIG__.scope

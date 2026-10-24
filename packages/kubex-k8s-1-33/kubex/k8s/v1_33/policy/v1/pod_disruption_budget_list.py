@@ -7,6 +7,7 @@ from pydantic import Field
 from kubex.k8s.v1_33.policy.v1.pod_disruption_budget import PodDisruptionBudget
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.metadata import ListMetadata
+from kubex_core.models.types import NullAsEmptyList
 
 
 class PodDisruptionBudgetList(ListEntity[PodDisruptionBudget]):
@@ -17,7 +18,7 @@ class PodDisruptionBudgetList(ListEntity[PodDisruptionBudget]):
         alias="apiVersion",
         description="APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
     )
-    items: list[PodDisruptionBudget] = Field(
+    items: NullAsEmptyList[PodDisruptionBudget] = Field(
         ..., alias="items", description="Items is a list of PodDisruptionBudgets"
     )
     kind: Literal["PodDisruptionBudgetList"] = Field(

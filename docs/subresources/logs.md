@@ -23,8 +23,6 @@ deploy_api.logs.get(...)  # type error + runtime NotImplementedError
 ```python
 from typing import cast
 
-import anyio
-
 from kubex.api import Api
 from kubex.client import create_client
 from kubex.k8s.v1_35.core.v1.container import Container
@@ -44,7 +42,13 @@ async def main() -> None:
             ),
         )
         pod_name = cast(str, pod.metadata.name)
-        await anyio.sleep(5)
+        # Logs exist once the container has started: wait for Running.
+        async for event in api.watch(
+            field_selector=f"metadata.name={pod_name}", timeout_seconds=120
+        ):
+            status = getattr(event.object, "status", None)
+            if status is not None and status.phase == "Running":
+                break
 
         logs = await api.logs.get(pod_name)
         print(logs)
@@ -61,6 +65,7 @@ All options are keyword-only:
 | `container` | `str | None` | Container name — required when the Pod has more than one container |
 | `tail_lines` | `int | None` | Return only the last N lines |
 | `since_seconds` | `int | None` | Return logs newer than this many seconds |
+| `since_time` | `datetime | None` | Return logs newer than this timezone-aware instant (sent as RFC 3339 UTC `sinceTime`); mutually exclusive with `since_seconds` |
 | `previous` | `bool | None` | Return logs from the previously terminated container instance |
 | `timestamps` | `bool | None` | Prefix each line with its RFC 3339 timestamp |
 | `limit_bytes` | `int | None` | Cap response body size in bytes |
@@ -89,7 +94,16 @@ async def timed_stream(api: Api[Pod], pod_name: str) -> None:
             print(line)
 ```
 
-`stream()` accepts the same options as `get()`.
+`stream()` accepts the same options as `get()`. To resume a stream after a reconnect without replaying everything, pass `since_time=` with the timestamp of the last line you processed (request it with `timestamps=True`):
+
+```python
+from datetime import datetime, timezone
+
+async for line in api.logs.stream(
+    pod_name, since_time=datetime(2026, 10, 23, 22, 18, tzinfo=timezone.utc)
+):
+    print(line)
+```
 
 ## Multi-container pods
 

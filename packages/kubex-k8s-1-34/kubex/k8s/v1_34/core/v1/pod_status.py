@@ -1,5 +1,3 @@
-import datetime
-
 from pydantic import Field
 
 from kubex.k8s.v1_34.core.v1.container_status import ContainerStatus
@@ -11,6 +9,7 @@ from kubex.k8s.v1_34.core.v1.pod_extended_resource_claim_status import (
 from kubex.k8s.v1_34.core.v1.pod_ip import PodIP
 from kubex.k8s.v1_34.core.v1.pod_resource_claim_status import PodResourceClaimStatus
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Time
 
 
 class PodStatus(BaseK8sModel):
@@ -101,7 +100,7 @@ class PodStatus(BaseK8sModel):
         alias="resourceClaimStatuses",
         description="Status of resource claims.",
     )
-    start_time: datetime.datetime | None = Field(
+    start_time: Time | None = Field(
         default=None,
         alias="startTime",
         description="RFC 3339 date and time at which the object was acknowledged by the Kubelet. This is before the Kubelet pulled the container image(s) for the pod.",

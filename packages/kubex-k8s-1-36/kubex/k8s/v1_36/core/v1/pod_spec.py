@@ -17,6 +17,7 @@ from kubex.k8s.v1_36.core.v1.toleration import Toleration
 from kubex.k8s.v1_36.core.v1.topology_spread_constraint import TopologySpreadConstraint
 from kubex.k8s.v1_36.core.v1.volume import Volume
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import NullAsEmptyList, Quantity
 
 
 class PodSpec(BaseK8sModel):
@@ -37,7 +38,7 @@ class PodSpec(BaseK8sModel):
         alias="automountServiceAccountToken",
         description="AutomountServiceAccountToken indicates whether a service account token should be automatically mounted.",
     )
-    containers: list[Container] = Field(
+    containers: NullAsEmptyList[Container] = Field(
         ...,
         alias="containers",
         description="List of containers belonging to the pod. Containers cannot currently be added or removed. There must be at least one container in a Pod. Cannot be updated.",
@@ -122,7 +123,7 @@ class PodSpec(BaseK8sModel):
         alias="os",
         description="Specifies the OS of the containers in the pod. Some pod and container fields are restricted if this is set. If the OS field is set to linux, the following fields must be unset: -securityContext.windowsOptions If the OS field is set to windows, following fields must be unset: - spec.hostPID - spec.hostIPC - spec.hostUsers - spec.resources - spec.securityContext.appArmorProfile - spec.securityContext.seLinuxOptions - spec.securityContext.seccompProfile - spec.securityContext.fsGroup - spec.securityContext.fsGroupChangePolicy - spec.securityContext.sysctls - spec.shareProcessNamespace - spec.securityContext.runAsUser - spec.securityContext.runAsGroup - spec.securityContext.supplementalGroups - spec.securityContext.supplementalGroupsPolicy - spec.containers[*].securityContext.appArmorProfile - spec.containers[*].securityContext.seLinuxOptions - spec.containers[*].securityContext.seccompProfile - spec.containers[*].securityContext.capabilities - spec.containers[*].securityContext.readOnlyRootFilesystem - spec.containers[*].securityContext.privileged - spec.containers[*].securityContext.allowPrivilegeEscalation - spec.containers[*].securityContext.procMount - spec.containers[*].securityContext.runAsUser - spec.containers[*].securityContext.runAsGroup",
     )
-    overhead: dict[str, str] | None = Field(
+    overhead: dict[str, Quantity] | None = Field(
         default=None,
         alias="overhead",
         description="Overhead represents the resource overhead associated with running a pod for a given RuntimeClass. This field will be autopopulated at admission time by the RuntimeClass admission controller. If the RuntimeClass admission controller is enabled, overhead must not be set in Pod create requests. The RuntimeClass admission controller will reject Pod create requests which have the overhead already set. If RuntimeClass is configured and selected in the PodSpec, Overhead will be set to the value defined in the corresponding RuntimeClass, otherwise it will remain unset and treated as zero. More info: https://git.k8s.io/enhancements/keps/sig-node/688-pod-overhead/README.md",

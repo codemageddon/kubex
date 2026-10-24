@@ -8,6 +8,7 @@ from kubex.k8s.v1_35.discovery.v1.endpoint import Endpoint
 from kubex.k8s.v1_35.discovery.v1.endpoint_port import EndpointPort
 from kubex_core.models.interfaces import NamespaceScopedEntity
 from kubex_core.models.resource_config import ResourceConfig, Scope
+from kubex_core.models.types import NullAsEmptyList
 
 
 class EndpointSlice(NamespaceScopedEntity):
@@ -32,7 +33,7 @@ class EndpointSlice(NamespaceScopedEntity):
         alias="apiVersion",
         description="APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
     )
-    endpoints: list[Endpoint] = Field(
+    endpoints: NullAsEmptyList[Endpoint] = Field(
         ...,
         alias="endpoints",
         description="endpoints is a list of unique endpoints in this slice. Each slice may include a maximum of 1000 endpoints.",

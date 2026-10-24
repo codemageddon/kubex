@@ -6,7 +6,8 @@ from typing import Any, Sequence
 import anyio
 import pytest
 
-from kubex.api._exec import ExecAccessor, ExecResult
+from kubex.api._exec import ExecAccessor, ExecError, ExecResult
+from kubex.api._stream_session import _MAX_FRAME_PAYLOAD
 from kubex.client.client import BaseClient
 from kubex.client.options import ClientOptions
 from kubex.client.websocket import WebSocketConnection
@@ -20,9 +21,9 @@ from kubex_core.models.resource_config import Scope
 from kubex_core.models.status import Status
 
 
-@pytest.fixture
-def anyio_backend() -> str:
-    return "asyncio"
+@pytest.fixture(params=["asyncio", "trio"])
+def anyio_backend(request: pytest.FixtureRequest) -> str:
+    return str(request.param)
 
 
 class _FakeWebSocket(WebSocketConnection):
@@ -332,13 +333,10 @@ def test_exec_result_exit_code_none_when_unparseable() -> None:
 
 @pytest.mark.anyio
 async def test_run_collects_all_output_under_burst_load() -> None:
-    """Regression: ``run()`` must not truncate output when the read loop
-    starts before drainer tasks. Earlier the bounded per-channel buffer
-    (default 128 frames) would close-on-overflow during the scheduling gap
-    between ``StreamSession.__aenter__`` (starts the read loop) and the
-    drainers' ``start_soon`` calls in ``run()``. The fix is unbounded
-    buffers in the ``run()`` path — OOM risk is unchanged because
-    ``ExecResult`` already collects everything in memory."""
+    """Regression: ``run()`` must not truncate output when more frames arrive
+    than the 128-frame channel queue holds. The read loop now waits for a
+    full queue instead of dropping frames, and ``run()`` drains stdout and
+    stderr concurrently, so every frame is collected."""
     burst = 1000
     chunk = b"x" * 16
     ws = _FakeWebSocket(buffer=burst + 8)
@@ -356,6 +354,37 @@ async def test_run_collects_all_output_under_burst_load() -> None:
     result = await accessor.run("my-pod", command=["echo"])
 
     assert result.stdout == chunk * burst
+    assert result.status is not None
+    assert result.status.status == "Success"
+
+
+@pytest.mark.anyio
+async def test_run_collects_stderr_flood_while_stdout_stays_open() -> None:
+    """``run()`` must keep draining stderr while stdout is still open.
+
+    Draining stdout to completion first would deadlock here: the read loop
+    waits on the full stderr queue, so it never reaches EOF to close stdout.
+    """
+    burst = 1000
+    chunk = b"e" * 16
+    ws = _FakeWebSocket(buffer=burst + 8)
+    ws.feed(bytes([1]) + b"out")
+    for _ in range(burst):
+        ws.feed(bytes([2]) + chunk)
+    status_payload = json.dumps(
+        {"apiVersion": "v1", "kind": "Status", "metadata": {}, "status": "Success"}
+    ).encode()
+    ws.feed(bytes([3]) + status_payload)
+    ws.feed_eof()
+
+    client = _FakeClient(ws)
+    accessor = _accessor_for_pod(client)
+
+    with anyio.fail_after(5.0):
+        result = await accessor.run("my-pod", command=["sh"])
+
+    assert result.stdout == b"out"
+    assert result.stderr == chunk * burst
     assert result.status is not None
     assert result.status.status == "Success"
 
@@ -428,32 +457,169 @@ async def test_run_drives_connection_close_to_completion_on_timeout() -> None:
     assert ws.closed
 
 
+_SUCCESS = json.dumps(
+    {"apiVersion": "v1", "kind": "Status", "metadata": {}, "status": "Success"}
+).encode()
+
+
 @pytest.mark.anyio
-async def test_run_unwraps_base_exception_group_from_inner_task() -> None:
-    """Regression: ``run()`` spawns ``_drain_*`` and ``_write_stdin`` tasks in
-    an inner ``anyio.create_task_group``. anyio 4 wraps a task's exception in
-    a ``BaseExceptionGroup`` even when only one task fails, so a transport
-    error during stdin write would surface as ``BaseExceptionGroup`` rather
-    than the documented ``KubexClientException``. The accessor must unwrap
-    single-exception groups so callers ``except KubexClientException`` for
-    every exec failure mode."""
+async def test_run_surfaces_read_side_transport_error_unwrapped() -> None:
+    """A transport failure on the read side must reach the caller as the
+    documented ``KubexClientException``, not wrapped in an exception group."""
+
+    class _ReceiveFailingWebSocket(_FakeWebSocket):
+        async def receive_bytes(self) -> bytes:
+            raise KubexClientException("transport error")
+
+    accessor = _accessor_for_pod(_FakeClient(_ReceiveFailingWebSocket()))
+
+    with anyio.fail_after(5.0):
+        with pytest.raises(KubexClientException, match="transport error"):
+            await accessor.run("my-pod", command=["cat"], stdin=b"data")
+
+
+@pytest.mark.anyio
+async def test_run_keeps_status_when_stdin_write_fails() -> None:
+    """Regression: a stdin send failure (e.g. the command exited without
+    reading its input and the server closed) discarded the status that had
+    already arrived. Like client-go, the stdin error is only logged."""
 
     class _SendFailingWebSocket(_FakeWebSocket):
         async def send_bytes(self, data: bytes) -> None:
             raise KubexClientException("transport error")
 
     ws = _SendFailingWebSocket()
-    status_payload = json.dumps(
-        {"apiVersion": "v1", "kind": "Status", "metadata": {}, "status": "Success"}
-    ).encode()
-    ws.feed(bytes([3]) + status_payload)
+    ws.feed(bytes([1]) + b"bye\n")
+    ws.feed(bytes([3]) + _status_with_exit_code("2").model_dump_json().encode())
     ws.feed_eof()
 
-    client = _FakeClient(ws)
-    accessor = _accessor_for_pod(client)
+    result = await _accessor_for_pod(_FakeClient(ws)).run(
+        "my-pod", command=["sh", "-c", "echo bye; exit 2"], stdin=b"x" * 100_000
+    )
 
-    with pytest.raises(KubexClientException, match="transport error"):
-        await accessor.run("my-pod", command=["cat"], stdin=b"data")
+    assert result.stdout == b"bye\n"
+    assert result.exit_code == 2
+
+
+class _ReactiveWebSocket(_FakeWebSocket):
+    """Plays the server side of a stdin-only exec: an empty "connection
+    established" frame on the error channel first, the status only after
+    the client half-closes stdin."""
+
+    def __init__(self, status: bytes) -> None:
+        super().__init__()
+        self._status = status
+        self.feed(bytes([3]))
+
+    async def send_bytes(self, data: bytes) -> None:
+        await super().send_bytes(data)
+        if data == bytes([255, 0]):
+            await anyio.sleep(0.05)
+            self.feed(bytes([3]) + self._status)
+            self.feed_eof()
+
+
+@pytest.mark.anyio
+async def test_run_without_output_channels_waits_for_real_status() -> None:
+    """Regression: with stdout/stderr off, the empty first frame resolved the
+    status at once, so ``run()`` returned ``exit_code=None`` immediately."""
+    ws = _ReactiveWebSocket(_status_with_exit_code("3").model_dump_json().encode())
+    accessor = _accessor_for_pod(_FakeClient(ws))
+
+    with anyio.fail_after(5.0):
+        result = await accessor.run(
+            "my-pod",
+            command=["sh", "-c", "cat > /tmp/f; exit 3"],
+            stdin=b"payload",
+            stdout=False,
+            stderr=False,
+        )
+
+    assert result.exit_code == 3
+    assert bytes([0]) + b"payload" in ws.sent
+
+
+@pytest.mark.anyio
+async def test_run_sends_large_stdin_in_32k_frames() -> None:
+    data = b"y" * (5 * _MAX_FRAME_PAYLOAD + 7)
+    ws = _ReactiveWebSocket(_SUCCESS)
+
+    result = await _accessor_for_pod(_FakeClient(ws)).run(
+        "my-pod", command=["wc", "-c"], stdin=data, stdout=False, stderr=False
+    )
+
+    stdin_frames = [frame for frame in ws.sent if frame[0] == 0]
+    assert len(stdin_frames) == 6
+    assert all(len(frame) - 1 <= _MAX_FRAME_PAYLOAD for frame in stdin_frames)
+    assert b"".join(frame[1:] for frame in stdin_frames) == data
+    assert ws.sent[-1] == bytes([255, 0])
+    assert result.exit_code == 0
+
+
+@pytest.mark.anyio
+async def test_run_stops_writing_stdin_once_the_command_finished() -> None:
+    """A command that exits without reading stdin leaves the writer blocked
+    on transport backpressure; ``run()`` must return once the status is in
+    rather than wait for a write that can never complete."""
+
+    class _StdinBlockingWebSocket(_FakeWebSocket):
+        async def send_bytes(self, data: bytes) -> None:
+            await anyio.sleep_forever()
+
+    ws = _StdinBlockingWebSocket()
+    ws.feed(bytes([3]) + _status_with_exit_code("4").model_dump_json().encode())
+    ws.feed_eof()
+
+    with anyio.fail_after(5.0):
+        result = await _accessor_for_pod(_FakeClient(ws)).run(
+            "my-pod", command=["sh", "-c", "exit 4"], stdin=b"z" * 1_000_000
+        )
+
+    assert result.exit_code == 4
+
+
+def test_raise_for_status_returns_result_on_success() -> None:
+    status = Status.model_validate(
+        {"apiVersion": "v1", "kind": "Status", "metadata": {}, "status": "Success"}
+    )
+    result = ExecResult(stdout=b"ok", stderr=b"", status=status)
+    assert result.raise_for_status() is result
+
+
+def test_raise_for_status_raises_on_non_zero_exit() -> None:
+    result = ExecResult(stdout=b"", stderr=b"boom", status=_status_with_exit_code("7"))
+    with pytest.raises(ExecError, match="non-zero exit code") as info:
+        result.raise_for_status()
+    assert isinstance(info.value, KubexClientException)
+    assert info.value.exit_code == 7
+    assert info.value.result is result
+
+
+def test_raise_for_status_raises_on_failure_without_exit_code() -> None:
+    """A missing binary reports ``Failure`` with no exit code — the case
+    ``if result.exit_code:`` silently treats as success."""
+    status = Status.model_validate(
+        {
+            "apiVersion": "v1",
+            "kind": "Status",
+            "metadata": {},
+            "status": "Failure",
+            "reason": "InternalError",
+            "message": 'exec: "/nonexistent": no such file or directory',
+        }
+    )
+    result = ExecResult(stdout=b"", stderr=b"", status=status)
+    assert result.exit_code is None
+    with pytest.raises(ExecError, match="no such file") as info:
+        result.raise_for_status()
+    assert info.value.exit_code is None
+    assert info.value.status is status
+
+
+def test_raise_for_status_raises_when_status_missing() -> None:
+    result = ExecResult(stdout=b"", stderr=b"", status=None)
+    with pytest.raises(ExecError, match="without reporting a status"):
+        result.raise_for_status()
 
 
 @pytest.mark.anyio

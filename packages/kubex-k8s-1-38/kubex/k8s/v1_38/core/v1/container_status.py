@@ -6,12 +6,13 @@ from kubex.k8s.v1_38.core.v1.resource_requirements import ResourceRequirements
 from kubex.k8s.v1_38.core.v1.resource_status import ResourceStatus
 from kubex.k8s.v1_38.core.v1.volume_mount_status import VolumeMountStatus
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Quantity
 
 
 class ContainerStatus(BaseK8sModel):
     """ContainerStatus contains details for the current status of this container."""
 
-    allocated_resources: dict[str, str] | None = Field(
+    allocated_resources: dict[str, Quantity] | None = Field(
         default=None,
         alias="allocatedResources",
         description="allocatedResources represents the compute resources allocated for this container by the node. Kubelet sets this value to Container.Resources.Requests upon successful pod admission and after successfully admitting desired pod resize.",

@@ -1,6 +1,7 @@
 from pydantic import Field
 
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import NullAsEmptyList
 
 
 class TopologySelectorLabelRequirement(BaseK8sModel):
@@ -11,7 +12,7 @@ class TopologySelectorLabelRequirement(BaseK8sModel):
         alias="key",
         description="key is the label key that the selector applies to.",
     )
-    values: list[str] = Field(
+    values: NullAsEmptyList[str] = Field(
         ...,
         alias="values",
         description="values is an array of string values. One value must match the label to be selected. Each entry in values is ORed.",

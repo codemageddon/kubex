@@ -1,10 +1,9 @@
-import datetime
-
 from pydantic import Field
 
 from kubex.k8s.v1_35.batch.v1.job_condition import JobCondition
 from kubex.k8s.v1_35.batch.v1.uncounted_terminated_pods import UncountedTerminatedPods
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Time
 
 
 class JobStatus(BaseK8sModel):
@@ -20,7 +19,7 @@ class JobStatus(BaseK8sModel):
         alias="completedIndexes",
         description='completedIndexes holds the completed indexes when .spec.completionMode = "Indexed" in a text format. The indexes are represented as decimal integers separated by commas. The numbers are listed in increasing order. Three or more consecutive numbers are compressed and represented by the first and last element of the series, separated by a hyphen. For example, if the completed indexes are 1, 3, 4, 5 and 7, they are represented as "1,3-5,7".',
     )
-    completion_time: datetime.datetime | None = Field(
+    completion_time: Time | None = Field(
         default=None,
         alias="completionTime",
         description="Represents time when the job was completed. It is not guaranteed to be set in happens-before order across separate operations. It is represented in RFC3339 form and is in UTC. The completion time is set when the job finishes successfully, and only then. The value cannot be updated or removed. The value indicates the same or later point in time as the startTime field.",
@@ -45,7 +44,7 @@ class JobStatus(BaseK8sModel):
         alias="ready",
         description="The number of active pods which have a Ready condition and are not terminating (without a deletionTimestamp).",
     )
-    start_time: datetime.datetime | None = Field(
+    start_time: Time | None = Field(
         default=None,
         alias="startTime",
         description="Represents time when the job controller started processing a job. When a Job is created in the suspended state, this field is not set until the first time it is resumed. This field is reset every time a Job is resumed from suspension. It is represented in RFC3339 form and is in UTC. Once set, the field can only be removed when the job is suspended. The field cannot be modified while the job is unsuspended or finished.",
