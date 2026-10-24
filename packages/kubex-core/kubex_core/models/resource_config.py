@@ -161,11 +161,11 @@ def create_list_model(
     kind = f"{resource_config.kind}List"
     list_model = create_model(
         kind,
-        api_version=(Literal[resource_config.api_version], resource_config.api_version),
-        kind=(Literal[kind], kind),
+        api_version=(Literal[resource_config.api_version], resource_config.api_version),  # type: ignore[arg-type]  # ty: ignore[invalid-type-form]
+        kind=(Literal[kind], kind),  # type: ignore[arg-type]  # ty: ignore[invalid-type-form]
         metadata=(ListMetadata, ...),
-        items=(NullAsEmptyList[single_model], ...),  # type: ignore[valid-type]
-        __base__=ListEntity[single_model],  # type: ignore[valid-type]
+        items=(NullAsEmptyList[single_model], ...),  # type: ignore[valid-type]  # ty: ignore[invalid-type-form]
+        __base__=ListEntity[single_model],  # type: ignore[valid-type]  # ty: ignore[invalid-type-form]
     )
     # pydantic.create_model's return type is `type[BaseModel]`; we know the
     # __base__ narrows it to ListEntity[ResourceType], but mypy cannot prove it.

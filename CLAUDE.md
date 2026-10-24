@@ -29,6 +29,9 @@ uv run ruff check --fix . && uv run ruff format .
 # Type check (strict mode)
 uv run mypy .
 
+# Type check kubex-core (the root run excludes packages/ and never reports its errors)
+uv run --directory packages/kubex-core mypy kubex_core
+
 # Run pre-commit hooks
 pre-commit run --all-files
 
@@ -356,7 +359,8 @@ Five GitHub Actions workflows:
 2. `ruff check .`
 3. `ruff format --check .`
 4. `mypy .` (strict, with all extras installed)
-5. Verify generated packages — runs `python -m scripts.codegen verify` for each `packages/kubex-k8s-*`
+5. `mypy kubex_core` from `packages/kubex-core` (its own `[tool.mypy]`; the root run excludes `packages/` and never reports errors in kubex-core)
+6. Verify generated packages — runs `python -m scripts.codegen verify` for each `packages/kubex-k8s-*`
 
 **Test** (`test.yaml`) — runs on push and pull_request:
 1. `pytest .` with all extras, as a matrix over Python 3.11, 3.12, 3.13, 3.14, 3.15 (`fail-fast: false`)
