@@ -352,7 +352,15 @@ def _resolve_env_proxy_with_netrc(base_url: str) -> dict[str, Any]:
                 return {
                     "proxy": httpx.Proxy(url=proxy_url, auth=(login, password or ""))
                 }
-    except (FileNotFoundError, netrc.NetrcParseError, OSError) as exc:
+    except netrc.NetrcParseError as exc:
+        # Not ``exc`` itself: its message quotes the offending token, which
+        # may be (part of) a password.
+        _logger.debug(
+            "Failed to parse netrc %s at line %s; ignoring it for proxy credentials",
+            exc.filename,
+            exc.lineno,
+        )
+    except OSError as exc:
         _logger.debug("Failed to read netrc for proxy credentials: %s", exc)
 
     return {"proxy": proxy_url}

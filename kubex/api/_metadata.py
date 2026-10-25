@@ -298,9 +298,8 @@ class MetadataAccessor(Generic[ResourceType]):
 
         Raises:
             ValueError: an argument is invalid, e.g. a namespace given for a
-                cluster-scoped resource, an unknown option value (e.g. for
-                ``version_match``), or ``allow_bookmarks=False`` together with
-                ``send_initial_events=True``.
+                cluster-scoped resource, or ``allow_bookmarks=False`` together
+                with ``send_initial_events=True``.
             Gone: the requested ``resource_version`` is too old (HTTP 410), either
                 on connect or as an ``ERROR`` event mid-stream; re-list and watch
                 again from the new ``resourceVersion``.

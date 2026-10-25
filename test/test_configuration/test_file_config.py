@@ -1152,6 +1152,27 @@ def test_invalid_yaml_error_does_not_quote_the_file(tmp_path: Path) -> None:
     assert exc_info.value.__cause__ is None
 
 
+@pytest.mark.parametrize(
+    ("value", "error_class"),
+    [
+        pytest.param("!SECRET_VALUE", "ConstructorError", id="unknown-tag"),
+        pytest.param("*SECRET_VALUE", "ComposerError", id="undefined-alias"),
+    ],
+)
+def test_invalid_yaml_error_omits_interpolated_input(
+    tmp_path: Path, value: str, error_class: str
+) -> None:
+    # These PyYAML errors copy the offending tag/alias into their `problem` text.
+    config_file = tmp_path / "config"
+    config_file.write_text(f"users:\n- name: u\n  user:\n    password: {value}\n")
+    with pytest.raises(ConfigurationError, match="line 4") as exc_info:
+        _load_kube_config(config_file)
+    message = str(exc_info.value)
+    assert "SECRET_VALUE" not in message
+    assert error_class in message
+    assert exc_info.value.__cause__ is None
+
+
 def test_auth_info_repr_hides_secrets() -> None:
     data = _minimal_kubeconfig(
         token="TOKEN-VALUE", client_key_data=b64encode(b"KEY-VALUE").decode()

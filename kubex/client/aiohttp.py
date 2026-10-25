@@ -1,11 +1,12 @@
 import asyncio
+import base64
 import contextlib
 import ssl
 import warnings
 from contextvars import ContextVar
 from types import EllipsisType, SimpleNamespace
 from typing import Any, AsyncGenerator, Iterator, Sequence, cast
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse, urlsplit, urlunsplit
 
 import anyio
 from aiohttp import (
@@ -20,6 +21,7 @@ from aiohttp import (
     TraceRequestEndParams,
     WSMsgType,
     WSServerHandshakeError,
+    hdrs,
 )
 from aiohttp.connector import TCPConnector
 from multidict import CIMultiDict
@@ -186,6 +188,25 @@ def _apply_aiohttp_proxy(
         )
 
 
+def _split_proxy_credentials(proxy: str) -> tuple[str, str | None]:
+    """Strip userinfo from *proxy*; return the bare URL and a ``Proxy-Authorization`` value.
+
+    aiohttp keeps a proxy URL's userinfo in ``ClientHttpProxyError``'s
+    message, so the credentials are sent as a header instead. (Its
+    ``proxy_auth=``/``BasicAuth`` alternative is deprecated in aiohttp 3.14.)
+    """
+    parts = urlsplit(proxy)
+    userinfo, at, hostport = parts.netloc.rpartition("@")
+    if not at:
+        return proxy, None
+    user, _, password = userinfo.partition(":")
+    userpass = f"{unquote(user)}:{unquote(password)}".encode()
+    return (
+        urlunsplit(parts._replace(netloc=hostport)),
+        "Basic " + base64.b64encode(userpass).decode(),
+    )
+
+
 class AioHttpClient(BaseClient):
     def __init__(
         self,
@@ -197,7 +218,9 @@ class AioHttpClient(BaseClient):
             constants.ACCEPT_HEADER: constants.APPLICATION_JSON_MIME_TYPE,
         }
         self._resolved_proxy: str | None = None
+        self._proxy_authorization: str | None = None
         self._origin, self._path_prefix = _split_base_url(str(configuration.base_url))
+        self._origin_is_tls = urlparse(self._origin).scheme == "https"
         self._trace_config = _make_trace_config()
         super().__init__(configuration, options)
 
@@ -260,6 +283,8 @@ class AioHttpClient(BaseClient):
         }
 
         _apply_aiohttp_proxy(kwargs, self.options.proxy, self._origin)
+        if (proxy := cast("str | None", kwargs.get("proxy"))) is not None:
+            kwargs["proxy"], self._proxy_authorization = _split_proxy_credentials(proxy)
         self._resolved_proxy = cast("str | None", kwargs.get("proxy"))
 
         if self.options.trust_env and self._resolved_proxy is not None:
@@ -310,13 +335,27 @@ class AioHttpClient(BaseClient):
         return kwargs
 
     def _transport_kwargs(self) -> dict[str, Any]:
+        kwargs: dict[str, Any] = {}
         if self.configuration.tls_server_name:
             # SNI and certificate verification both use this name.
-            return {"server_hostname": self.configuration.tls_server_name}
-        return {}
+            kwargs["server_hostname"] = self.configuration.tls_server_name
+        if self._proxy_authorization is not None and self._origin_is_tls:
+            # Sent on the CONNECT to the proxy only, never through the tunnel.
+            kwargs["proxy_headers"] = {
+                hdrs.PROXY_AUTHORIZATION: self._proxy_authorization
+            }
+        return kwargs
+
+    async def _headers(self, request: Request) -> "CIMultiDict[str]":
+        headers = CIMultiDict(await self._request_headers(request))
+        if self._proxy_authorization is not None and not self._origin_is_tls:
+            # A plain-HTTP request goes to the proxy itself, and aiohttp only
+            # sends ``proxy_headers`` on a CONNECT.
+            headers[hdrs.PROXY_AUTHORIZATION] = self._proxy_authorization
+        return headers
 
     async def request(self, request: Request) -> Response:
-        headers = CIMultiDict(await self._request_headers(request))
+        headers = await self._headers(request)
         extra = self._transport_kwargs()
         if request.timeout is not Ellipsis:
             extra["timeout"] = _to_aiohttp_timeout(request.timeout)
@@ -356,7 +395,7 @@ class AioHttpClient(BaseClient):
         )
 
     async def stream_lines(self, request: Request) -> AsyncGenerator[str, None]:
-        headers = CIMultiDict(await self._request_headers(request))
+        headers = await self._headers(request)
         extra = self._transport_kwargs()
         extra["timeout"] = (
             self._stream_timeout()
@@ -402,7 +441,7 @@ class AioHttpClient(BaseClient):
         request: Request,
         subprotocols: Sequence[str],
     ) -> WebSocketConnection:
-        headers = CIMultiDict(await self._request_headers(request))
+        headers = await self._headers(request)
         # The session's default ``Accept: application/json`` is appropriate for
         # JSON API calls but the kubelet's portforward endpoint rejects it with
         # ``406 Not Acceptable``. Override per-upgrade so the WebSocket

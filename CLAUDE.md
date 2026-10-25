@@ -181,6 +181,7 @@ test/                           # Test suite
 │       └── test_trust_env.py   # REST proxy tests: URL-embedded creds, netrc creds, missing-creds-fails, NO_PROXY bypass, bearer-token via proxy.
 │                               #   WS exec proxy tests: cert-auth exec via proxy, bearer-token exec via proxy,
 │                               #   missing-proxy-creds WS handshake fails (KubexClientException), NO_PROXY bypass WS connect fails (KubexClientException)
+│       └── test_explicit_proxy.py # ClientOptions(proxy=) with URL-embedded creds: REST + exec succeed; a 407 error never echoes the password
 ├── test_configuration/         # Unit tests for configuration and auth
 │   ├── test_file_config.py     # Kubeconfig file parsing tests
 │   ├── test_incluster_config.py # In-cluster configuration tests
@@ -263,7 +264,7 @@ lychee.toml                     # Link checker configuration
 - **Optional deps** (install via `--all-extras` or individually):
   - `httpx>=0.27.2` — primary HTTP client
   - `httpx-ws>=0.7` — WebSocket support for the httpx client (required for `exec` and `attach`); install via the dedicated `httpx-ws` extra (`kubex[httpx-ws]`), which also pulls in `httpx`. The plain `httpx` extra deliberately omits it so non-WebSocket installs stay slim.
-  - `aiohttp>=3.11.2` — alternative HTTP client (built-in WebSocket support via `ws_connect`)
+  - `aiohttp>=3.11.2` — alternative HTTP client (built-in WebSocket support via `ws_connect`); the `aiohttp` extra also declares `multidict>=4.5`, which `kubex/client/aiohttp.py` imports directly
 - **Dev deps** include `kubex-k8s-1-35` (workspace, used for tests), `jinja2`, `typer` (for codegen), testing/linting tools
 - **Version** is stored in `kubex/__version__.py` and referenced from `pyproject.toml` via hatch
 

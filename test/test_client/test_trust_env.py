@@ -277,15 +277,19 @@ def test_resolve_env_proxy_no_proxy_bracketed_ipv6_with_port_not_supported(
 
 
 def test_resolve_env_proxy_netrc_parse_error_falls_back(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
     monkeypatch.setenv("HTTPS_PROXY", _PROXY_URL)
     netrc_file = tmp_path / "netrc"
-    netrc_file.write_text("not a valid netrc file content\n")
+    # An unquoted password with a space: netrc's error quotes the stray half.
+    netrc_file.write_text("machine proxy.corp login alice password s3cret HALF2\n")
     monkeypatch.setenv("NETRC", str(netrc_file))
 
-    result = _resolve_env_proxy_with_netrc(_BASE_HTTPS)
+    with caplog.at_level("DEBUG", logger="kubex"):
+        result = _resolve_env_proxy_with_netrc(_BASE_HTTPS)
     assert result == {"proxy": _PROXY_URL}
+    assert "Failed to parse netrc" in caplog.text
+    assert "HALF2" not in caplog.text
 
 
 @pytest.mark.skipif(

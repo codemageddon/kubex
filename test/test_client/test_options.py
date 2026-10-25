@@ -140,6 +140,29 @@ def test_proxy_invalid_raises(bad_proxy: object) -> None:
         ClientOptions(proxy=bad_proxy)
 
 
+@pytest.mark.parametrize(
+    ("proxy", "shown"),
+    [
+        pytest.param(
+            "http://alice:s3cret@proxy:3128", "'http://***@proxy:3128'", id="str"
+        ),
+        pytest.param(
+            {"https": "http://alice:s3cret@proxy:3128"},
+            "{'https': 'http://***@proxy:3128'}",
+            id="dict",
+        ),
+        pytest.param("http://proxy:3128", "'http://proxy:3128'", id="no-userinfo"),
+        pytest.param("http://[bad", "'***'", id="unparseable"),
+    ],
+)
+def test_proxy_repr_hides_userinfo(proxy: str | dict[str, str], shown: str) -> None:
+    opts = ClientOptions(proxy=proxy)
+    for rendered in (repr(opts), str(opts)):
+        assert f"proxy={shown}" in rendered
+        assert "s3cret" not in rendered
+    assert opts.proxy == proxy
+
+
 @pytest.mark.parametrize("value", [True, False])
 def test_keep_alive_valid(value: bool) -> None:
     assert ClientOptions(keep_alive=value).keep_alive is value

@@ -1,10 +1,24 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from types import EllipsisType
+from typing import Any
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from kubex.core.params import Timeout, TimeoutTypes
+
+
+def _redact_proxy_url(url: str) -> str:
+    """Hide a proxy URL's userinfo, e.g. ``http://***@proxy:3128``."""
+    try:
+        netloc = urlsplit(url).netloc
+    except ValueError:
+        return "***"
+    if "@" not in netloc:
+        return url
+    return url.replace(netloc, "***@" + netloc.rpartition("@")[2], 1)
 
 
 class ClientOptions(BaseModel):
@@ -255,6 +269,15 @@ class ClientOptions(BaseModel):
             return Timeout.coerce(value)  # type: ignore[arg-type]
         except TypeError as e:
             raise ValueError(str(e)) from e
+
+    def __repr_args__(self) -> Iterator[tuple[str | None, Any]]:
+        # Basic-auth proxy URLs carry a password; keep it out of repr/str.
+        for name, value in super().__repr_args__():
+            if name == "proxy" and isinstance(value, str):
+                value = _redact_proxy_url(value)
+            elif name == "proxy" and isinstance(value, dict):
+                value = {k: _redact_proxy_url(v) for k, v in value.items()}
+            yield name, value
 
     @field_validator("proxy", mode="before")
     @classmethod

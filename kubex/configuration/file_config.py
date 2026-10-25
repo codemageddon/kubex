@@ -159,14 +159,15 @@ def _parse_yaml(file: Path) -> Any:
     try:
         return safe_load(file.read_text())
     except YAMLError as exc:
-        # PyYAML's message quotes the offending line, which may hold a secret.
+        # Only the position and error class: PyYAML's message quotes the
+        # offending line, and its `problem` text interpolates input (tags,
+        # anchors, characters), any of which may hold a secret.
         where = ""
         if isinstance(exc, MarkedYAMLError) and exc.problem_mark is not None:
             mark = exc.problem_mark
             where = f" at line {mark.line + 1}, column {mark.column + 1}"
-        problem = getattr(exc, "problem", None) or type(exc).__name__
         raise ConfigurationError(
-            f"{file}: invalid kubeconfig YAML{where}: {problem}"
+            f"{file}: invalid kubeconfig YAML{where} ({type(exc).__name__})"
         ) from None
 
 

@@ -55,8 +55,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   returning client certificates raise a clear `ConfigurationError`.
 - OIDC: `client-secret` and `refresh-token` are optional; a valid `id-token` is used until it
   expires.
-- Secrets no longer appear in validation errors, logs or reprs (including exec `args` and the
-  exec cluster `config`).
+- Secrets no longer appear in validation errors, kubeconfig YAML errors, logs or reprs
+  (including exec `args`, the exec cluster `config`, and `ClientOptions.proxy` credentials, also
+  in aiohttp proxy errors).
 - `tokenFile` wins over an inline `token`, as in client-go; a failed re-read keeps the last token.
 - Temp files for `*-data` credentials are recreated if deleted and removed only by the process
   that created them.

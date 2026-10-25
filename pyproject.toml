@@ -47,6 +47,7 @@ Documentation = "https://kubex.codemageddon.me/"
 [project.optional-dependencies]
 aiohttp = [
     "aiohttp>=3.11.2",
+    "multidict>=4.5",
 ]
 httpx = [
     "httpx>=0.27.2",
