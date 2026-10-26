@@ -1,14 +1,13 @@
-import datetime
-
 from pydantic import Field
 
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Time
 
 
 class Condition(BaseK8sModel):
     """Condition contains details for one aspect of the current state of this API Resource."""
 
-    last_transition_time: datetime.datetime = Field(
+    last_transition_time: Time | None = Field(
         ...,
         alias="lastTransitionTime",
         description="lastTransitionTime is the last time the condition transitioned from one status to another. This should be when the underlying condition changed. If that is not known, then using the time when the API field changed is acceptable.",

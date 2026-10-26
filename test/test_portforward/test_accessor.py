@@ -18,9 +18,9 @@ from kubex_core.models.resource_config import Scope
 from test.stub_client import StubClient
 
 
-@pytest.fixture
-def anyio_backend() -> str:
-    return "asyncio"
+@pytest.fixture(params=["asyncio", "trio"])
+def anyio_backend(request: pytest.FixtureRequest) -> str:
+    return str(request.param)
 
 
 class _FakeWebSocket(WebSocketConnection):
@@ -198,22 +198,18 @@ async def test_forward_yields_port_forwarder_with_multiple_ports() -> None:
 
 
 @pytest.mark.anyio
-async def test_forward_port_data_truncated_is_live_view() -> None:
-    from kubex.api._portforward import PortForwarder
-
+async def test_forward_truncated_flags_are_deprecated_and_always_false() -> None:
     ws = _FakeWebSocket()
     ws.feed_eof()
 
     client = _FakeClient(ws)
     accessor = _accessor_for_pod(client)
 
-    async with accessor.forward("my-pod", ports=[8080]) as pf:
-        assert isinstance(pf, PortForwarder)
-        assert pf.port_data_truncated[8080] is False
-        # Simulate a buffer overflow so we can verify the property is a live
-        # view of the underlying session state, not a snapshot.
-        pf._session._truncated[8080] = True
-        assert pf.port_data_truncated[8080] is True
+    async with accessor.forward("my-pod", ports=[8080, 9090]) as pf:
+        with pytest.warns(DeprecationWarning):
+            assert dict(pf.port_data_truncated) == {8080: False, 9090: False}
+        with pytest.warns(DeprecationWarning):
+            assert dict(pf.port_error_truncated) == {8080: False, 9090: False}
 
 
 @pytest.mark.anyio

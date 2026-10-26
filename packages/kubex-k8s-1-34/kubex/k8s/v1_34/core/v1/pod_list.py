@@ -7,6 +7,7 @@ from pydantic import Field
 from kubex.k8s.v1_34.core.v1.pod import Pod
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.metadata import ListMetadata
+from kubex_core.models.types import NullAsEmptyList
 
 
 class PodList(ListEntity[Pod]):
@@ -17,7 +18,7 @@ class PodList(ListEntity[Pod]):
         alias="apiVersion",
         description="APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
     )
-    items: list[Pod] = Field(
+    items: NullAsEmptyList[Pod] = Field(
         ...,
         alias="items",
         description="List of pods. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md",

@@ -110,15 +110,17 @@ async def main() -> None:
 | `stdin` | writer | Call `await session.stdin.write(data)` to send bytes to the container |
 | `stdout` | `MemoryObjectReceiveStream[bytes]` | Async iterable yielding stdout chunks |
 | `stderr` | `MemoryObjectReceiveStream[bytes]` | Async iterable yielding stderr chunks |
-| `stdout_truncated` | `bool` | `True` if the stdout buffer overflowed and frames were dropped |
-| `stderr_truncated` | `bool` | `True` if the stderr buffer overflowed and frames were dropped |
 | `resize(width, height)` | coroutine | Send a terminal resize event |
 | `close_stdin()` | coroutine | Half-close the stdin channel (idempotent) |
-| `wait_for_status()` | coroutine | Await the final status frame; returns `Status | None` |
+| `wait_for_status()` | coroutine | Await the final status; returns `Status | None` (`None` if the server closed without one) |
 
-`stdout`/`stderr` are each bounded at 128 buffered frames; if a consumer falls behind and the
-buffer fills, kubex closes that channel locally rather than blocking forever. Check
-`stdout_truncated`/`stderr_truncated` after the iterator ends to tell that apart from a normal EOF.
+Output is never dropped: `stdout` and `stderr` each queue up to 128 frames, and when a queue is
+full kubex stops reading the WebSocket until you consume more. Since both channels share one
+connection, **a channel you don't read stalls the other** — read every enabled channel
+concurrently, disable it (`stderr=False`), or discard it with `session.stderr.close()`. See
+[exec: reading output](exec.md#reading-output-backpressure) for details. Large `stdin.write()`
+payloads are sent in frames of at most 32 KiB, and writing after the session has ended raises
+`KubexClientException`. `stdout_truncated`/`stderr_truncated` are deprecated and always `False`.
 
 ### TTY mode and stderr
 

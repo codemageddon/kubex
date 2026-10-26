@@ -7,6 +7,109 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `configure_from_kubeconfig(config_file=...)` loads a specific kubeconfig file, resolving its
+  relative paths against it.
+- Kubeconfig impersonation (`as`, `as-uid`, `as-groups`, `as-user-extra`), basic auth
+  (`username`/`password`), `tls-server-name`, and exec `provideClusterInfo`, with matching
+  `ClientConfiguration` arguments (`tls_server_name`, `username`/`password`, `impersonate_*`).
+- `KubexConnectionError` and `KubexTimeoutError` (also a `TimeoutError`) for transport failures
+  on both backends; `TooManyRequests` (429); `KubexApiError.retry_after`.
+- `ExecResult.raise_for_status()` and `ExecError`, exported from `kubex.api`.
+- `since_time` for `logs.get()`/`logs.stream()`.
+- `kubex_core.models.types`: `Time`, `MicroTime`, `Quantity`, `NullAsEmptyList`,
+  `NullAsEmptyDict`.
+- `ObjectMetadata.managed_fields`/`self_link` and `ListMetadata.shard_info`.
+
+### Fixed
+
+- Single-object calls reject an empty or `None` name instead of targeting the whole collection;
+  names and namespaces are validated and percent-encoded.
+- Watches and log streams no longer inherit the client's default read/total timeout.
+- httpx watches and log streams split lines only on `\n` (U+0085 in an object broke the
+  stream); aiohttp has no line-length cap; non-UTF-8 log output is decoded with replacement.
+- `create_client()` picks httpx under trio when aiohttp is also installed.
+- Dry-run `delete()`/`delete_collection()`.
+- `ApplyPatch` sends `apiVersion`/`kind`, RFC 3339 timestamps and no `managedFields`;
+  `metadata.patch()` with `ApplyPatch` targets the resource's kind.
+- Scale subresource at 0 replicas.
+- Spec-required list, map and timestamp fields accept `null` (EndpointSlice, CSINode and
+  events.k8s.io Event lists).
+- `CustomResourceDefinition` schema fields (`default`, `enum`, `items`, `additionalProperties`).
+- Unknown fields round-trip through resource models instead of being dropped on replace.
+- `MicroTime` always serializes six fractional digits; naive datetimes serialize as UTC.
+- `Quantity` fields accept numbers.
+- Default plurals for custom resources (`Gateway` → `gateways`, `Mesh` → `meshes`).
+- A subclass of a resource model gets its own list model.
+- `Status` bodies without `metadata` parse.
+- `JsonPatch.copy()` on pydantic < 2.11.
+- `field_validation` and `version_match` accept plain strings.
+- `send_initial_events=True` sets `allowWatchBookmarks`.
+- Kubeconfig: entries for other contexts no longer break loading; a scheme-less server
+  defaults to `https://`; relative exec commands and `idp-certificate-authority` resolve against
+  the kubeconfig directory; `*-data` fields take precedence over file paths.
+- In-cluster config with an IPv6 `KUBERNETES_SERVICE_HOST`; a missing namespace file falls back
+  to `"default"`.
+- Exec credential plugins show their stderr live (interactive and device-code prompts); plugins
+  returning client certificates raise a clear `ConfigurationError`.
+- OIDC: `client-secret` and `refresh-token` are optional; a valid `id-token` is used until it
+  expires.
+- Secrets no longer appear in validation errors, kubeconfig YAML errors, logs or reprs
+  (including exec `args`, the exec cluster `config`, and `ClientOptions.proxy` credentials, also
+  in aiohttp proxy errors).
+- `tokenFile` wins over an inline `token`, as in client-go; a failed re-read keeps the last token.
+- Temp files for `*-data` credentials are recreated if deleted and removed only by the process
+  that created them.
+- API errors carry a message, e.g. `404 Not Found: pods "x" not found (reason: NotFound)`.
+- WebSocket handshake HTTP errors raise the matching `KubexApiError` subclass.
+- httpx: partial pool options keep the default connection limits; a numeric `request_timeout`
+  is a total timeout.
+- `Warning` headers containing commas.
+- Non-ASCII impersonation values on the httpx backend (sent as UTF-8).
+- WebSocket keepalive pings on aiohttp; paused exec/attach/portforward sessions are no longer
+  closed by httpx-ws ping timeouts.
+- Exec/attach/portforward no longer drop output when a consumer falls behind.
+- `wait_for_status()`/`run()` wait for the full status instead of resolving on the first empty
+  error-channel frame.
+- Large stdin and portforward writes are sent in 32 KiB frames.
+- `run()` returns an already received status when a later stdin write fails.
+- Empty frames are no longer delivered to exec/attach consumers.
+- `listen()` closes the local connection when the remote side finishes.
+- `kubex` pins `kubex-core` to the same release; `kubex-k8s-*` packages require
+  `kubex-core>=0.1.0b4,<0.2`.
+- `kubex-core` and `kubex-k8s-*` distributions include the MIT `LICENSE` file.
+- Model regeneration keeps each `kubex-k8s-*` package's existing version unless
+  `--package-version` is given.
+
+### Changed
+
+- **Breaking:** Transport failures raise `KubexConnectionError`/`KubexTimeoutError` instead of
+  httpx/aiohttp exceptions.
+- **Breaking:** A kubeconfig context without `namespace` scopes namespace-scoped `Api`s to
+  `"default"`, as kubectl does.
+- **Breaking:** Invalid kubeconfig content (YAML, schema, missing referenced files, server URL)
+  raises `ConfigurationError` instead of `ValidationError`; outside a cluster with no
+  kubeconfig, `create_client()` raises `ConfigurationError`.
+- **Breaking:** Kubeconfig models are lenient: file paths are `Path` (checked only for the
+  selected context), `Cluster.server` is `str | None`, `Context.cluster`/`user` are optional, and
+  unknown keys are dropped.
+- **Breaking:** Exec/attach/portforward streams apply backpressure: a channel that is enabled
+  but never read blocks the session. `stdout_truncated`, `stderr_truncated`,
+  `port_data_truncated` and `port_error_truncated` are deprecated and always `False`.
+- **Breaking:** Spec-required `Time`/`MicroTime`/byte fields in generated models are typed
+  `T | None`. The generated `JSON`/`JSONSchemaPropsOr*`, `ManagedFieldsEntry` and `ShardInfo`
+  modules are removed; `ManagedFieldsEntry` and `ShardInfo` live in `kubex_core.models.metadata`.
+- Exec plugins without `interactiveMode` run as `IfAvailable`; non-interactive plugins get no
+  stdin.
+- `ClientConfiguration.url` from a kubeconfig keeps the server URL as written (no trailing
+  slash added).
+- The httpx backend warns that `tls_server_name` is not applied when connecting through an HTTP
+  proxy.
+- Failing exec plugins, an OIDC token response without `id_token`, and a missing kubeconfig
+  context, cluster or user raise `ConfigurationValueError`, a `ConfigurationError` that is also a
+  `ValueError`.
+
 ## [0.1.0-beta.3] - 2026-10-23
 
 ### Added

@@ -7,6 +7,7 @@ from pydantic import Field
 from kubex.k8s.v1_38.flowcontrol.v1.flow_schema import FlowSchema
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.metadata import ListMetadata
+from kubex_core.models.types import NullAsEmptyList
 
 
 class FlowSchemaList(ListEntity[FlowSchema]):
@@ -17,7 +18,7 @@ class FlowSchemaList(ListEntity[FlowSchema]):
         alias="apiVersion",
         description="APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
     )
-    items: list[FlowSchema] = Field(
+    items: NullAsEmptyList[FlowSchema] = Field(
         ..., alias="items", description="`items` is a list of FlowSchemas."
     )
     kind: Literal["FlowSchemaList"] = Field(

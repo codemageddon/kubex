@@ -29,6 +29,9 @@ uv run ruff check --fix . && uv run ruff format .
 # Type check (strict mode)
 uv run mypy .
 
+# Type check kubex-core (the root run excludes packages/ and never reports its errors)
+uv run --directory packages/kubex-core mypy kubex_core
+
 # Run pre-commit hooks
 pre-commit run --all-files
 
@@ -75,15 +78,18 @@ kubex/                          # Main package — PEP 420 namespace package (no
 │   ├── client.py               # BaseClient ABC, create_client() factory, ClientChoice enum
 │   ├── options.py              # ClientOptions pydantic model — timeout, log_api_warnings, proxy, keep_alive, keep_alive_timeout, buffer_size, ws_max_message_size, pool_size, pool_size_per_host, trust_env
 │   ├── websocket.py            # WebSocketConnection ABC — abstraction used by exec and attach subresources
+│   ├── _common.py              # LineSplitter — splits streamed bytes on `\n` only (watch/log lines; shared by both backends)
 │   ├── httpx.py                # HttpxClient implementation (exec via httpx-ws)
 │   └── aiohttp.py              # AioHttpClient implementation (exec via aiohttp ws_connect)
 ├── configuration/              # Auth and cluster config
-│   ├── configuration.py        # ClientConfiguration, KubeConfig pydantic models
-│   ├── file_config.py          # configure_from_kubeconfig() — kubeconfig file parsing
+│   ├── configuration.py        # ClientConfiguration (TLS, tokens, basic auth, tls_server_name, impersonation headers),
+│                               #   KubeConfig pydantic models (lenient `ConfigModel` base: unknown keys dropped, files not checked at parse time)
+│   ├── file_config.py          # configure_from_kubeconfig(config=, use_context=, *, config_file=) — kubeconfig parsing;
+│                               #   validates only the selected context's cluster/user
 │   ├── incluster_config.py     # configure_from_pod_env() — in-cluster service account auth
 │   └── auth/                   # Authentication mechanisms
 │       ├── exec.py             # Exec provider authentication
-│       ├── oidc.py             # OIDC provider (in progress)
+│       ├── oidc.py             # OIDC auth-provider (id-token until expiry, refresh-token grant)
 │       └── refreshable_token.py # Token refresh logic
 └── core/                       # Request/response primitives
     ├── exceptions.py           # Exception hierarchy (KubexException → KubexApiError → HTTP-specific)
@@ -101,6 +107,9 @@ kubex/                          # Main package — PEP 420 namespace package (no
     ├── exec_channels.py        # WebSocket channel protocol (V5ChannelProtocol, channel ID constants, select_protocol()) + portforward helpers (data_channel_for_port_index, error_channel_for_port_index, port_prefix_encode/decode)
     ├── watch_event.py          # WatchEvent[ResourceType] and EventType enum
     └── request_builder/        # Constructs HTTP requests from API calls
+        ├── _paths.py           # path_segment()/object_url()/collection_url() — the only way builders build URLs:
+                                #   validates (no empty/None name — that would hit the collection URL) and percent-encodes names/namespaces
+        ├── _patch_body.py      # Stamps the target resource's apiVersion/kind onto ApplyPatch bodies
         ├── builder.py          # RequestBuilder (main builder composing mixins)
         ├── constants.py        # HTTP headers and MIME types
         ├── metadata.py         # Metadata request building
@@ -113,11 +122,13 @@ kubex/                          # Main package — PEP 420 namespace package (no
 packages/                       # Workspace packages
 ├── kubex-core/                 # Shared base models and types (kubex_core)
 │   └── kubex_core/models/
-│       ├── base.py             # BaseK8sModel — Pydantic base with camelCase alias
+│       ├── base.py             # BaseK8sModel — Pydantic base with camelCase alias, extra="allow" (unknown fields round-trip)
+│       ├── types.py            # Time, MicroTime (wire formats), Quantity (accepts numbers), NullAsEmptyList/Dict
 │       ├── base_entity.py      # BaseEntity — base for all K8s resources (__RESOURCE_CONFIG__)
 │       ├── interfaces.py       # Marker classes: ClusterScopedEntity, NamespaceScopedEntity, HasLogs, Evictable, HasEphemeralContainers, HasResize, etc.
 │       ├── resource_config.py  # ResourceConfig[T] descriptor — kind, version, scope, URL generation
-│       ├── metadata.py         # ObjectMetadata, ListMetadata, OwnerReference
+│       ├── metadata.py         # ObjectMetadata, ListMetadata, OwnerReference, ManagedFieldsEntry, ShardInfo
+│                               #   (hand-written overrides; codegen's validate_overrides fails on drift from the spec)
 │       ├── typing.py           # ResourceType TypeVar
 │       ├── list_entity.py      # ListEntity[ResourceType] wrapper
 │       ├── status.py           # Status response model
@@ -160,6 +171,7 @@ test/                           # Test suite
 │   ├── test_attach.py          # E2E tests for Pod attach subresource (stream against K3S)
 │   ├── test_portforward.py     # E2E tests for Pod portforward subresource (forward() + listen() against K3S)
 │   ├── test_bearer_token_auth.py # E2E tests for bearer-token auth (no proxy): valid SA token succeeds, invalid token returns 401
+│   ├── test_api_safety.py      # E2E: empty-name rejection, dry-run delete, escaped names, server-side apply
 │   └── proxy/                  # E2E tests for trust_env proxy support (Squid on shared Docker network)
 │       ├── _constants.py       # SQUID_PROXY_USER / SQUID_PROXY_PASSWORD shared by conftest and tests
 │       ├── conftest.py         # Fixtures: Docker network, K3S-in-network, Squid, proxy_url, proxy config,
@@ -169,6 +181,7 @@ test/                           # Test suite
 │       └── test_trust_env.py   # REST proxy tests: URL-embedded creds, netrc creds, missing-creds-fails, NO_PROXY bypass, bearer-token via proxy.
 │                               #   WS exec proxy tests: cert-auth exec via proxy, bearer-token exec via proxy,
 │                               #   missing-proxy-creds WS handshake fails (KubexClientException), NO_PROXY bypass WS connect fails (KubexClientException)
+│       └── test_explicit_proxy.py # ClientOptions(proxy=) with URL-embedded creds: REST + exec succeed; a 407 error never echoes the password
 ├── test_configuration/         # Unit tests for configuration and auth
 │   ├── test_file_config.py     # Kubeconfig file parsing tests
 │   ├── test_incluster_config.py # In-cluster configuration tests
@@ -177,7 +190,8 @@ test/                           # Test suite
 │       └── test_refreshable_token.py # Token refresh and async lock tests
 ├── test_error_handling.py      # handle_request_error() and exception hierarchy tests
 ├── test_metadata_accessor.py   # MetadataAccessor (get, list, patch) tests
-├── test_models/                # Unit tests for kubex-core models
+├── test_api_request_validation.py # Api-level name/namespace validation (nothing reaches the client)
+├── test_models/                # Unit tests for kubex-core models, field types and generated-model behaviour
 │   └── test_eviction.py        # Eviction model tests
 ├── test_patch/                 # Unit tests for patch models
 │   ├── test_json_patch.py      # JSON Patch operation model tests
@@ -190,12 +204,15 @@ test/                           # Test suite
 │   ├── test_subresource.py     # SubresourceRequestBuilder (get/replace/patch_subresource) tests
 │   ├── test_exec.py            # ExecRequestBuilder (exec_request URL + repeated command= params) tests
 │   ├── test_attach.py          # AttachRequestBuilder (attach_request URL + query_param_pairs) tests
-│   └── test_portforward.py     # PortforwardRequestBuilder (portforward_request URL + repeated ports= params) tests
+│   ├── test_portforward.py     # PortforwardRequestBuilder (portforward_request URL + repeated ports= params) tests
+│   └── test_paths.py           # Enumerates every builder method: names/namespaces validated + encoded, no direct ResourceConfig.url()
 ├── test_exec/                  # Unit tests for exec subresource (ExecOptions, channel protocol, ExecAccessor)
 ├── test_attach/                # Unit tests for attach subresource (AttachOptions, AttachAccessor)
 ├── test_portforward/           # Unit tests for portforward subresource (PortForwardOptions, channels, PortForwardSession, PortForwardStream, PortforwardAccessor, listen())
 ├── test_stream/                # Unit tests for _BaseChannelSession lifecycle + StreamSession channel multiplexer (shared by exec and attach)
-├── test_client/                # Unit tests for BaseClient ABC, AioHttpClient, HttpxClient, and trust_env env-proxy + netrc resolver (test_trust_env.py)
+├── test_client/                # Unit tests for BaseClient ABC, AioHttpClient, HttpxClient, and trust_env env-proxy + netrc resolver (test_trust_env.py);
+│                               #   conftest.py parametrizes backends (aiohttp/asyncio, httpx/asyncio, httpx/trio), _servers.py has local
+│                               #   aiohttp/raw-TCP/TLS test servers (streaming, transport errors, tls_server_name, headers, WS keepalive)
 ├── test_subresource_descriptors/ # Unit tests for descriptor-based subresource APIs
 └── test_timeout/               # Unit tests for HTTP timeout settings
 
@@ -247,7 +264,7 @@ lychee.toml                     # Link checker configuration
 - **Optional deps** (install via `--all-extras` or individually):
   - `httpx>=0.27.2` — primary HTTP client
   - `httpx-ws>=0.7` — WebSocket support for the httpx client (required for `exec` and `attach`); install via the dedicated `httpx-ws` extra (`kubex[httpx-ws]`), which also pulls in `httpx`. The plain `httpx` extra deliberately omits it so non-WebSocket installs stay slim.
-  - `aiohttp>=3.11.2` — alternative HTTP client (built-in WebSocket support via `ws_connect`)
+  - `aiohttp>=3.11.2` — alternative HTTP client (built-in WebSocket support via `ws_connect`); the `aiohttp` extra also declares `multidict>=4.5`, which `kubex/client/aiohttp.py` imports directly
 - **Dev deps** include `kubex-k8s-1-35` (workspace, used for tests), `jinja2`, `typer` (for codegen), testing/linting tools
 - **Version** is stored in `kubex/__version__.py` and referenced from `pyproject.toml` via hatch
 
@@ -275,7 +292,7 @@ pod: Pod = await api.get("my-pod", namespace="default")
 Each resource model declares a `__RESOURCE_CONFIG__` class variable (a `ResourceConfig` descriptor) that provides metadata: API version, kind, plural name, scope, and URL generation. The descriptor auto-populates missing fields from model field defaults.
 
 ### Pydantic models with camelCase aliases
-All models inherit from `BaseK8sModel` which uses `alias_generator=to_camel` and `populate_by_name=True`. This means Python code uses `snake_case` while JSON serialization uses `camelCase` to match the Kubernetes API.
+All models inherit from `BaseK8sModel` which uses `alias_generator=to_camel`, `populate_by_name=True` and `extra="allow"`. This means Python code uses `snake_case` while JSON serialization uses `camelCase` to match the Kubernetes API, and fields the model doesn't know (e.g. from a newer API server) are kept and serialized back, so get → modify → replace doesn't delete them. `to_camel` gets acronyms wrong (`pod_ip` → `podIp`), so hand-written models need an explicit `alias=` for such fields (generated models already carry the spec's names). Generated spec-"required" list/map fields use `NullAsEmptyList`/`NullAsEmptyDict` and required Time/MicroTime/byte fields are `T | None`, because the API server sends Go nil values as `null`. Configuration models (`kubex/configuration`) use `ConfigModel`, which drops unknown keys instead.
 
 ### Pluggable HTTP clients
 `BaseClient` is an ABC. Implementations (`HttpxClient`, `AioHttpClient`) are lazily imported. The `create_client()` factory auto-detects which library is installed (prefers aiohttp, falls back to httpx). `BaseClient` also exposes `connect_websocket(request, subprotocols)` returning a `WebSocketConnection` (defined in `kubex/client/websocket.py`); the default raises `NotImplementedError`. `HttpxClient` implements it via `httpx-ws` (lazy import — raises `ConfigurationError` if missing); `AioHttpClient` uses aiohttp's built-in `ws_connect`. Both adapters prefer `Request.query_param_pairs` over `Request.query_params` when building the upgrade URL so exec's repeated `command=` entries are preserved. `create_client()` also accepts `options: ClientOptions | None` — a `ClientOptions` instance carrying the client-level `timeout` default, `log_api_warnings` flag, and the following connection-pool / proxy / WebSocket knobs: `proxy` (str or per-scheme dict), `keep_alive` (bool), `keep_alive_timeout` (float|None|...), `buffer_size` (int|None|...), `ws_max_message_size` (int|None|...), `pool_size` (int|None|...), `pool_size_per_host` (int|None|...), `trust_env` (bool, default `False` — opts into HTTP_PROXY/HTTPS_PROXY/NO_PROXY env vars and ~/.netrc proxy-credential lookup on both backends; setting `trust_env=True` alongside an explicit `proxy` emits a `UserWarning` and force-disables env reads). When `None`, a `ClientOptions()` with library defaults is used. Both `HttpxClient` and `AioHttpClient` expose an `options` property. `HttpxClient._create_inner_client()` maps these into `httpx.Limits(...)`, `proxy=`, and `mounts=`; `AioHttpClient._create_inner_client()` maps them into `TCPConnector(limit=, limit_per_host=, keepalive_timeout=, force_close=)` and `ClientSession(read_bufsize=, proxy=)`. Backend asymmetries (httpx ignores `buffer_size` and `pool_size_per_host`; aiohttp warns on `keep_alive_timeout=None` and `proxy=dict` with non-matching schemes; `trust_env=True` on httpx: when a proxy env var is found at construction, kubex materialises it into a concrete `httpx.Proxy(auth=...)` (snapshot — subsequent env mutations have no effect); when no proxy env var is found at construction, httpx receives `trust_env=True` directly and re-reads env vars per-request. aiohttp always retains its native per-request env lookup) emit a `UserWarning` at client construction time where relevant.
@@ -292,8 +309,11 @@ All models inherit from `BaseK8sModel` which uses `alias_generator=to_camel` and
 ```
 KubexException
 ├── ConfigurationError
+│   └── ConfigurationValueError (also a ValueError: exec/OIDC credential failures, missing kubeconfig context/cluster/user)
 └── KubexClientException
-    └── KubexApiError[C]  (generic over str | Status)
+    ├── KubexConnectionError   (transport failures: connect/proxy/TLS/protocol, both backends)
+    ├── KubexTimeoutError      (also a TimeoutError)
+    └── KubexApiError[C]  (generic over str | Status; str(e) carries status + reason/message; .retry_after)
         ├── BadRequest
         ├── Unauthorized
         ├── Forbidden
@@ -302,11 +322,12 @@ KubexException
         ├── Conflict
         ├── Gone
         ├── UnprocessableEntity
+        ├── TooManyRequests  (429)
         └── KubernetesError  (500)
 ```
 
 ### Descriptor-based subresource APIs
-Subresource capabilities (logs, scale, status, eviction, ephemeral_containers, resize, exec, attach, portforward) use Python non-data descriptors with `__get__` overloads to provide type-safe access. Each capability is a class variable on `Api` (e.g., `logs = _LogsDescriptor()`) that returns a typed accessor (`LogsAccessor[T]`) when `T` has the matching marker interface, or raises `NotImplementedError` at runtime (and resolves to `SubresourceNotAvailable` for type checkers) when it does not. Accessors are cached on the instance after first access via `instance.__dict__` (the standard non-data descriptor caching pattern), so repeated attribute access returns the same object without re-invoking the descriptor. Accessor objects receive individual components (client, request_builder, namespace, scope, resource_type) rather than a back-reference to `Api`. Metadata uses the same accessor pattern (`MetadataAccessor`) but is always available (no descriptor guard needed) and is created eagerly in `Api.__init__`. The `exec` and `attach` accessors are built on a WebSocket channel-multiplexing layer (`kubex/core/exec_channels.py` + `kubex/api/_stream_session.py`) that uses the v5 channel protocol (`v5.channel.k8s.io`). A shared `_BaseChannelSession` base class (in `_stream_session.py`) owns the common lifecycle: `AsyncExitStack` LIFO-close ordering, read-loop task-group cancellation on exit, `_write_lock` (serialises concurrent frames on the wire), half-close helper (`_send_close_for_channel`), and single-exception `BaseExceptionGroup` unwrapping. `StreamSession` (exec/attach) and `PortForwardSession` (portforward) subclass it and provide their own `_read_loop`. `StreamSession` exposes `stdin` (writer with `write()` / `close()`), `stdout` and `stderr` as `MemoryObjectReceiveStream[bytes]` async iterators (max-buffer 128 frames each), `resize(width=, height=)`, `close_stdin()`, and `await wait_for_status() -> Status | None` (resolves to `None` if the connection closes before any error frame arrives). Concurrent writes are serialised through an internal `anyio.Lock` so resize and stdin frames cannot interleave on the wire. Exiting a `StreamSession` context manager cancels the read loop's task group before closing the underlying WebSocket, so callers can leave `stream()` early without deadlocking even when the server is still holding the connection open. `close_stdin()` is idempotent. When `tty=True` is requested the kubelet merges stderr into stdout and does not open the stderr channel, so `session.stderr` closes immediately. `run(name, command=, stdin=None)` does not open a stdin channel; `run(..., stdin=b"")` opens, writes zero bytes, and immediately closes one. `ExecResult.exit_code` returns `0` for `Status.status == "Success"`, the integer parsed from `status.details.causes` (where `reason == "ExitCode"`) for a non-zero exit, and `None` when status is missing or carries no recognisable exit information — `None` therefore does not imply success. Exec WebSocket failures (handshake errors, abnormal close, timeout) surface as `KubexClientException`; missing `httpx-ws` raises `ConfigurationError`. The `attach` accessor exposes only `stream()` (no `run()`) — it opens a bidirectional channel to a container's existing stdin/stdout/stderr without issuing a new command; the same `StreamSession` semantics apply (TTY merging, `wait_for_status()`, etc.). The `portforward` accessor provides two levels: `forward(name, ports=[…])` — an async context manager yielding a `PortForwarder` with `streams: Mapping[int, PortForwardStream]` (one `anyio.abc.ByteStream` per port) and `errors: Mapping[int, MemoryObjectReceiveStream[str]]`; and `listen(name, port_map={remote_port: local_port, …})` — opens local TCP listener sockets and copies bytes bidirectionally between each accepted local connection and a fresh `forward()` session for that remote port (one WebSocket per accepted connection, matching `kubectl port-forward` semantics). `PortForwardSession` strips and validates the 2-byte little-endian port prefix that the kubelet prepends to the first frame on each channel (data and error independently); subsequent frames on that channel carry raw bytes. Outbound writes carry no port prefix — channel id alone addresses the kubelet. Error frames are surfaced on `pf.errors[port]` (and logged by `listen()` via `logging.getLogger("kubex.portforward")`). Session teardown cancels the read loop before closing the WebSocket, so `forward()` callers can exit early without deadlocking.
+Subresource capabilities (logs, scale, status, eviction, ephemeral_containers, resize, exec, attach, portforward) use Python non-data descriptors with `__get__` overloads to provide type-safe access. Each capability is a class variable on `Api` (e.g., `logs = _LogsDescriptor()`) that returns a typed accessor (`LogsAccessor[T]`) when `T` has the matching marker interface, or raises `NotImplementedError` at runtime (and resolves to `SubresourceNotAvailable` for type checkers) when it does not. Accessors are cached on the instance after first access via `instance.__dict__` (the standard non-data descriptor caching pattern), so repeated attribute access returns the same object without re-invoking the descriptor. Accessor objects receive individual components (client, request_builder, namespace, scope, resource_type) rather than a back-reference to `Api`. Metadata uses the same accessor pattern (`MetadataAccessor`) but is always available (no descriptor guard needed) and is created eagerly in `Api.__init__`. The `exec` and `attach` accessors are built on a WebSocket channel-multiplexing layer (`kubex/core/exec_channels.py` + `kubex/api/_stream_session.py`) that uses the v5 channel protocol (`v5.channel.k8s.io`). A shared `_BaseChannelSession` base class (in `_stream_session.py`) owns the common lifecycle: `AsyncExitStack` LIFO-close ordering, read-loop task-group cancellation on exit, `_write_lock` (serialises concurrent frames on the wire), half-close helper (`_send_close_for_channel`), and single-exception `BaseExceptionGroup` unwrapping. `StreamSession` (exec/attach) and `PortForwardSession` (portforward) subclass it and provide their own `_read_loop`. `StreamSession` exposes `stdin` (writer with `write()` / `close()`), `stdout` and `stderr` as `MemoryObjectReceiveStream[bytes]` async iterators (128-frame queues; when one is full the read loop blocks — backpressure, never drops — so callers must drain every enabled channel, disable it (`stderr=False`) or close it; empty frames are dropped), `resize(width=, height=)`, `close_stdin()`, and `await wait_for_status() -> Status | None` (error-channel bytes accumulate until they form a complete JSON Status or the connection closes; unparseable text becomes a `Failure` Status carrying it; resolves to `None` only if the connection closes with no error-channel data). Outbound stdin (and portforward) payloads are split into ≤32 KiB frames under a per-channel lock, so one write's frames stay contiguous while resize frames can interleave between them. Each frame is sent under an internal `anyio.Lock`, so the bytes of two frames never interleave on the wire. Exiting a `StreamSession` context manager cancels the read loop's task group before closing the underlying WebSocket, so callers can leave `stream()` early without deadlocking even when the server is still holding the connection open. `close_stdin()` is idempotent. When `tty=True` is requested the kubelet merges stderr into stdout and does not open the stderr channel, so `session.stderr` closes immediately. `run(name, command=, stdin=None)` does not open a stdin channel; `run(..., stdin=b"")` opens, writes zero bytes, and immediately closes one. `ExecResult.exit_code` returns `0` for `Status.status == "Success"`, the integer parsed from `status.details.causes` (where `reason == "ExitCode"`) for a non-zero exit, and `None` when status is missing or carries no recognisable exit information — `None` therefore does not imply success — `ExecResult.raise_for_status()` raises `ExecError` (a `KubexClientException` with `.result`/`.status`/`.exit_code`) unless the status is `Success`; both are exported from `kubex.api`. In `run()`, a stdin send failure is logged (DEBUG), not raised; the read side still reports the status. WebSocket handshake HTTP errors raise the matching `KubexApiError` subclass (e.g. `NotFound` for a missing pod, `BadRequest` for a bad container, `Forbidden`); abnormal close surfaces as `KubexClientException`, `run()`'s timeout as `KubexTimeoutError`; `resize()`/`close_stdin()`/`stdin.write()` after the session ended raise `KubexClientException`; missing `httpx-ws` raises `ConfigurationError`. The `attach` accessor exposes only `stream()` (no `run()`) — it opens a bidirectional channel to a container's existing stdin/stdout/stderr without issuing a new command; the same `StreamSession` semantics apply (TTY merging, `wait_for_status()`, etc.). The `portforward` accessor provides two levels: `forward(name, ports=[…])` — an async context manager yielding a `PortForwarder` with `streams: Mapping[int, PortForwardStream]` (one `anyio.abc.ByteStream` per port) and `errors: Mapping[int, MemoryObjectReceiveStream[str]]`; and `listen(name, port_map={remote_port: local_port, …})` — opens local TCP listener sockets and copies bytes bidirectionally between each accepted local connection and a fresh `forward()` session for that remote port (one WebSocket per accepted connection, matching `kubectl port-forward` semantics; when the remote→local copy ends the local socket is closed). Per-port streams use the same blocking backpressure, so an unread port stalls the others on that WebSocket. The `*_truncated` flags are deprecated and always `False`. `PortForwardSession` strips and validates the 2-byte little-endian port prefix that the kubelet prepends to the first frame on each channel (data and error independently); subsequent frames on that channel carry raw bytes. Outbound writes carry no port prefix — channel id alone addresses the kubelet. Error frames are surfaced on `pf.errors[port]` (and logged by `listen()` via `logging.getLogger("kubex.portforward")`). Session teardown cancels the read loop before closing the WebSocket, so `forward()` callers can exit early without deadlocking.
 ```python
 pod_api: Api[Pod] = Api(Pod, client=client, namespace="default")
 await pod_api.logs.get("my-pod")  # OK: Pod has HasLogs
@@ -339,7 +360,8 @@ Five GitHub Actions workflows:
 2. `ruff check .`
 3. `ruff format --check .`
 4. `mypy .` (strict, with all extras installed)
-5. Verify generated packages — runs `python -m scripts.codegen verify` for each `packages/kubex-k8s-*`
+5. `mypy kubex_core` from `packages/kubex-core` (its own `[tool.mypy]`; the root run excludes `packages/` and never reports errors in kubex-core)
+6. Verify generated packages — runs `python -m scripts.codegen verify` for each `packages/kubex-k8s-*`
 
 **Test** (`test.yaml`) — runs on push and pull_request:
 1. `pytest .` with all extras, as a matrix over Python 3.11, 3.12, 3.13, 3.14, 3.15 (`fail-fast: false`)
@@ -366,10 +388,10 @@ Five GitHub Actions workflows:
 
 To publish a new version to PyPI:
 
-1. Bump the version in `kubex/__version__.py` and in `packages/kubex-core/pyproject.toml` — these two must match the git tag. The `packages/kubex-k8s-*/pyproject.toml` versions are independent (they track Kubernetes minor releases) and only need to be bumped when the corresponding generated package actually changes.
+1. Bump the version in `kubex/__version__.py`, in `packages/kubex-core/pyproject.toml`, and in the exact `kubex-core==<VERSION>` pin in the root `pyproject.toml` — all three must match the git tag (kubex and kubex-core ship in lock-step). The `packages/kubex-k8s-*/pyproject.toml` versions are independent (they track Kubernetes minor releases) and only need to be bumped when the corresponding generated package actually changes; they depend on a `kubex-core` range (`>=…,<0.2`, set in `scripts/codegen/templates/pyproject.toml.j2`) — raise its lower bound when generated code starts relying on a newer kubex-core. `regenerate`/`generate` keep each package's existing version unless `--package-version` is passed.
 2. Commit and push to `main`
 3. Create and push a git tag matching the `kubex` / `kubex-core` version: `git tag v<VERSION> && git push origin v<VERSION>`
-4. The `publish.yaml` workflow will verify that `kubex` and `kubex-core` versions match the tag, build all packages, and publish to production PyPI
+4. The `publish.yaml` workflow will verify that the `kubex` and `kubex-core` versions and the `kubex-core` pin match the tag, build all packages, and publish to production PyPI
 
 Both publish workflows use PyPI OIDC trusted publishing — no API tokens are stored in the repository. Each of the 9 packages must have a trusted publisher configured in its PyPI (and Test PyPI) project settings. See the comment block at the top of each workflow file for the exact configuration values.
 

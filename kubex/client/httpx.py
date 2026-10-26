@@ -5,18 +5,40 @@ import netrc
 import os
 import ssl
 import warnings
-from contextlib import AbstractAsyncContextManager
+from contextlib import AbstractAsyncContextManager, contextmanager, nullcontext
 from types import EllipsisType
-from typing import TYPE_CHECKING, Any, AsyncGenerator, Sequence, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    AsyncGenerator,
+    ContextManager,
+    Iterator,
+    NoReturn,
+    Sequence,
+    cast,
+)
 from urllib.parse import urlparse
 
+import anyio
 import httpx
 
+from kubex.client._common import (
+    WS_PING_INTERVAL_SECONDS,
+    LineSplitter,
+    describe_exception,
+    emit_api_warnings,
+)
 from kubex.client.options import ClientOptions, resolve_ws_max_message_size
 from kubex.client.websocket import WebSocketConnection
 from kubex.configuration import ClientConfiguration
-from kubex.core.exceptions import ConfigurationError, KubexClientException
-from kubex.core.params import Timeout
+from kubex.core.exceptions import (
+    ConfigurationError,
+    KubexClientException,
+    KubexConnectionError,
+    KubexException,
+    KubexTimeoutError,
+)
+from kubex.core.params import Timeout, TimeoutTypes
 from kubex.core.request import Request
 from kubex.core.response import HeadersWrapper, Response
 
@@ -27,6 +49,15 @@ from .client import (
 
 if TYPE_CHECKING:
     from httpx_ws import AsyncWebSocketSession
+
+
+def _to_httpx_headers(pairs: list[tuple[str, str]]) -> httpx.Headers:
+    """Build httpx headers, sending non-ASCII values as UTF-8 bytes.
+
+    httpx encodes `str` header values as ASCII and raises on anything else
+    (e.g. a non-ASCII `Impersonate-User`); aiohttp and client-go send UTF-8.
+    """
+    return httpx.Headers([(name.encode(), value.encode()) for name, value in pairs])
 
 
 def _to_httpx_timeout(timeout: Timeout | None) -> httpx.Timeout:
@@ -42,12 +73,30 @@ def _to_httpx_timeout(timeout: Timeout | None) -> httpx.Timeout:
     )
 
 
+def _total_seconds(timeout: TimeoutTypes | EllipsisType) -> float | None:
+    if isinstance(timeout, Timeout):
+        return timeout.total
+    if isinstance(timeout, (int, float)):
+        return float(timeout)
+    return None
+
+
+# httpx's own ``DEFAULT_LIMITS``; ``httpx.Limits()`` with a field omitted means
+# "unlimited" for that field, not "default".
+_HTTPX_DEFAULT_LIMITS: dict[str, Any] = {
+    "max_connections": 100,
+    "max_keepalive_connections": 20,
+    "keepalive_expiry": 5.0,
+}
+
+
 def _build_httpx_limits(options: ClientOptions) -> dict[str, Any]:
-    """Collect only the explicitly-set pool/keep-alive fields into a Limits kwargs dict.
+    """Build ``httpx.Limits`` kwargs from the pool/keep-alive options.
 
     Returns an empty dict when all three fields are still ``...`` so that the
     caller can skip creating an ``httpx.Limits`` object entirely (letting httpx
-    apply its own full default ``Limits``).
+    apply its own full default ``Limits``). Otherwise fields left at ``...``
+    are filled with httpx's defaults.
     """
     kw: dict[str, Any] = {}
 
@@ -66,7 +115,9 @@ def _build_httpx_limits(options: ClientOptions) -> dict[str, Any]:
     elif not isinstance(keep_alive_timeout, EllipsisType):
         kw["keepalive_expiry"] = keep_alive_timeout
 
-    return kw
+    if not kw:
+        return kw
+    return {**_HTTPX_DEFAULT_LIMITS, **kw}
 
 
 def _build_httpx_proxy_kwargs(
@@ -101,6 +152,65 @@ def _build_httpx_proxy_kwargs(
 
 
 _logger = logging.getLogger("kubex.client.httpx")
+
+
+@contextmanager
+def _translate_httpx_errors(action: str) -> Iterator[None]:
+    """Re-raise httpx transport errors (and deadline expiry) as kubex exceptions.
+
+    Only ``Exception`` subclasses are caught, so cancellation and
+    ``GeneratorExit`` always pass through untouched.
+    """
+    try:
+        yield
+    except KubexException:
+        raise
+    except (httpx.TimeoutException, TimeoutError) as exc:
+        raise KubexTimeoutError(f"{action} timed out") from exc
+    except httpx.TransportError as exc:
+        raise KubexConnectionError(
+            f"{action} failed: {describe_exception(exc)}"
+        ) from exc
+    except httpx.HTTPError as exc:
+        raise KubexClientException(
+            f"{action} failed: {describe_exception(exc)}"
+        ) from exc
+
+
+async def _buffer_rejected_upgrade_body(response: httpx.Response) -> None:
+    """Read the body of a rejected WebSocket upgrade while it is still open.
+
+    httpx-ws closes the response before raising ``WebSocketUpgradeError``, so
+    this response hook is the only chance to keep the API server's ``Status``
+    explaining a 403/404 on exec/attach/portforward.
+    """
+    if (
+        response.status_code >= 400
+        and response.request.headers.get("upgrade", "").lower() == "websocket"
+    ):
+        try:
+            await response.aread()
+        except httpx.HTTPError:
+            pass
+
+
+def _raise_for_rejected_upgrade(response: httpx.Response) -> NoReturn:
+    status = response.status_code
+    if status >= 400:
+        try:
+            body = response.content
+        except httpx.ResponseNotRead:
+            body = b""
+        handle_request_error(
+            Response(
+                content=body,
+                headers=HeadersWrapper(response.headers),
+                status_code=status,
+            )
+        )
+    raise KubexClientException(
+        f"WebSocket handshake failed: unexpected HTTP status {status}"
+    )
 
 
 def _getenv_icase(name: str) -> tuple[str | None, str]:
@@ -242,7 +352,15 @@ def _resolve_env_proxy_with_netrc(base_url: str) -> dict[str, Any]:
                 return {
                     "proxy": httpx.Proxy(url=proxy_url, auth=(login, password or ""))
                 }
-    except (FileNotFoundError, netrc.NetrcParseError, OSError) as exc:
+    except netrc.NetrcParseError as exc:
+        # Not ``exc`` itself: its message quotes the offending token, which
+        # may be (part of) a password.
+        _logger.debug(
+            "Failed to parse netrc %s at line %s; ignoring it for proxy credentials",
+            exc.filename,
+            exc.lineno,
+        )
+    except OSError as exc:
         _logger.debug("Failed to read netrc for proxy credentials: %s", exc)
 
     return {"proxy": proxy_url}
@@ -255,12 +373,6 @@ class HttpxClient(BaseClient):
         options: ClientOptions | None = None,
     ) -> None:
         super().__init__(configuration, options)
-
-    async def _get_headers(self) -> dict[str, str]:
-        header = await self.configuration.get_authorization_header()
-        if header is None:
-            return {}
-        return {"Authorization": header}
 
     def _create_inner_client(self) -> httpx.AsyncClient:
         cafile = (
@@ -294,6 +406,7 @@ class HttpxClient(BaseClient):
         kwargs: dict[str, Any] = {
             "base_url": str(self.configuration.base_url),
             "verify": _verify,
+            "event_hooks": {"response": [_buffer_rejected_upgrade_body]},
         }
         configured_timeout = self.options.timeout
         if configured_timeout is not Ellipsis:
@@ -338,6 +451,22 @@ class HttpxClient(BaseClient):
 
         kwargs.update(_build_httpx_proxy_kwargs(self.options.proxy, _verify, limits))
 
+        # An env proxy that applies to the server is already in kwargs["proxy"]
+        # (see _resolve_env_proxy_with_netrc), so NO_PROXY bypasses don't warn.
+        if self.configuration.tls_server_name and (
+            "proxy" in kwargs or "mounts" in kwargs
+        ):
+            # httpcore's CONNECT tunnel verifies against the URL host and
+            # ignores the `sni_hostname` extension.
+            warnings.warn(
+                "tls_server_name is not applied by the httpx backend when "
+                "connecting through an HTTP proxy; certificate verification "
+                "uses the server URL's host. Use the aiohttp backend or "
+                "connect without a proxy.",
+                UserWarning,
+                stacklevel=3,
+            )
+
         if not isinstance(self.options.buffer_size, EllipsisType):
             warnings.warn(
                 "ClientOptions.buffer_size is set but httpx has no equivalent "
@@ -366,71 +495,85 @@ class HttpxClient(BaseClient):
         return httpx.AsyncClient(**kwargs)
 
     async def request(self, request: Request) -> Response:
-        headers = await self._get_headers()
-        if request.headers:
-            headers.update(request.headers)
-        extra: dict[str, Any] = {}
+        headers = _to_httpx_headers(await self._request_headers(request))
+        extra = self._transport_kwargs()
         if request.timeout is not Ellipsis:
             extra["timeout"] = _to_httpx_timeout(request.timeout)
-        _response = await self._inner_client.request(
-            method=request.method,
-            url=request.url,
-            params=request.query_params,
-            content=request.body,
-            headers=headers,
-            **extra,
+        # httpx timeouts are per phase; enforce ``total`` as a real wall-clock
+        # bound so a numeric timeout means the same thing on both backends.
+        total = _total_seconds(
+            self.options.timeout if request.timeout is Ellipsis else request.timeout
         )
+        deadline: ContextManager[Any] = (
+            anyio.fail_after(total) if total is not None else nullcontext()
+        )
+        with _translate_httpx_errors(f"{request.method} {request.url}"):
+            with deadline:
+                _response = await self._inner_client.request(
+                    method=request.method,
+                    url=request.url,
+                    params=request.query_params,
+                    content=request.body,
+                    headers=headers,
+                    **extra,
+                )
         status = _response.status_code
         response = Response(
             status_code=status,
             headers=HeadersWrapper(_response.headers),
             content=_response.content,
         )
-        if self.options.log_api_warnings and (
-            api_warnings := _response.headers.get("warning")
-        ):
-            for warning in api_warnings.split(","):
-                warnings.warn(
-                    f"API Warning: {warning.strip()}", UserWarning, stacklevel=2
-                )
+        if self.options.log_api_warnings:
+            emit_api_warnings(_response.headers.get_list("warning"))
         if 400 <= status < 600:
             handle_request_error(response)
         return response
 
+    def _stream_timeout(self) -> httpx.Timeout:
+        """Client timeout with read disabled: watches and log follows idle legitimately."""
+        base: httpx.Timeout = self._inner_client.timeout
+        return httpx.Timeout(
+            None, connect=base.connect, write=base.write, pool=base.pool
+        )
+
     async def stream_lines(self, request: Request) -> AsyncGenerator[str, None]:
-        headers = await self._get_headers()
-        if request.headers:
-            headers.update(request.headers)
-        extra: dict[str, Any] = {}
-        if request.timeout is not Ellipsis:
-            extra["timeout"] = _to_httpx_timeout(request.timeout)
-        async with self._inner_client.stream(
-            method=request.method,
-            url=request.url,
-            params=request.query_params,
-            content=request.body,
-            headers=headers,
-            **extra,
-        ) as _response:
-            status = _response.status_code
-            if 400 <= status < 600:
-                response = Response(
-                    status_code=status,
-                    headers=HeadersWrapper(_response.headers),
-                    content=await _response.aread(),
-                )
-                handle_request_error(response)
-            if self.options.log_api_warnings and (
-                api_warnings := _response.headers.get("warning")
-            ):
-                for warning in api_warnings.split(","):
-                    warnings.warn(
-                        f"API Warning: {warning.strip()}",
-                        UserWarning,
-                        stacklevel=2,
+        headers = _to_httpx_headers(await self._request_headers(request))
+        extra = self._transport_kwargs()
+        extra["timeout"] = (
+            self._stream_timeout()
+            if request.timeout is Ellipsis
+            else _to_httpx_timeout(request.timeout)
+        )
+        with _translate_httpx_errors(f"{request.method} {request.url}"):
+            async with self._inner_client.stream(
+                method=request.method,
+                url=request.url,
+                params=request.query_params,
+                content=request.body,
+                headers=headers,
+                **extra,
+            ) as _response:
+                status = _response.status_code
+                if 400 <= status < 600:
+                    response = Response(
+                        status_code=status,
+                        headers=HeadersWrapper(_response.headers),
+                        content=await _response.aread(),
                     )
-            async for line in _response.aiter_lines():
-                yield line
+                    handle_request_error(response)
+                if self.options.log_api_warnings:
+                    emit_api_warnings(_response.headers.get_list("warning"))
+                splitter = LineSplitter()
+                async for chunk in _response.aiter_bytes():
+                    for line in splitter.feed(chunk):
+                        yield line
+                if (tail := splitter.flush()) is not None:
+                    yield tail
+
+    def _transport_kwargs(self) -> dict[str, Any]:
+        if self.configuration.tls_server_name:
+            return {"extensions": {"sni_hostname": self.configuration.tls_server_name}}
+        return {}
 
     async def close(self) -> None:
         await self._inner_client.aclose()
@@ -448,19 +591,21 @@ class HttpxClient(BaseClient):
                 "install kubex[httpx-ws]"
             ) from exc
 
-        headers = await self._get_headers()
-        if request.headers:
-            headers.update(request.headers)
+        # httpx-ws calls ``headers.update()``; ``httpx.Headers`` keeps repeated
+        # names (e.g. several ``Impersonate-Group``).
+        headers = _to_httpx_headers(await self._request_headers(request))
 
         params: Any = (
             request.query_param_pairs
             if request.query_param_pairs is not None
             else request.query_params
         )
-        extra: dict[str, Any] = {}
+        extra = self._transport_kwargs()
         if request.timeout is not Ellipsis:
             # Forwarded as-is to httpx.stream() during the WebSocket upgrade;
             # bounds the handshake but not the streaming exec session itself.
+            # No outer ``fail_after`` here: httpx-ws opens a task group inside
+            # ``__aenter__``, which must not outlive an enclosing cancel scope.
             extra["timeout"] = _to_httpx_timeout(request.timeout)
         ws_opt = self.options.ws_max_message_size
         if ws_opt is not None:
@@ -471,25 +616,30 @@ class HttpxClient(BaseClient):
             subprotocols=list(subprotocols) if subprotocols else None,
             headers=headers,
             params=params,
+            # Keep pinging (idle load balancers) but never enforce a pong
+            # deadline: httpx-ws only processes pongs while kubex reads, so a
+            # consumer applying backpressure would otherwise be disconnected
+            # with 1011 "Keepalive ping timeout".
+            keepalive_ping_interval_seconds=WS_PING_INTERVAL_SECONDS,
+            keepalive_ping_timeout_seconds=None,
             **extra,
         )
 
         try:
             session = await cm.__aenter__()
         except httpx_ws.WebSocketUpgradeError as exc:
-            raise KubexClientException(f"WebSocket handshake failed: {exc}") from exc
+            _raise_for_rejected_upgrade(exc.response)
         except httpx.TimeoutException as exc:
-            # Normalize to KubexClientException for symmetry with the aiohttp
-            # backend, so callers using ``request_timeout`` see consistent
-            # error types regardless of the underlying HTTP client.
-            raise KubexClientException("WebSocket handshake timed out") from exc
+            raise KubexTimeoutError("WebSocket handshake timed out") from exc
+        except httpx.TransportError as exc:
+            # ``ConnectError``, ``NetworkError``, TLS / DNS / proxy errors, etc.
+            raise KubexConnectionError(
+                f"WebSocket connection failed: {describe_exception(exc)}"
+            ) from exc
         except httpx.HTTPError as exc:
-            # Catches transport-level failures (``ConnectError``, ``NetworkError``,
-            # TLS / DNS / proxy errors, etc.) so callers see a uniform exec
-            # exception type regardless of whether the upgrade failed during
-            # connect, handshake, or read. Ordered after ``TimeoutException``
-            # because that is also an ``HTTPError`` subclass.
-            raise KubexClientException(f"WebSocket connection failed: {exc}") from exc
+            raise KubexClientException(
+                f"WebSocket connection failed: {describe_exception(exc)}"
+            ) from exc
 
         if subprotocols and session.subprotocol is None:
             # Suppress any cleanup error so the descriptive subprotocol
@@ -553,6 +703,13 @@ class HttpxWebSocketConnection(WebSocketConnection):
             raise KubexClientException(
                 "WebSocket send failed: connection closed"
             ) from exc
+        except KubexException:
+            raise
+        except Exception as exc:
+            # e.g. wsproto ``LocalProtocolError`` once the peer started closing.
+            raise KubexClientException(
+                f"WebSocket send failed: {describe_exception(exc)}"
+            ) from exc
 
     async def receive_bytes(self) -> bytes:
         from anyio import ClosedResourceError
@@ -592,6 +749,13 @@ class HttpxWebSocketConnection(WebSocketConnection):
         except ClosedResourceError as exc:
             self._eof = True
             raise StopAsyncIteration from exc
+        except (KubexException, StopAsyncIteration):
+            raise
+        except Exception as exc:
+            self._eof = True
+            raise KubexClientException(
+                f"WebSocket receive failed: {describe_exception(exc)}"
+            ) from exc
 
     async def close(self) -> None:
         from httpx_ws import HTTPXWSException
@@ -604,3 +768,9 @@ class HttpxWebSocketConnection(WebSocketConnection):
             await self._cm.__aexit__(None, None, None)
         except HTTPXWSException:
             pass
+        except KubexException:
+            raise
+        except Exception as exc:
+            raise KubexClientException(
+                f"WebSocket close failed: {describe_exception(exc)}"
+            ) from exc

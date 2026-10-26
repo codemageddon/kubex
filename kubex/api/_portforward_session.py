@@ -5,7 +5,11 @@ from typing import TYPE_CHECKING, Sequence
 import anyio
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 
-from kubex.api._stream_session import _BaseChannelSession, _dispatch, _dispatch_nowait
+from kubex.api._stream_session import (
+    _DEFAULT_CHANNEL_BUFFER,
+    _BaseChannelSession,
+    _dispatch,
+)
 from kubex.client.websocket import WebSocketConnection
 from kubex.core.exceptions import KubexClientException
 from kubex.core.exec_channels import (
@@ -21,8 +25,6 @@ if TYPE_CHECKING:
 
 __all__ = ["PortForwardSession"]
 
-_DEFAULT_BUFFER: float = 128
-
 
 class PortForwardSession(_BaseChannelSession):
     """Port-aware WebSocket channel multiplexer for the Kubernetes portforward subresource.
@@ -34,16 +36,12 @@ class PortForwardSession(_BaseChannelSession):
     validated; subsequent frames are routed as raw bytes (data) or UTF-8 text
     (error) without any prefix.
 
-    When ``block_on_full=True`` the read loop awaits space in each per-port
-    buffer instead of closing the stream on overflow.  This propagates
-    backpressure all the way to the WebSocket — correct for single-port TCP
-    proxy sessions created by ``listen()`` where data loss is unacceptable.
-    When ``block_on_full=False`` (the default) the read loop uses a non-blocking
-    send: if a port's buffer is full the port stream is closed locally and
-    ``_truncated[port]`` is set, leaving all other ports unaffected.  This
-    prevents head-of-line blocking across ports in multi-port ``forward()``
-    sessions at the cost of surfacing overflow as ``EndOfStream`` rather than
-    stalling traffic.
+    When a port's data (or error) queue holds ``buffer_size`` undelivered
+    frames the read loop waits for the consumer instead of dropping data.
+    Backpressure therefore reaches the remote side, but all ports share one
+    WebSocket: a port nobody reads stalls the others too (as with
+    ``kubectl port-forward``). Read every forwarded port, or ``aclose()`` the
+    streams you don't need.
     """
 
     def __init__(
@@ -52,12 +50,10 @@ class PortForwardSession(_BaseChannelSession):
         protocol: ChannelProtocol,
         ports: Sequence[int],
         *,
-        buffer_size: float = _DEFAULT_BUFFER,
-        block_on_full: bool = False,
+        buffer_size: float = _DEFAULT_CHANNEL_BUFFER,
     ) -> None:
         super().__init__(connection, protocol)
         self._ports: tuple[int, ...] = tuple(ports)
-        self._block_on_full = block_on_full
 
         # Channel-id → port lookup tables (built once, queried in _read_loop)
         self._data_ch_to_port: dict[int, int] = {}
@@ -71,10 +67,6 @@ class PortForwardSession(_BaseChannelSession):
 
         # Per-port PortForwardStream objects exposing the anyio.abc.ByteStream API.
         self._streams: dict[int, PortForwardStream] = {}
-
-        # Overflow flags: set when a per-port data/error buffer fills and is closed locally.
-        self._truncated: dict[int, bool] = {}
-        self._error_truncated: dict[int, bool] = {}
 
         # Whether each port's data / error channel is still accepting inbound frames.
         self._data_open: dict[int, bool] = {}
@@ -103,8 +95,6 @@ class PortForwardSession(_BaseChannelSession):
             self._errors_send[port] = send_e
             self._errors_recv[port] = recv_e
             self._streams[port] = _PortForwardStream(self, port, dc, recv_d)
-            self._truncated[port] = False
-            self._error_truncated[port] = False
             self._data_open[port] = True
             self._error_open[port] = True
 
@@ -114,10 +104,19 @@ class PortForwardSession(_BaseChannelSession):
             self._errors_recv[port].close()
 
     async def close_port_data(self, port: int) -> None:
-        """Send a half-close frame for the data channel of ``port``.
+        """Half-close the data channel of ``port``.
 
-        Idempotent: a second call for the same port is a no-op.
-        The emitted frame is ``protocol.encode(CHANNEL_CLOSE, bytes([data_channel_id]))``.
+        Idempotent: a second call for the same port is a no-op. On protocols
+        that support it (v5) this sends
+        ``protocol.encode(CHANNEL_CLOSE, bytes([data_channel_id]))``; on v4, the
+        only protocol the kubelet registers for portforward, the channel is only
+        marked closed locally, because the kubelet ignores close frames there.
+
+        Args:
+            port: A port forwarded by this session.
+
+        Raises:
+            ValueError: ``port`` is not part of this session.
         """
         if port not in self._ports:
             raise ValueError(
@@ -158,18 +157,9 @@ class PortForwardSession(_BaseChannelSession):
                         self._data_first_seen.add(channel)
                         payload = payload[2:]
                     if payload:
-                        if self._block_on_full:
-                            still_open = await _dispatch(
-                                self._streams_send[port], payload
-                            )
-                            self._data_open[port] = still_open
-                        else:
-                            still_open, truncated = _dispatch_nowait(
-                                self._streams_send[port], payload
-                            )
-                            self._data_open[port] = still_open
-                            if truncated:
-                                self._truncated[port] = True
+                        self._data_open[port] = await _dispatch(
+                            self._streams_send[port], payload
+                        )
 
                 elif channel in self._error_ch_to_port:
                     port = self._error_ch_to_port[channel]
@@ -187,18 +177,9 @@ class PortForwardSession(_BaseChannelSession):
                         payload = payload[2:]
                     if payload:
                         error_text = payload.decode("utf-8", errors="replace")
-                        if self._block_on_full:
-                            still_open = await _dispatch(
-                                self._errors_send[port], error_text
-                            )
-                            self._error_open[port] = still_open
-                        else:
-                            still_open, truncated = _dispatch_nowait(
-                                self._errors_send[port], error_text
-                            )
-                            self._error_open[port] = still_open
-                            if truncated:
-                                self._error_truncated[port] = True
+                        self._error_open[port] = await _dispatch(
+                            self._errors_send[port], error_text
+                        )
         finally:
             for port in self._ports:
                 self._streams_send[port].close()

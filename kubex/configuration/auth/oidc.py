@@ -3,14 +3,16 @@ from __future__ import annotations
 import json
 import math
 import ssl
+import time
 from base64 import b64decode, b64encode, urlsafe_b64decode
 from enum import Enum
-from urllib.parse import urlencode
+from pathlib import Path
+from urllib.parse import quote_plus, urlencode
 
 from pydantic import BaseModel, SecretStr
 
 from kubex.configuration.configuration import OIDCConfig
-from kubex.core.exceptions import ConfigurationError
+from kubex.core.exceptions import ConfigurationError, ConfigurationValueError
 
 _MISSING_HTTP_LIBRARY_MESSAGE = (
     "OIDC authentication requires aiohttp or httpx to be installed; "
@@ -22,22 +24,25 @@ _MISSING_HTTP_LIBRARY_MESSAGE = (
 # aiohttp's trust_env=False/300s defaults.
 _TRUST_ENV = False
 _TIMEOUT_SECONDS = 30.0
+# client-go treats an id-token as expired this long before its `exp`.
+_ID_TOKEN_EXPIRY_DELTA_SECONDS = 10.0
 
 
 def _build_ssl_context(
     idp_certificate_authority_data: str | None,
+    idp_certificate_authority: Path | None = None,
 ) -> ssl.SSLContext | None:
     """Build an SSLContext trusting only the kubeconfig-supplied IdP CA, if any.
 
-    Mirrors the `certificate-authority-data` handling used for the main API
-    server connection (`ssl.create_default_context(cafile=...)`), but the IdP
-    CA arrives as in-memory base64 rather than a file, so it is passed via
-    `cadata` instead of writing a temp file.
+    `idp-certificate-authority-data` (in-memory base64, passed via `cadata`)
+    overrides the `idp-certificate-authority` file, as in client-go.
     """
-    if idp_certificate_authority_data is None:
-        return None
-    pem = b64decode(idp_certificate_authority_data).decode("ascii")
-    return ssl.create_default_context(cadata=pem)
+    if idp_certificate_authority_data:
+        pem = b64decode(idp_certificate_authority_data).decode("ascii")
+        return ssl.create_default_context(cadata=pem)
+    if idp_certificate_authority is not None:
+        return ssl.create_default_context(cafile=str(idp_certificate_authority))
+    return None
 
 
 def _oidc_error(operation: str, status: int, body: bytes) -> ConfigurationError:
@@ -180,7 +185,9 @@ class OIDCAuthProvider:
         self.config = config
         self._token_endpoint: str | None = None
         self._auth_style: AuthStyle | None = None
-        self._ssl_context = _build_ssl_context(config.idp_certificate_authority_data)
+        self._ssl_context = _build_ssl_context(
+            config.idp_certificate_authority_data, config.idp_certificate_authority
+        )
 
     async def _discover(self) -> str:
         if self._token_endpoint is not None:
@@ -225,36 +232,54 @@ class OIDCAuthProvider:
             last_status, last_content = status, content
         raise _oidc_error("token request", last_status, last_content)
 
+    def _client_secret(self) -> str:
+        secret = self.config.client_secret
+        return secret.get_secret_value() if secret is not None else ""
+
     def _basic_auth(self) -> str:
-        credentials = f"{self.config.client_id.get_secret_value()}:{self.config.client_secret.get_secret_value()}"
+        # RFC 6749 section 2.3.1: both parts are form-encoded first, as
+        # golang.org/x/oauth2 (used by client-go) does.
+        client_id = quote_plus(self.config.client_id.get_secret_value())
+        credentials = f"{client_id}:{quote_plus(self._client_secret())}"
         return b64encode(credentials.encode()).decode()
 
     def _token_request(self, auth_style: AuthStyle) -> tuple[dict[str, str], str]:
+        if self.config.refresh_token is None:
+            raise ConfigurationError("OIDC: no refresh-token configured")
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/x-www-form-urlencoded",
         }
+        fields = [
+            ("grant_type", "refresh_token"),
+            ("refresh_token", self.config.refresh_token.get_secret_value()),
+        ]
         if auth_style == AuthStyle.HEADER:
             headers["Authorization"] = f"Basic {self._basic_auth()}"
-            body = urlencode(
-                [
-                    ("grant_type", "refresh_token"),
-                    ("refresh_token", self.config.refresh_token.get_secret_value()),
-                ],
-            )
         else:
-            body = urlencode(
-                [
-                    ("grant_type", "refresh_token"),
-                    ("refresh_token", self.config.refresh_token.get_secret_value()),
-                    ("client_id", self.config.client_id.get_secret_value()),
-                    ("client_secret", self.config.client_secret.get_secret_value()),
-                ],
-            )
-        return headers, body
+            fields.append(("client_id", self.config.client_id.get_secret_value()))
+            if client_secret := self._client_secret():
+                fields.append(("client_secret", client_secret))
+        return headers, urlencode(fields)
+
+    def _configured_id_token(self) -> tuple[str, float] | None:
+        """The kubeconfig/last-issued id-token and its `exp`, while it is still valid."""
+        if self.config.id_token is None:
+            return None
+        id_token = self.config.id_token.get_secret_value()
+        exp = _jwt_exp_claim(id_token)
+        if exp is None or exp <= time.time() + _ID_TOKEN_EXPIRY_DELTA_SECONDS:
+            return None
+        return id_token, exp
 
     async def refresh_token(self) -> tuple[str, float | None]:
-        """Fetch a fresh id_token, rotating the in-memory refresh token if the IdP issues a new one.
+        """Return a usable id_token, redeeming the refresh token only when needed.
+
+        Like client-go, the configured `id-token` is returned as long as its `exp`
+        claim is in the future; otherwise the refresh token is redeemed for a new
+        id_token (rotating the in-memory refresh token if the IdP issues a new one).
+        Raises `ConfigurationError` when there is neither a valid id-token nor a
+        refresh token.
 
         Returns the id_token and its own `exp` claim (Unix epoch seconds), if it is a
         decodable JWT carrying one. This is deliberately not the token response's
@@ -270,11 +295,21 @@ class OIDCAuthProvider:
         concurrent `kubectl` using the same kubeconfig) must re-authenticate
         interactively once this token has been used here.
         """
+        configured = self._configured_id_token()
+        if configured is not None:
+            return configured
+        if self.config.refresh_token is None:
+            raise ConfigurationError(
+                "OIDC: no valid id-token (missing, expired or without an exp claim) "
+                "and no refresh-token to obtain a new one; log in again to refresh "
+                "the kubeconfig credentials"
+            )
         content = await self._id_token()
         data = json.loads(content)
         id_token = data.get("id_token")
         if not isinstance(id_token, str):
-            raise ValueError("OIDC: id_token not found in token response")
+            raise ConfigurationValueError("OIDC: id_token not found in token response")
+        self.config.id_token = SecretStr(id_token)
         rotated_refresh_token = data.get("refresh_token")
         if isinstance(rotated_refresh_token, str) and rotated_refresh_token:
             self.config.refresh_token = SecretStr(rotated_refresh_token)

@@ -90,7 +90,7 @@ updated = await api.metadata.patch(
 )
 ```
 
-For server-side apply, use `ApplyPatch` with `force=True`:
+For server-side apply, use `ApplyPatch` with `force=True`. The body is sent with the *target* resource's `apiVersion`/`kind` (here `v1`/`Pod`), not `PartialObjectMetadata`'s, as the API server requires:
 
 ```python
 from kubex.core.patch import ApplyPatch
@@ -111,10 +111,10 @@ await api.metadata.patch(
 
 | Option | Type | Description |
 |--------|------|-------------|
-| `dry_run` | `DryRun | bool | None` | Validate without persisting |
+| `dry_run` | `DryRun | bool | "All" | None` | Validate without persisting |
 | `field_manager` | `str | None` | Field manager name for server-side apply |
 | `force` | `bool | None` | Force apply even if fields are owned by another manager |
-| `field_validation` | `FieldValidation | None` | Schema validation mode (`Strict`, `Warn`, `Ignore`) |
+| `field_validation` | `FieldValidation | str | None` | Schema validation mode (`"Strict"`, `"Warn"`, `"Ignore"`) |
 
 ## Watching metadata changes
 

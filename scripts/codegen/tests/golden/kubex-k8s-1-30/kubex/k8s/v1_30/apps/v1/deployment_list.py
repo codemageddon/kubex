@@ -7,13 +7,14 @@ from pydantic import Field
 from kubex.k8s.v1_30.apps.v1.deployment import Deployment
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.metadata import ListMetadata
+from kubex_core.models.types import NullAsEmptyList
 
 
 class DeploymentList(ListEntity[Deployment]):
     """DeploymentList is a list of Deployments."""
 
     api_version: Literal["apps/v1"] = Field(default="apps/v1", alias="apiVersion")
-    items: list[Deployment] = Field(..., alias="items")
+    items: NullAsEmptyList[Deployment] = Field(..., alias="items")
     kind: Literal["DeploymentList"] = Field(default="DeploymentList", alias="kind")
     metadata: ListMetadata = Field(..., alias="metadata")
 

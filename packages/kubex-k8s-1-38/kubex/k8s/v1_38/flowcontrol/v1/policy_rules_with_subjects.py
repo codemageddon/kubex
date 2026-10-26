@@ -6,6 +6,7 @@ from kubex.k8s.v1_38.flowcontrol.v1.non_resource_policy_rule import (
 from kubex.k8s.v1_38.flowcontrol.v1.resource_policy_rule import ResourcePolicyRule
 from kubex.k8s.v1_38.flowcontrol.v1.subject import Subject
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import NullAsEmptyList
 
 
 class PolicyRulesWithSubjects(BaseK8sModel):
@@ -21,7 +22,7 @@ class PolicyRulesWithSubjects(BaseK8sModel):
         alias="resourceRules",
         description="resourceRules is a slice of ResourcePolicyRules that identify matching requests according to their verb and the target resource. At least one of `resourceRules` and `nonResourceRules` has to be non-empty.",
     )
-    subjects: list[Subject] = Field(
+    subjects: NullAsEmptyList[Subject] = Field(
         ...,
         alias="subjects",
         description="subjects is the list of normal user, serviceaccount, or group that this rule cares about. There must be at least one member in this slice. A slice that includes both the system:authenticated and system:unauthenticated user groups matches every request. Required.",

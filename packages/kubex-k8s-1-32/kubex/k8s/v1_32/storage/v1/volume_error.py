@@ -1,8 +1,7 @@
-import datetime
-
 from pydantic import Field
 
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Time
 
 
 class VolumeError(BaseK8sModel):
@@ -13,7 +12,7 @@ class VolumeError(BaseK8sModel):
         alias="message",
         description="message represents the error encountered during Attach or Detach operation. This string may be logged, so it should not contain sensitive information.",
     )
-    time: datetime.datetime | None = Field(
+    time: Time | None = Field(
         default=None,
         alias="time",
         description="time represents the time the error was encountered.",

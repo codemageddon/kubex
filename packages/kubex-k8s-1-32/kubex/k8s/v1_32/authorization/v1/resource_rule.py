@@ -1,6 +1,7 @@
 from pydantic import Field
 
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import NullAsEmptyList
 
 
 class ResourceRule(BaseK8sModel):
@@ -21,7 +22,7 @@ class ResourceRule(BaseK8sModel):
         alias="resources",
         description='Resources is a list of resources this rule applies to. "*" means all in the specified apiGroups. "*/foo" represents the subresource \'foo\' for all resources in the specified apiGroups.',
     )
-    verbs: list[str] = Field(
+    verbs: NullAsEmptyList[str] = Field(
         ...,
         alias="verbs",
         description='Verb is a list of kubernetes resource API verbs, like: get, list, watch, create, update, delete, proxy. "*" means all.',

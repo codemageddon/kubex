@@ -21,7 +21,7 @@ class CertificateSigningRequestSpec(BaseK8sModel):
         alias="groups",
         description="groups contains group membership of the user that created the CertificateSigningRequest. Populated by the API server on creation and immutable.",
     )
-    request: str = Field(
+    request: str | None = Field(
         ...,
         alias="request",
         description='request contains an x509 certificate signing request encoded in a "CERTIFICATE REQUEST" PEM block. When serialized as JSON or YAML, the data is additionally base64-encoded.',

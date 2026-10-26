@@ -4,8 +4,9 @@ import anyio
 import pytest
 
 from kubex.api import Api
+from kubex.api._exec import ExecError
 from kubex.client import BaseClient
-from kubex.core.exceptions import KubexClientException
+from kubex.core.exceptions import BadRequest
 from kubex.k8s.v1_35.core.v1.pod import Pod
 from test.e2e._helpers import create_busybox_pod, wait_for_pod_running
 
@@ -125,28 +126,99 @@ async def test_exec_stream_resize_changes_terminal_size(
 
 
 @pytest.mark.anyio
-async def test_exec_against_missing_container_reports_failure(
+async def test_exec_against_missing_container_raises_bad_request(
     client: BaseClient, tmp_namespace_name: str
 ) -> None:
     api: Api[Pod] = Api(Pod, client=client, namespace=tmp_namespace_name)
     await create_busybox_pod(api, "exec-missing-container", tmp_namespace_name)
     await wait_for_pod_running(api, "exec-missing-container", tmp_namespace_name)
 
-    try:
-        result = await api.exec.run(
+    # The API server rejects the upgrade with 400 and a Status naming the
+    # container; the handshake error is mapped to the typed exception.
+    with pytest.raises(BadRequest, match="does-not-exist"):
+        await api.exec.run(
             "exec-missing-container",
             command=["true"],
             container="does-not-exist",
         )
-    except KubexClientException as exc:
-        # Some Kubernetes versions reject the upgrade outright with a 4xx
-        # handshake response. The current adapter only surfaces the status
-        # line, so anchor on that to make sure a bug elsewhere in the
-        # WebSocket layer cannot masquerade as a pass for this test.
-        message = str(exc).lower()
-        assert "handshake" in message
-        assert "400" in message or "404" in message or "does-not-exist" in message
-        return
-    # Otherwise the server should report a failure on the error channel.
-    assert result.status is not None
-    assert result.status.status == "Failure"
+
+
+@pytest.mark.anyio
+async def test_exec_stream_late_consumer_receives_all_output(
+    client: BaseClient, tmp_namespace_name: str
+) -> None:
+    """Regression: once 128 frames were queued, the channel was closed and the
+    rest of the output silently dropped while the status still said Success."""
+    api: Api[Pod] = Api(Pod, client=client, namespace=tmp_namespace_name)
+    await create_busybox_pod(api, "exec-late-consumer", tmp_namespace_name)
+    await wait_for_pod_running(api, "exec-late-consumer", tmp_namespace_name)
+
+    # One frame per line: the shell writes each line separately, paced.
+    script = "i=0; while [ $i -lt 400 ]; do echo line$i; usleep 1000; i=$((i+1)); done"
+    async with api.exec.stream(
+        "exec-late-consumer", command=["sh", "-c", script], stderr=False
+    ) as session:
+        await anyio.sleep(2)  # let far more than 128 frames pile up
+        buf = bytearray()
+        with anyio.fail_after(30):
+            async for chunk in session.stdout:
+                buf.extend(chunk)
+            status = await session.wait_for_status()
+
+    assert bytes(buf).splitlines() == [b"line%d" % i for i in range(400)]
+    assert status is not None and status.status == "Success"
+
+
+@pytest.mark.anyio
+async def test_exec_run_without_output_channels_reports_exit_code(
+    client: BaseClient, tmp_namespace_name: str
+) -> None:
+    """Regression: with stdout/stderr off, the server's empty first frame on
+    the error channel resolved the status at once (``exit_code=None``)."""
+    api: Api[Pod] = Api(Pod, client=client, namespace=tmp_namespace_name)
+    await create_busybox_pod(api, "exec-no-output", tmp_namespace_name)
+    await wait_for_pod_running(api, "exec-no-output", tmp_namespace_name)
+
+    result = await api.exec.run(
+        "exec-no-output",
+        command=["sh", "-c", "sleep 1; cat > /tmp/f; exit 3"],
+        stdin=b"payload",
+        stdout=False,
+        stderr=False,
+    )
+    assert result.exit_code == 3
+
+    check = await api.exec.run("exec-no-output", command=["cat", "/tmp/f"])
+    assert check.stdout == b"payload"
+
+
+@pytest.mark.anyio
+async def test_exec_run_large_stdin_is_delivered(
+    client: BaseClient, tmp_namespace_name: str
+) -> None:
+    """Regression: stdin went out as a single WebSocket message, which the API
+    server drops above its size cap (closing with 1000, i.e. no error)."""
+    api: Api[Pod] = Api(Pod, client=client, namespace=tmp_namespace_name)
+    await create_busybox_pod(api, "exec-large-stdin", tmp_namespace_name)
+    await wait_for_pod_running(api, "exec-large-stdin", tmp_namespace_name)
+
+    size = 40 << 20
+    result = await api.exec.run(
+        "exec-large-stdin", command=["wc", "-c"], stdin=b"x" * size
+    )
+    assert result.stdout.strip() == str(size).encode()
+    assert result.exit_code == 0
+
+
+@pytest.mark.anyio
+async def test_exec_raise_for_status_on_missing_binary(
+    client: BaseClient, tmp_namespace_name: str
+) -> None:
+    api: Api[Pod] = Api(Pod, client=client, namespace=tmp_namespace_name)
+    await create_busybox_pod(api, "exec-missing-binary", tmp_namespace_name)
+    await wait_for_pod_running(api, "exec-missing-binary", tmp_namespace_name)
+
+    result = await api.exec.run("exec-missing-binary", command=["/nonexistent"])
+    assert result.exit_code is None
+    with pytest.raises(ExecError, match="nonexistent"):
+        result.raise_for_status()

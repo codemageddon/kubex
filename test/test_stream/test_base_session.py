@@ -8,9 +8,9 @@ from kubex.client.websocket import WebSocketConnection
 from kubex.core.exec_channels import CHANNEL_CLOSE, ChannelProtocol, V5ChannelProtocol
 
 
-@pytest.fixture
-def anyio_backend() -> str:
-    return "asyncio"
+@pytest.fixture(params=["asyncio", "trio"])
+def anyio_backend(request: pytest.FixtureRequest) -> str:
+    return str(request.param)
 
 
 class _FakeWebSocket(WebSocketConnection):

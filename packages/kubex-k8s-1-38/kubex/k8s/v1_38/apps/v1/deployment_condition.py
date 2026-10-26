@@ -1,19 +1,18 @@
-import datetime
-
 from pydantic import Field
 
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Time
 
 
 class DeploymentCondition(BaseK8sModel):
     """DeploymentCondition describes the state of a deployment at a certain point."""
 
-    last_transition_time: datetime.datetime | None = Field(
+    last_transition_time: Time | None = Field(
         default=None,
         alias="lastTransitionTime",
         description="lastTransitionTime is the last time the condition transitioned from one status to another.",
     )
-    last_update_time: datetime.datetime | None = Field(
+    last_update_time: Time | None = Field(
         default=None,
         alias="lastUpdateTime",
         description="lastUpdateTime is the last time this condition was updated.",

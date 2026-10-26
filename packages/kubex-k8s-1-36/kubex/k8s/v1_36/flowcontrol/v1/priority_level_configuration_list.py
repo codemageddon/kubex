@@ -9,6 +9,7 @@ from kubex.k8s.v1_36.flowcontrol.v1.priority_level_configuration import (
 )
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.metadata import ListMetadata
+from kubex_core.models.types import NullAsEmptyList
 
 
 class PriorityLevelConfigurationList(ListEntity[PriorityLevelConfiguration]):
@@ -19,7 +20,7 @@ class PriorityLevelConfigurationList(ListEntity[PriorityLevelConfiguration]):
         alias="apiVersion",
         description="APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
     )
-    items: list[PriorityLevelConfiguration] = Field(
+    items: NullAsEmptyList[PriorityLevelConfiguration] = Field(
         ..., alias="items", description="`items` is a list of request-priorities."
     )
     kind: Literal["PriorityLevelConfigurationList"] = Field(

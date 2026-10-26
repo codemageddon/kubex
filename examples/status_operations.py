@@ -1,8 +1,12 @@
+from datetime import datetime, timezone
 from typing import cast
 
 from kubex.api import Api
 from kubex.client import create_client
+from kubex.core.exceptions import Conflict
+from kubex.core.patch import ApplyPatch
 from kubex.k8s.v1_35.apps.v1.deployment import Deployment
+from kubex.k8s.v1_35.apps.v1.deployment_condition import DeploymentCondition
 from kubex.k8s.v1_35.apps.v1.deployment_spec import DeploymentSpec
 from kubex.k8s.v1_35.apps.v1.deployment_status import DeploymentStatus
 from kubex.k8s.v1_35.core.v1.container import Container
@@ -48,14 +52,51 @@ async def main() -> None:
             )
 
             # Replace status (typically done by controllers, shown here for
-            # demonstration)
-            current.status = DeploymentStatus(replicas=1, available_replicas=1)
-            updated = await api.status.replace(name, current)
+            # demonstration). The deployment controller writes status too, so
+            # the read-modify-write is retried on 409 Conflict.
+            for _ in range(5):
+                current = await api.status.get(name)
+                # availableReplicas may not exceed readyReplicas.
+                current.status = DeploymentStatus(
+                    replicas=1, ready_replicas=1, available_replicas=1
+                )
+                try:
+                    updated = await api.status.replace(name, current)
+                except Conflict:
+                    continue
+                break
+            else:
+                raise RuntimeError("gave up after repeated conflicts")
             print(
                 f"After replace: "
                 f"replicas={updated.status and updated.status.replicas}, "
                 f"available={updated.status and updated.status.available_replicas}"
             )
+
+            # Server-side apply a single condition: only the fields sent here
+            # become owned by this field manager.
+            applied = await api.status.patch(
+                name,
+                ApplyPatch(
+                    Deployment(
+                        metadata=ObjectMetadata(name=name),
+                        status=DeploymentStatus(
+                            conditions=[
+                                DeploymentCondition(
+                                    type_="ExampleReady",
+                                    status="True",
+                                    reason="Demo",
+                                    last_transition_time=datetime.now(timezone.utc),
+                                )
+                            ]
+                        ),
+                    )
+                ),
+                field_manager="kubex-example",
+                force=True,
+            )
+            conditions = (applied.status and applied.status.conditions) or []
+            print(f"After apply: conditions={[c.type_ for c in conditions]}")
         finally:
             await api.delete(name)
 

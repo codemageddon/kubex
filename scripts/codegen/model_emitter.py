@@ -53,9 +53,14 @@ def build_modules(
         resources_by_def={r.definition: r for r in resources},
     )
 
+    # Hand-written kubex_core overrides must declare every spec property.
+    ref_resolver.validate_overrides(definitions)
+
     modules: dict[str, EmittedModule] = {}
     for defn in _reachable_definitions(ctx):
-        resolved = ref_resolver.resolve(defn, k8s_version_tag=k8s_version_tag)
+        resolved = ref_resolver.resolve(
+            defn, k8s_version_tag=k8s_version_tag, definitions=definitions
+        )
         if resolved.is_override or resolved.is_alias:
             continue
         module_path = resolved.module
@@ -148,6 +153,7 @@ def _emit_definition(
             owner_definition=defn,
             owner_module=module_path,
             property_name=prop_name,
+            definitions=ctx.definitions,
         )
         _merge_imports(module, mapped)
         ctx.pending_enum_requests.extend(mapped.enum_requests)
@@ -188,6 +194,11 @@ def _emit_definition(
 
         py_name = py_field_name(prop_name)
         is_required = prop_name in required or force_required
+        nullable = False
+        if is_required and default_expr is None:
+            # The API server sends Go nil slices/maps and zero Time values as
+            # `null` even for spec-required fields; accept that on input.
+            type_expr, nullable = _required_null_handling(mapped, module)
         fields.append(
             EmittedField(
                 python_name=py_name,
@@ -196,6 +207,7 @@ def _emit_definition(
                 required=is_required,
                 description=_clean_doc(prop_schema.get("description")),
                 default_expression=default_expr,
+                nullable=nullable,
             )
         )
 
@@ -211,6 +223,24 @@ def _emit_definition(
         resource_info=res_info if is_resource else None,
         list_owner_class=_list_owner_name(defn, ctx) if is_list else None,
     )
+
+
+def _required_null_handling(
+    mapped: MappedType, module: EmittedModule
+) -> tuple[str, bool]:
+    """Return `(type_expression, nullable)` for a required field.
+
+    Collections keep their non-optional type but read `null` as empty
+    (`NullAsEmptyList[X]` / `NullAsEmptyDict[X]`); types whose Go zero value
+    marshals as `null` (Time, MicroTime, []byte, RawExtension) become
+    `T | None` while staying required.
+    """
+    if mapped.container is not None:
+        assert mapped.item_expression is not None
+        wrapper = "NullAsEmptyList" if mapped.container == "list" else "NullAsEmptyDict"
+        module.imports.add_from("kubex_core.models.types", wrapper)
+        return f"{wrapper}[{mapped.item_expression}]", False
+    return mapped.expression, mapped.nullable
 
 
 def _reachable_definitions(ctx: EmissionContext) -> list[str]:

@@ -34,23 +34,32 @@ Key parameters:
 | Parameter | Type | Description |
 |---|---|---|
 | `url` | `str` | Kubernetes API server URL |
-| `token` | `str` | Static bearer token |
-| `token_file` | `Path | str` | Path to a file containing the bearer token |
+| `token` | `str` | Static bearer token; with `token_file`, used only until the file has been read |
+| `token_file` | `Path | str` | Path to a file containing the bearer token; its last successfully read, non-empty content wins over `token` (as in client-go) |
 | `server_ca_file` | `Path | str` | CA certificate for TLS verification |
 | `insecure_skip_tls_verify` | `bool` | Disable TLS verification (not for production) |
 | `client_cert_file` / `client_key_file` | `Path | str` | Mutual TLS client certificate + key |
-| `namespace` | `str \| None` | Populated by `configure_from_pod_env` from the pod's own namespace. `Api`/`create_api()` fall back to it for namespace-scoped resources created without an explicit `namespace=`; `None` (the default here) leaves their own "all namespaces" default in effect |
+| `namespace` | `str \| None` | Populated by `configure_from_kubeconfig` from the context's namespace (`default` when unset) and by `configure_from_pod_env` from the pod's own namespace. `Api`/`create_api()` fall back to it for namespace-scoped resources created without an explicit `namespace=`; `None` (the default here) leaves their own "all namespaces" default in effect |
 | `try_refresh_token` | `bool` | Re-read `token_file` every 60 s (for projected service-account tokens) |
 | `refreshable_token` | `SupportsAuthorizationHeader` | An exec/OIDC token source (`ExecRefreshableToken` / `OidcRefreshableToken`); set automatically by `configure_from_kubeconfig()`, takes priority over `token`/`token_file` when present |
+| `username` / `password` | `str` | HTTP Basic auth, used only when no token source is set |
+| `tls_server_name` | `str` | Name to verify the server certificate against (and send as SNI) instead of the host in `url` |
+| `impersonate_user` / `impersonate_uid` / `impersonate_groups` / `impersonate_extra` | `str` / `str` / `list[str]` / `dict[str, list[str]]` | Act as another user via `Impersonate-*` headers; groups and extra require `impersonate_user` |
 
 ## `configure_from_kubeconfig()`
 
 Reads a kubeconfig file and returns a `ClientConfiguration`. Resolves the current context and supports the following auth mechanisms:
 
 - Bearer token (inline or from file)
-- Client certificate + key (inline data or file paths)
+- Basic auth (`username` / `password`)
+- Client certificate + key (inline data or file paths; `*-data` wins over a file path)
 - Exec credential provider (e.g., `aws eks get-token`, `gke-gcloud-auth-plugin`)
 - OIDC (`auth-provider: oidc` only)
+
+It also forwards impersonation (`as`, `as-uid`, `as-groups`, `as-user-extra`), the cluster's
+`tls-server-name` and the context's `namespace` (`default` when unset). Only the selected
+context's cluster and user are validated, so stale entries for other contexts are ignored; a
+missing referenced file raises `ConfigurationError`.
 
 A context whose `auth-provider` is set to anything other than `oidc`, or whose `oidc` config
 fails to validate, raises `ConfigurationError` instead of silently returning an unauthenticated
@@ -62,18 +71,13 @@ from kubex.configuration.file_config import configure_from_kubeconfig
 config = await configure_from_kubeconfig()
 ```
 
-To load a specific file (there is no `path=` parameter — read and parse it yourself, then pass
-the resulting `KubeConfig`):
+To load a specific file, pass `config_file=` (relative paths inside it resolve against its
+directory, as with `kubectl`), optionally with `use_context=`:
 
 ```python
-from kubex.configuration.configuration import KubeConfig
 from kubex.configuration.file_config import configure_from_kubeconfig
-from pathlib import Path
-from yaml import safe_load
 
-raw = safe_load(Path("/home/user/.kube/my-config").read_text())
-kube_config = KubeConfig.model_validate(raw)
-config = await configure_from_kubeconfig(config=kube_config)
+config = await configure_from_kubeconfig(config_file="/home/user/.kube/my-config")
 ```
 
 ## `configure_from_pod_env()`
@@ -87,6 +91,9 @@ config = await configure_from_pod_env()
 ```
 
 This is used automatically when your code runs inside a Pod and kubeconfig is not available.
+Outside a cluster (no `KUBERNETES_SERVICE_HOST`/`KUBERNETES_SERVICE_PORT`) it raises
+`ConfigurationError`. The namespace falls back to `default` if the service-account namespace file
+is absent.
 
 ## Exec credential provider
 

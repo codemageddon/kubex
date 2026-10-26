@@ -128,7 +128,7 @@ updated = await api.ephemeral_containers.patch(
 | `dry_run` | `DryRun | bool | None` | Validate without persisting |
 | `field_manager` | `str | None` | Field manager name |
 | `force` | `bool | None` | Force apply (patch only, for server-side apply) |
-| `field_validation` | `FieldValidation | None` | Schema validation mode |
+| `field_validation` | `FieldValidation | str | None` | Schema validation mode (`"Strict"`, `"Warn"`, `"Ignore"`) |
 | `namespace` | `str | None | ...` | Override the `Api` instance namespace |
 | `request_timeout` | `Timeout | float | None | ...` | Override the client-level timeout |
 

@@ -7,6 +7,7 @@ from pydantic import Field
 from kubex.k8s.v1_38.lifecycle.v1alpha1.eviction_request import EvictionRequest
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.metadata import ListMetadata
+from kubex_core.models.types import NullAsEmptyList
 
 
 class EvictionRequestList(ListEntity[EvictionRequest]):
@@ -17,7 +18,7 @@ class EvictionRequestList(ListEntity[EvictionRequest]):
         alias="apiVersion",
         description="APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
     )
-    items: list[EvictionRequest] = Field(
+    items: NullAsEmptyList[EvictionRequest] = Field(
         ..., alias="items", description="items is the list of EvictionRequests."
     )
     kind: Literal["EvictionRequestList"] = Field(

@@ -1,6 +1,7 @@
 from pydantic import Field
 
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import NullAsEmptyList
 
 
 class CertificateSigningRequestSpec(BaseK8sModel):
@@ -21,7 +22,7 @@ class CertificateSigningRequestSpec(BaseK8sModel):
         alias="groups",
         description="groups contains group membership of the user that created the CertificateSigningRequest. Populated by the API server on creation and immutable.",
     )
-    request: str = Field(
+    request: str | None = Field(
         ...,
         alias="request",
         description='request contains an x509 certificate signing request encoded in a "CERTIFICATE REQUEST" PEM block. When serialized as JSON or YAML, the data is additionally base64-encoded.',
@@ -36,7 +37,7 @@ class CertificateSigningRequestSpec(BaseK8sModel):
         alias="uid",
         description="uid contains the uid of the user that created the CertificateSigningRequest. Populated by the API server on creation and immutable.",
     )
-    usages: list[str] = Field(
+    usages: NullAsEmptyList[str] = Field(
         ...,
         alias="usages",
         description='usages specifies a set of key usages requested in the issued certificate. Requests for TLS client certificates typically request: "digital signature", "client auth". Requests for TLS serving certificates typically request: "digital signature", "server auth". Valid values are: "signing", "digital signature", "content commitment", "key encipherment", "key agreement", "data encipherment", "cert sign", "crl sign", "encipher only", "decipher only", "any", "server auth", "client auth", "code signing", "email protection", "s/mime", "ipsec end system", "ipsec tunnel", "ipsec user", "timestamping", "ocsp signing", "microsoft sgc", "netscape sgc" When request contains a x509 certificate signing request signed with an ML-DSA key, usages must contain at least one of "digital signature", "content commitment", "cert sign", or "crl sign" and must not contain "key encipherment", "key agreement", "data encipherment", "encipher only", or "decipher only".',

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
 from kubex.core.params import (
@@ -19,6 +21,7 @@ from kubex.core.request_builder.constants import (
     METADATA_LIST_MIME_TYPE,
     METADATA_MIME_TYPE,
 )
+from kubex_core.models.partial_object_meta import PartialObjectMetadata
 from pydantic import BaseModel
 
 
@@ -290,6 +293,30 @@ def test_patch_metadata_body(ns_builder: RequestBuilder) -> None:
     assert body == [{"op": "add", "path": "/metadata/labels/app", "value": "web"}]
 
 
+@pytest.mark.parametrize("patch_cls", [MergePatch, StrategicMergePatch])
+def test_patch_metadata_merge_drops_partial_object_metadata_type(
+    ns_builder: RequestBuilder, patch_cls: type[MergePatch[Any]]
+) -> None:
+    """A fetched PartialObjectMetadata carries its own apiVersion/kind, which the
+    apiserver rejects when merged into the target (422)."""
+    import json
+
+    fetched = PartialObjectMetadata.model_validate(
+        {
+            "apiVersion": "meta.k8s.io/v1",
+            "kind": "PartialObjectMetadata",
+            "metadata": {"name": "my-pod", "labels": {"app": "web"}},
+        }
+    )
+    req = ns_builder.patch_metadata(
+        "my-pod", "default", PatchOptions(), patch_cls(fetched)
+    )
+    assert req.body is not None
+    body = json.loads(req.body)
+    assert "apiVersion" not in body and "kind" not in body
+    assert body["metadata"]["labels"] == {"app": "web"}
+
+
 def test_patch_metadata_query_params_default(ns_builder: RequestBuilder) -> None:
     patch = JsonPatch().add("/x", 1)
     req = ns_builder.patch_metadata("my-pod", "default", PatchOptions(), patch)
@@ -346,3 +373,30 @@ def test_patch_metadata_timeout(
         **kwargs,  # type: ignore[arg-type]
     )
     _assert_timeout(req.timeout, expected)
+
+
+def test_patch_metadata_apply_body_uses_target_type(
+    ns_builder: RequestBuilder,
+) -> None:
+    """SSA through the metadata endpoint must carry the target resource's
+    apiVersion/kind, not PartialObjectMetadata's (the server rejects those)."""
+    import json
+
+    from kubex_core.models.metadata import ObjectMetadata
+    from kubex_core.models.partial_object_meta import PartialObjectMetadata
+
+    req = ns_builder.patch_metadata(
+        "my-pod",
+        "default",
+        PatchOptions(field_manager="ctrl", force=True),
+        ApplyPatch(PartialObjectMetadata(metadata=ObjectMetadata(labels={"a": "b"}))),
+    )
+    assert req.url == "/api/v1/namespaces/default/pods/my-pod"
+    assert req.headers is not None
+    assert req.headers[CONTENT_TYPE_HEADER] == "application/apply-patch+yaml"
+    assert isinstance(req.body, str)
+    assert json.loads(req.body) == {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "metadata": {"labels": {"a": "b"}},
+    }

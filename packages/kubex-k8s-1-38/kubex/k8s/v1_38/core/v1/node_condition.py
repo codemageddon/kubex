@@ -1,19 +1,18 @@
-import datetime
-
 from pydantic import Field
 
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Time
 
 
 class NodeCondition(BaseK8sModel):
     """NodeCondition contains condition information for a node."""
 
-    last_heartbeat_time: datetime.datetime | None = Field(
+    last_heartbeat_time: Time | None = Field(
         default=None,
         alias="lastHeartbeatTime",
         description="lastHeartbeatTime is the last time we got an update on a given condition.",
     )
-    last_transition_time: datetime.datetime | None = Field(
+    last_transition_time: Time | None = Field(
         default=None,
         alias="lastTransitionTime",
         description="lastTransitionTime is the last time the condition transit from one status to another.",

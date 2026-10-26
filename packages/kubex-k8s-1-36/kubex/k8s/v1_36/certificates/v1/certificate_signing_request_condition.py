@@ -1,19 +1,18 @@
-import datetime
-
 from pydantic import Field
 
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Time
 
 
 class CertificateSigningRequestCondition(BaseK8sModel):
     """CertificateSigningRequestCondition describes a condition of a CertificateSigningRequest object"""
 
-    last_transition_time: datetime.datetime | None = Field(
+    last_transition_time: Time | None = Field(
         default=None,
         alias="lastTransitionTime",
         description="lastTransitionTime is the time the condition last transitioned from one status to another. If unset, when a new condition type is added or an existing condition's status is changed, the server defaults this to the current time.",
     )
-    last_update_time: datetime.datetime | None = Field(
+    last_update_time: Time | None = Field(
         default=None,
         alias="lastUpdateTime",
         description="lastUpdateTime is the time of the last update to this condition",

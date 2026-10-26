@@ -9,6 +9,7 @@ from kubex.k8s.v1_34.apiextensions_k8s_io.v1.custom_resource_definition import (
 )
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.metadata import ListMetadata
+from kubex_core.models.types import NullAsEmptyList
 
 
 class CustomResourceDefinitionList(ListEntity[CustomResourceDefinition]):
@@ -19,7 +20,7 @@ class CustomResourceDefinitionList(ListEntity[CustomResourceDefinition]):
         alias="apiVersion",
         description="APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
     )
-    items: list[CustomResourceDefinition] = Field(
+    items: NullAsEmptyList[CustomResourceDefinition] = Field(
         ...,
         alias="items",
         description="items list individual CustomResourceDefinition objects",

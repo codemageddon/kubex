@@ -10,6 +10,7 @@ from kubex.k8s.v1_35.apiextensions_k8s_io.v1.custom_resource_definition_version 
     CustomResourceDefinitionVersion,
 )
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import NullAsEmptyList
 
 
 class CustomResourceDefinitionSpec(BaseK8sModel):
@@ -40,7 +41,7 @@ class CustomResourceDefinitionSpec(BaseK8sModel):
         alias="scope",
         description="scope indicates whether the defined custom resource is cluster- or namespace-scoped. Allowed values are `Cluster` and `Namespaced`.",
     )
-    versions: list[CustomResourceDefinitionVersion] = Field(
+    versions: NullAsEmptyList[CustomResourceDefinitionVersion] = Field(
         ...,
         alias="versions",
         description='versions is the list of all API versions of the defined custom resource. Version names are used to compute the order in which served versions are listed in API discovery. If the version string is "kube-like", it will sort above non "kube-like" version strings, which are ordered lexicographically. "Kube-like" versions start with a "v", then are followed by a number (the major version), then optionally the string "alpha" or "beta" and another number (the minor version). These are sorted first by GA > beta > alpha (where GA is a version with no suffix such as beta or alpha), and then by comparing major version, then minor version. An example sorted list of versions: v10, v2, v1, v11beta2, v10beta3, v3beta1, v12alpha1, v11alpha2, foo1, foo10.',

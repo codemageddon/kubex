@@ -1,6 +1,7 @@
 from pydantic import Field
 
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import NullAsEmptyList
 
 
 class ServerStorageVersion(BaseK8sModel):
@@ -11,7 +12,7 @@ class ServerStorageVersion(BaseK8sModel):
         alias="apiServerID",
         description="apiServerID is the ID of the reporting API server.",
     )
-    decodable_versions: list[str] = Field(
+    decodable_versions: NullAsEmptyList[str] = Field(
         ...,
         alias="decodableVersions",
         description="decodableVersions are the encoding versions the API server can handle to decode. The API server can decode objects encoded in these versions. The encodingVersion must be included in the decodableVersions.",

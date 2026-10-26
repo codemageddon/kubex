@@ -14,9 +14,9 @@ from kubex.core.exec_channels import (
 )
 
 
-@pytest.fixture
-def anyio_backend() -> str:
-    return "asyncio"
+@pytest.fixture(params=["asyncio", "trio"])
+def anyio_backend(request: pytest.FixtureRequest) -> str:
+    return str(request.param)
 
 
 class _FakeWebSocket(WebSocketConnection):
@@ -166,10 +166,9 @@ async def test_data_channel_port_mismatch_closes_session_with_exception() -> Non
     with anyio.fail_after(2.0):
         with pytest.raises(KubexClientException):
             async with PortForwardSession(fake, V5ChannelProtocol(), ports=[8080]):
-                # Two yields: first lets read loop reach receive(), second lets it
-                # process the frame and raise before the host task exits.
-                await anyio.sleep(0)
-                await anyio.sleep(0)
+                # The read loop's exception cancels this body and is re-raised
+                # on exit.
+                await anyio.sleep_forever()
 
 
 @pytest.mark.anyio
@@ -182,84 +181,89 @@ async def test_error_channel_port_mismatch_closes_session_with_exception() -> No
     with anyio.fail_after(2.0):
         with pytest.raises(KubexClientException):
             async with PortForwardSession(fake, V5ChannelProtocol(), ports=[8080]):
-                await anyio.sleep(0)
-                await anyio.sleep(0)
+                await anyio.sleep_forever()
 
 
 @pytest.mark.anyio
-async def test_data_buffer_overflow_closes_port_stream_and_sets_truncated_flag() -> (
-    None
-):
-    fake = _FakeWebSocket(buffer=2048)
-    # buffer_size=1: first data payload fills the buffer; the second raises
-    # WouldBlock so the read loop closes that port's stream locally and sets
-    # _truncated without stalling frame delivery for any other port.
-    fake.feed(_data_frame(0, port_prefix_encode(8080) + b"data"))
-    fake.feed(
-        _data_frame(0, b"second")
-    )  # triggers WouldBlock, port closed as truncated
+async def test_slow_data_consumer_receives_every_frame() -> None:
+    """Regression: a full per-port queue used to close the port's stream and
+    drop the rest of the data. The read loop now waits for the consumer."""
+    frames = 300
+    fake = _FakeWebSocket(buffer=frames + 8)
+    fake.feed(_data_frame(0, port_prefix_encode(8080)))
+    for i in range(frames):
+        fake.feed(_data_frame(0, b"%04d" % i))
     fake.feed_eof()
 
-    # anyio.receive() calls checkpoint() unconditionally, so each frame
-    # requires its own scheduling slot to be processed.
-    # sleep #1: read loop starts and yields inside receive() for frame 1
-    # sleep #2: frame 1 processed, yields inside receive() for frame 2
-    # sleep #3: frame 2 processed (WouldBlock → truncated=True), yields
-    async with PortForwardSession(
-        fake, V5ChannelProtocol(), ports=[8080], buffer_size=1
-    ) as session:
-        await anyio.sleep(0)
-        await anyio.sleep(0)
-        await anyio.sleep(0)
+    with anyio.fail_after(10.0):
+        async with PortForwardSession(
+            fake, V5ChannelProtocol(), ports=[8080], buffer_size=1
+        ) as session:
+            received = bytearray()
+            async for chunk in session._streams_recv[8080]:
+                received.extend(chunk)
+                await anyio.sleep(0)
 
-    assert session._truncated[8080] is True
+    assert received == b"".join(b"%04d" % i for i in range(frames))
 
 
 @pytest.mark.anyio
-async def test_error_buffer_overflow_closes_port_error_stream_and_sets_truncated_flag() -> (
-    None
-):
-    """The error channel has its own overflow flag, distinct from the data
-    channel's — a full error buffer must not silently masquerade as a normal
-    end-of-stream on `PortForwarder.port_error_truncated`.
-    """
-    fake = _FakeWebSocket(buffer=2048)
+async def test_slow_error_consumer_receives_every_error() -> None:
+    fake = _FakeWebSocket()
     error_channel = error_channel_for_port_index(0)
-    fake.feed(_data_frame(error_channel, port_prefix_encode(8080) + b"err1"))
-    fake.feed(_data_frame(error_channel, b"err2"))  # triggers WouldBlock
+    fake.feed(_data_frame(error_channel, port_prefix_encode(8080) + b"err0"))
+    for i in range(1, 10):
+        fake.feed(_data_frame(error_channel, b"err%d" % i))
     fake.feed_eof()
 
-    async with PortForwardSession(
-        fake, V5ChannelProtocol(), ports=[8080], buffer_size=1
-    ) as session:
-        await anyio.sleep(0)
-        await anyio.sleep(0)
-        await anyio.sleep(0)
+    with anyio.fail_after(5.0):
+        async with PortForwardSession(
+            fake, V5ChannelProtocol(), ports=[8080], buffer_size=1
+        ) as session:
+            errors = [e async for e in session._errors_recv[8080]]
 
-    assert session._error_truncated[8080] is True
-    # The data channel is unaffected by the error channel overflowing.
-    assert session._truncated[8080] is False
+    assert errors == [f"err{i}" for i in range(10)]
+
+
+@pytest.mark.anyio
+async def test_unread_port_stalls_other_ports_until_closed() -> None:
+    """All ports share one WebSocket, so a port nobody reads holds back the
+    others once its queue is full (kubectl behaves the same). Closing the
+    unread stream releases the rest."""
+    fake = _FakeWebSocket()
+    fake.feed(_data_frame(0, port_prefix_encode(8080) + b"a1"))
+    fake.feed(_data_frame(0, b"a2"))
+    fake.feed(_data_frame(0, b"a3"))
+    fake.feed(_data_frame(2, port_prefix_encode(9090) + b"b1"))
+
+    async with PortForwardSession(
+        fake, V5ChannelProtocol(), ports=[8080, 9090], buffer_size=1
+    ) as session:
+        with anyio.move_on_after(0.1) as scope:
+            await session._streams[9090].receive()
+        assert scope.cancelled_caught
+
+        await session._streams[8080].aclose()
+        with anyio.fail_after(2.0):
+            assert await session._streams[9090].receive() == b"b1"
 
 
 @pytest.mark.anyio
 async def test_blocking_read_loop_unblocks_on_session_exit_when_buffer_full() -> None:
     fake = _FakeWebSocket(buffer=2048)
-    # block_on_full=True: after the first data payload fills the buffer, the
-    # read loop blocks awaiting the consumer.  Session teardown must cancel
-    # the blocked send cleanly without deadlocking.
+    # After the first data payload fills the buffer the read loop blocks
+    # awaiting the consumer. Session teardown must cancel the blocked send
+    # cleanly without deadlocking.
     fake.feed(_data_frame(0, port_prefix_encode(8080) + b"data"))
     fake.feed(_data_frame(0, b"second"))  # read loop blocks here (buffer full)
-    fake.feed_eof()
 
     with anyio.fail_after(2.0):
         async with PortForwardSession(
-            fake, V5ChannelProtocol(), ports=[8080], buffer_size=1, block_on_full=True
-        ) as session:
-            await anyio.sleep(0)
-            await anyio.sleep(0)
+            fake, V5ChannelProtocol(), ports=[8080], buffer_size=1
+        ):
+            await anyio.sleep(0.05)
 
-    # Backpressure does not set the truncated flag — data is stalled, not dropped.
-    assert session._truncated[8080] is False
+    assert fake.closed is True
 
 
 @pytest.mark.anyio

@@ -2,6 +2,7 @@ from typing import cast
 
 from kubex.api import Api
 from kubex.client import create_client
+from kubex.core.exceptions import Conflict
 from kubex.k8s.v1_35.apps.v1.deployment import Deployment
 from kubex.k8s.v1_35.apps.v1.deployment_spec import DeploymentSpec
 from kubex.k8s.v1_35.core.v1.container import Container
@@ -40,13 +41,20 @@ async def main() -> None:
         name = cast(str, deployment.metadata.name)
 
         try:
-            # Read current scale
-            current_scale = await api.scale.get(name)
-            print(f"Current replicas: {current_scale.spec.replicas}")
-
-            # Replace scale to 3 replicas
-            current_scale.spec = ScaleSpec(replicas=3)
-            updated_scale = await api.scale.replace(name, current_scale)
+            # Read current scale, then replace it with 3 replicas. The Scale
+            # carries the Deployment's resourceVersion, which the deployment
+            # controller bumps while rolling out, so retry on 409 Conflict.
+            for _ in range(5):
+                current_scale = await api.scale.get(name)
+                print(f"Current replicas: {current_scale.spec.replicas}")
+                current_scale.spec = ScaleSpec(replicas=3)
+                try:
+                    updated_scale = await api.scale.replace(name, current_scale)
+                except Conflict:
+                    continue
+                break
+            else:
+                raise RuntimeError("gave up after repeated conflicts")
             print(f"Updated replicas: {updated_scale.spec.replicas}")
 
             # Read scale again to confirm

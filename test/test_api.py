@@ -248,7 +248,8 @@ async def test_delete_collection_list_option(
 
 
 _DELETE_OPTION_CASES = [
-    pytest.param({"dry_run": True}, "dryRun", "All", id="dry_run"),
+    # DeleteOptions.dryRun is a list in the body (unlike the query parameter).
+    pytest.param({"dry_run": True}, "dryRun", ["All"], id="dry_run"),
     pytest.param(
         {"grace_period_seconds": 0}, "gracePeriodSeconds", 0, id="grace_period"
     ),

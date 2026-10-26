@@ -3,15 +3,19 @@ from __future__ import annotations
 import builtins
 import json
 import ssl
-from base64 import b64encode, urlsafe_b64encode
+import time
+from base64 import b64decode, b64encode, urlsafe_b64encode
+from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock
+from urllib.parse import parse_qs
 
 import httpx
 import pytest
 from pydantic import SecretStr
 
 from kubex.configuration.auth.oidc import (
+    AuthStyle,
     OIDCAuthProvider,
     _build_ssl_context,
     _get,
@@ -19,7 +23,7 @@ from kubex.configuration.auth.oidc import (
     _post_form,
 )
 from kubex.configuration.configuration import OIDCConfig
-from kubex.core.exceptions import ConfigurationError
+from kubex.core.exceptions import ConfigurationError, ConfigurationValueError
 
 
 @pytest.fixture
@@ -104,7 +108,7 @@ def test_provider_builds_ssl_context_from_config_ca_data(
 ) -> None:
     sentinel = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     monkeypatch.setattr(
-        "kubex.configuration.auth.oidc._build_ssl_context", lambda _data: sentinel
+        "kubex.configuration.auth.oidc._build_ssl_context", lambda *_args: sentinel
     )
     config = _oidc_config()
     config.idp_certificate_authority_data = "irrelevant-because-monkeypatched"
@@ -176,6 +180,7 @@ async def test_refresh_token_rotates_refresh_token() -> None:
 
     assert returned_token == id_token
     assert exp_claim == 1_700_000_000.0
+    assert provider.config.refresh_token is not None
     assert provider.config.refresh_token.get_secret_value() == "rotated-refresh"
 
 
@@ -190,6 +195,7 @@ async def test_refresh_token_keeps_original_when_response_has_no_rotation() -> N
 
     # "new-id" isn't a decodable JWT, so no exp claim is available.
     assert exp_claim is None
+    assert provider.config.refresh_token is not None
     assert provider.config.refresh_token.get_secret_value() == "initial-refresh"
 
 
@@ -198,7 +204,7 @@ async def test_refresh_token_raises_without_id_token() -> None:
     provider = OIDCAuthProvider(_oidc_config())
     provider._id_token = AsyncMock(return_value=b"{}")  # type: ignore[method-assign]
 
-    with pytest.raises(ValueError, match="id_token not found"):
+    with pytest.raises(ConfigurationValueError, match="id_token not found"):
         await provider.refresh_token()
 
 
@@ -290,3 +296,138 @@ async def test_post_form_falls_back_to_aiohttp_without_httpx(
 
     assert status == 200
     assert content == b"ok-aiohttp"
+
+
+def test_oidc_config_client_secret_and_refresh_token_are_optional() -> None:
+    config = OIDCConfig.model_validate(
+        {"client-id": "kubernetes", "idp-issuer-url": "https://issuer.example.com"}
+    )
+    assert config.client_secret is None
+    assert config.refresh_token is None
+    assert config.id_token is None
+
+
+def test_oidc_config_repr_hides_id_token() -> None:
+    config = OIDCConfig.model_validate(
+        {
+            "client-id": "kubernetes",
+            "idp-issuer-url": "https://issuer.example.com",
+            "id-token": "ID-TOKEN-VALUE",
+        }
+    )
+    assert "ID-TOKEN-VALUE" not in repr(config)
+
+
+@pytest.mark.anyio
+async def test_refresh_token_uses_configured_id_token_until_it_expires() -> None:
+    exp = int(time.time()) + 3600
+    id_token = _fake_jwt({"exp": exp})
+    config = _oidc_config()
+    config.id_token = SecretStr(id_token)
+    provider = OIDCAuthProvider(config)
+    provider._id_token = AsyncMock(  # type: ignore[method-assign]
+        side_effect=AssertionError("the refresh token must not be redeemed")
+    )
+
+    assert await provider.refresh_token() == (id_token, float(exp))
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "configured",
+    [
+        _fake_jwt({"exp": 1_000}),  # long expired
+        _fake_jwt({"exp": int(time.time()) + 5}),  # inside client-go's 10s window
+        _fake_jwt({"sub": "no-exp"}),
+        "not-a-jwt",
+    ],
+)
+async def test_refresh_token_redeems_refresh_token_when_id_token_unusable(
+    configured: str,
+) -> None:
+    config = _oidc_config()
+    config.id_token = SecretStr(configured)
+    provider = OIDCAuthProvider(config)
+    new_id_token = _fake_jwt({"exp": int(time.time()) + 3600})
+    provider._id_token = AsyncMock(  # type: ignore[method-assign]
+        return_value=json.dumps({"id_token": new_id_token}).encode()
+    )
+
+    returned, _ = await provider.refresh_token()
+
+    assert returned == new_id_token
+    # Kept in memory, so the next call reuses it instead of refreshing again.
+    assert config.id_token is not None
+    assert config.id_token.get_secret_value() == new_id_token
+    provider._id_token.assert_awaited_once()
+    assert (await provider.refresh_token())[0] == new_id_token
+    provider._id_token.assert_awaited_once()
+
+
+@pytest.mark.anyio
+async def test_refresh_token_without_valid_id_token_or_refresh_token_fails_clearly() -> (
+    None
+):
+    config = OIDCConfig(
+        client_id=SecretStr("kubernetes"),
+        id_token=SecretStr(_fake_jwt({"exp": 1_000})),
+        idp_issuer_url="https://issuer.example.com",
+    )
+    with pytest.raises(ConfigurationError, match="no refresh-token"):
+        await OIDCAuthProvider(config).refresh_token()
+
+
+def test_token_request_params_style_omits_missing_client_secret() -> None:
+    config = _oidc_config()
+    config.client_secret = None
+    headers, body = OIDCAuthProvider(config)._token_request(AuthStyle.PARAMS)
+    assert "Authorization" not in headers
+    assert parse_qs(body) == {
+        "grant_type": ["refresh_token"],
+        "refresh_token": ["initial-refresh"],
+        "client_id": ["client-id"],
+    }
+
+
+def test_token_request_header_style_form_encodes_credentials() -> None:
+    config = OIDCConfig(
+        client_id=SecretStr("my client"),
+        client_secret=SecretStr("p@ss:w/rd"),
+        refresh_token=SecretStr("r"),
+        idp_issuer_url="https://issuer.example.com",
+    )
+    headers, body = OIDCAuthProvider(config)._token_request(AuthStyle.HEADER)
+    scheme, encoded = headers["Authorization"].split(" ")
+    assert scheme == "Basic"
+    # golang.org/x/oauth2 (client-go) query-escapes both parts (RFC 6749 2.3.1).
+    assert b64decode(encoded).decode() == "my+client:p%40ss%3Aw%2Frd"
+    assert parse_qs(body) == {"grant_type": ["refresh_token"], "refresh_token": ["r"]}
+
+
+def test_token_request_header_style_without_client_secret() -> None:
+    config = _oidc_config()
+    config.client_secret = None
+    headers, _ = OIDCAuthProvider(config)._token_request(AuthStyle.HEADER)
+    assert b64decode(headers["Authorization"].split(" ")[1]) == b"client-id:"
+
+
+def test_build_ssl_context_from_ca_file(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    ca_file = tmp_path / "idp-ca.pem"
+    captured: dict[str, Any] = {}
+
+    def _fake_create_default_context(**kwargs: Any) -> ssl.SSLContext:
+        captured.update(kwargs)
+        return ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+
+    monkeypatch.setattr(ssl, "create_default_context", _fake_create_default_context)
+
+    _build_ssl_context(None, ca_file)
+    assert captured == {"cafile": str(ca_file)}
+
+    captured.clear()
+    pem = "-----BEGIN CERTIFICATE-----\nfake\n-----END CERTIFICATE-----\n"
+    # `-data` overrides the file, as in client-go.
+    _build_ssl_context(b64encode(pem.encode()).decode(), ca_file)
+    assert captured == {"cadata": pem}

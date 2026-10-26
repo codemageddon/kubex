@@ -9,6 +9,7 @@ from kubex.k8s.v1_36.admissionregistration.v1.mutating_admission_policy import (
 )
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.metadata import ListMetadata
+from kubex_core.models.types import NullAsEmptyList
 
 
 class MutatingAdmissionPolicyList(ListEntity[MutatingAdmissionPolicy]):
@@ -19,7 +20,7 @@ class MutatingAdmissionPolicyList(ListEntity[MutatingAdmissionPolicy]):
         alias="apiVersion",
         description="APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
     )
-    items: list[MutatingAdmissionPolicy] = Field(
+    items: NullAsEmptyList[MutatingAdmissionPolicy] = Field(
         ..., alias="items", description="List of ValidatingAdmissionPolicy."
     )
     kind: Literal["MutatingAdmissionPolicyList"] = Field(

@@ -11,8 +11,9 @@ Each resolution returns:
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal
 
 from scripts.codegen import ref_resolver
 from scripts.codegen.naming import class_name_for_enum
@@ -47,6 +48,17 @@ class MappedType:
     )  # (module, symbol)
     cross_refs: list[CrossRef] = field(default_factory=list)
     enum_requests: list[EnumRequest] = field(default_factory=list)
+    # Set for `list[X]` / `dict[str, X]` expressions; `item_expression` is X.
+    # A Go nil slice/map marshals as `null`, so required collections are
+    # wrapped by the emitter to read `null` as empty.
+    container: Literal["list", "dict"] | None = None
+    item_expression: str | None = None
+    # The Go type marshals its zero value as `null` (metav1.Time, []byte, ...),
+    # so a required field of this type must still accept `None`.
+    nullable: bool = False
+
+
+_KUBEX_TYPES = "kubex_core.models.types"
 
 
 def map_type(
@@ -56,13 +68,15 @@ def map_type(
     owner_definition: str,
     owner_module: str,
     property_name: str,
+    definitions: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> MappedType:
     """Translate a single schema node to a Python type expression.
 
     `owner_definition` is the full dotted swagger name of the definition that
     owns this property (used to derive enum class names). `owner_module` is the
     generated Python module that definition lands in (used to decide whether an
-    enum goes inline or cross-module-shared).
+    enum goes inline or cross-module-shared). `definitions` (optional) lets
+    `$ref`s to schema-less definitions resolve to `Any`.
     """
     out = MappedType(expression="Any")
     out.typing_imports.add("Any")  # default; overwritten below when we resolve
@@ -70,7 +84,12 @@ def map_type(
     # 1) $ref -> delegate to resolver.
     ref = schema.get("$ref")
     if isinstance(ref, str):
-        return _map_ref(ref, k8s_version_tag=k8s_version_tag, owner_module=owner_module)
+        return _map_ref(
+            ref,
+            k8s_version_tag=k8s_version_tag,
+            owner_module=owner_module,
+            definitions=definitions,
+        )
 
     # 2) enum -> generate an Enum class.
     values = schema.get("enum")
@@ -100,10 +119,9 @@ def map_type(
             owner_definition=owner_definition,
             owner_module=owner_module,
             property_name=property_name,
+            definitions=definitions,
         )
-        merged = _merge(inner)
-        merged.expression = f"list[{inner.expression}]"
-        return merged
+        return _wrap(inner, "list")
 
     # 4) object with additionalProperties -> dict[str, V].
     if t == "object":
@@ -115,22 +133,28 @@ def map_type(
                 owner_definition=owner_definition,
                 owner_module=owner_module,
                 property_name=property_name,
+                definitions=definitions,
             )
-            merged = _merge(inner)
-            merged.expression = f"dict[str, {inner.expression}]"
-            return merged
+            return _wrap(inner, "dict")
         # free-form object -> dict[str, Any]
-        return MappedType(expression="dict[str, Any]", typing_imports={"Any"})
+        return MappedType(
+            expression="dict[str, Any]",
+            typing_imports={"Any"},
+            container="dict",
+            item_expression="Any",
+        )
 
     # 5) primitives.
     if t == "string":
         if fmt == "date-time":
             return MappedType(
-                expression="datetime.datetime",
-                stdlib_imports={("datetime", "datetime")},
+                expression="Time",
+                cross_refs=[CrossRef(module=_KUBEX_TYPES, class_name="Time")],
+                nullable=True,
             )
         if fmt == "byte":
-            return MappedType(expression="str")
+            # base64 of a Go []byte; a nil slice marshals as `null`.
+            return MappedType(expression="str", nullable=True)
         if fmt == "int-or-string":
             return MappedType(
                 expression="IntOrString",
@@ -155,21 +179,40 @@ def map_type(
     )
 
 
-def _map_ref(ref: str, *, k8s_version_tag: str, owner_module: str) -> MappedType:
+def _map_ref(
+    ref: str,
+    *,
+    k8s_version_tag: str,
+    owner_module: str,
+    definitions: Mapping[str, Mapping[str, Any]] | None = None,
+) -> MappedType:
     if not ref.startswith("#/definitions/"):
         return MappedType(
             expression="Any  # TODO: non-local $ref", typing_imports={"Any"}
         )
     name = ref.removeprefix("#/definitions/")
-    resolved = ref_resolver.resolve(name, k8s_version_tag=k8s_version_tag)
+    resolved = ref_resolver.resolve(
+        name, k8s_version_tag=k8s_version_tag, definitions=definitions
+    )
     if resolved.is_alias:
-        assert resolved.alias_expression is not None
-        out = MappedType(expression=resolved.alias_expression)
-        for mod, sym in resolved.alias_imports:
+        alias = resolved.alias
+        assert alias is not None
+        out = MappedType(expression=alias.expression, nullable=alias.nullable)
+        for mod, sym in alias.imports:
             if mod == "typing":
                 out.typing_imports.add(sym)
             else:
                 out.stdlib_imports.add((mod, sym))
+        for mod, sym in alias.from_imports:
+            out.cross_refs.append(CrossRef(module=mod, class_name=sym))
+        for target in alias.definition_refs:
+            target_module, target_cls = ref_resolver.module_for_definition(
+                target, k8s_version_tag=k8s_version_tag
+            )
+            if target_module != owner_module:
+                out.cross_refs.append(
+                    CrossRef(module=target_module, class_name=target_cls)
+                )
         return out
     # Class lives in some module — same or cross.
     if resolved.module == owner_module:
@@ -180,14 +223,21 @@ def _map_ref(ref: str, *, k8s_version_tag: str, owner_module: str) -> MappedType
     )
 
 
-def _merge(inner: MappedType) -> MappedType:
-    """Shallow copy so wrappers (list[], dict[str,]) can overwrite `.expression`."""
+def _wrap(inner: MappedType, container: Literal["list", "dict"]) -> MappedType:
+    """Wrap `inner` as `list[inner]` / `dict[str, inner]`, keeping its imports."""
+    expression = (
+        f"list[{inner.expression}]"
+        if container == "list"
+        else f"dict[str, {inner.expression}]"
+    )
     return MappedType(
-        expression=inner.expression,
+        expression=expression,
         typing_imports=set(inner.typing_imports),
         stdlib_imports=set(inner.stdlib_imports),
         cross_refs=list(inner.cross_refs),
         enum_requests=list(inner.enum_requests),
+        container=container,
+        item_expression=inner.expression,
     )
 
 

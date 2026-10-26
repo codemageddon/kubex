@@ -2,6 +2,7 @@ from pydantic import Field
 
 from kubex.k8s.v1_32.resource.v1alpha3.device_attribute import DeviceAttribute
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Quantity
 
 
 class BasicDevice(BaseK8sModel):
@@ -12,7 +13,7 @@ class BasicDevice(BaseK8sModel):
         alias="attributes",
         description="Attributes defines the set of attributes for this device. The name of each attribute must be unique in that set. The maximum number of attributes and capacities combined is 32.",
     )
-    capacity: dict[str, str] | None = Field(
+    capacity: dict[str, Quantity] | None = Field(
         default=None,
         alias="capacity",
         description="Capacity defines the set of capacities for this device. The name of each capacity must be unique in that set. The maximum number of attributes and capacities combined is 32.",

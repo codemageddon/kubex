@@ -4,12 +4,13 @@ from kubex.k8s.v1_35.core.v1.container_extended_resource_request import (
     ContainerExtendedResourceRequest,
 )
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import NullAsEmptyList
 
 
 class PodExtendedResourceClaimStatus(BaseK8sModel):
     """PodExtendedResourceClaimStatus is stored in the PodStatus for the extended resource requests backed by DRA. It stores the generated name for the corresponding special ResourceClaim created by the scheduler."""
 
-    request_mappings: list[ContainerExtendedResourceRequest] = Field(
+    request_mappings: NullAsEmptyList[ContainerExtendedResourceRequest] = Field(
         ...,
         alias="requestMappings",
         description="RequestMappings identifies the mapping of <container, extended resource backed by DRA> to device request in the generated ResourceClaim.",

@@ -1,6 +1,7 @@
 from pydantic import Field
 
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import NullAsEmptyDict, Quantity
 
 
 class NodeAllocatableResourceClaimStatus(BaseK8sModel):
@@ -16,7 +17,7 @@ class NodeAllocatableResourceClaimStatus(BaseK8sModel):
         alias="resourceClaimName",
         description="ResourceClaimName is the resource claim referenced by the pod that resulted in this node allocatable resource allocation.",
     )
-    resources: dict[str, str] = Field(
+    resources: NullAsEmptyDict[Quantity] = Field(
         ...,
         alias="resources",
         description="Resources is a map of the node-allocatable resource name to the aggregate quantity allocated to the claim.",

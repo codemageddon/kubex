@@ -1,14 +1,13 @@
-import datetime
-
 from pydantic import Field
 
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Time
 
 
 class PersistentVolumeStatus(BaseK8sModel):
     """PersistentVolumeStatus is the current status of a persistent volume."""
 
-    last_phase_transition_time: datetime.datetime | None = Field(
+    last_phase_transition_time: Time | None = Field(
         default=None,
         alias="lastPhaseTransitionTime",
         description="lastPhaseTransitionTime is the time the phase transitioned from one to another and automatically resets to current time everytime a volume phase transitions.",

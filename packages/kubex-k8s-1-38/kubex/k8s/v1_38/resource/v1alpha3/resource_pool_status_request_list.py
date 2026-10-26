@@ -9,6 +9,7 @@ from kubex.k8s.v1_38.resource.v1alpha3.resource_pool_status_request import (
 )
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.metadata import ListMetadata
+from kubex_core.models.types import NullAsEmptyList
 
 
 class ResourcePoolStatusRequestList(ListEntity[ResourcePoolStatusRequest]):
@@ -19,7 +20,7 @@ class ResourcePoolStatusRequestList(ListEntity[ResourcePoolStatusRequest]):
         alias="apiVersion",
         description="APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
     )
-    items: list[ResourcePoolStatusRequest] = Field(
+    items: NullAsEmptyList[ResourcePoolStatusRequest] = Field(
         ...,
         alias="items",
         description="Items is the list of ResourcePoolStatusRequests.",

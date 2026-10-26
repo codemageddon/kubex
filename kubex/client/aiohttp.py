@@ -1,25 +1,46 @@
+import asyncio
+import base64
 import contextlib
 import ssl
 import warnings
-from types import EllipsisType
-from typing import Any, AsyncGenerator, Sequence, cast
-from urllib.parse import urlparse
+from contextvars import ContextVar
+from types import EllipsisType, SimpleNamespace
+from typing import Any, AsyncGenerator, Iterator, Sequence, cast
+from urllib.parse import unquote, urlparse, urlsplit, urlunsplit
 
 import anyio
 from aiohttp import (
+    ClientConnectionError,
     ClientError,
+    ClientHttpProxyError,
+    ClientPayloadError,
     ClientSession,
     ClientTimeout,
     ClientWebSocketResponse,
+    TraceConfig,
+    TraceRequestEndParams,
     WSMsgType,
     WSServerHandshakeError,
+    hdrs,
 )
 from aiohttp.connector import TCPConnector
+from multidict import CIMultiDict
 
+from kubex.client._common import (
+    WS_PING_INTERVAL_SECONDS,
+    LineSplitter,
+    describe_exception,
+    emit_api_warnings,
+)
 from kubex.client.options import ClientOptions, resolve_ws_max_message_size
 from kubex.client.websocket import WebSocketConnection
 from kubex.configuration import ClientConfiguration
-from kubex.core.exceptions import KubexClientException
+from kubex.core.exceptions import (
+    KubexClientException,
+    KubexConnectionError,
+    KubexException,
+    KubexTimeoutError,
+)
 from kubex.core.params import Timeout
 from kubex.core.request import Request
 from kubex.core.request_builder import constants
@@ -63,6 +84,69 @@ def _to_aiohttp_timeout(timeout: Timeout | None) -> ClientTimeout:
     )
 
 
+# ``ClientHttpProxyError`` (proxy refused the CONNECT tunnel) is a
+# ``ClientResponseError``; httpx reports the same case as a transport error.
+_CONNECTION_ERRORS = (
+    ClientConnectionError,
+    ClientPayloadError,
+    ClientHttpProxyError,
+    ConnectionError,
+)
+
+
+@contextlib.contextmanager
+def _translate_aiohttp_errors(action: str) -> Iterator[None]:
+    """Re-raise aiohttp transport errors (and timeouts) as kubex exceptions.
+
+    Only ``Exception`` subclasses are caught, so cancellation and
+    ``GeneratorExit`` always pass through untouched.
+    """
+    try:
+        yield
+    except KubexException:
+        raise
+    except TimeoutError as exc:
+        # Also ``ServerTimeoutError`` / ``ConnectionTimeoutError`` /
+        # ``SocketTimeoutError``, which subclass ``TimeoutError``.
+        raise KubexTimeoutError(f"{action} timed out") from exc
+    except _CONNECTION_ERRORS as exc:
+        raise KubexConnectionError(
+            f"{action} failed: {describe_exception(exc)}"
+        ) from exc
+    except ClientError as exc:
+        raise KubexClientException(
+            f"{action} failed: {describe_exception(exc)}"
+        ) from exc
+
+
+# Set by ``connect_websocket`` for the duration of the upgrade: aiohttp closes
+# a rejected upgrade response before raising ``WSServerHandshakeError``, so the
+# error body is captured from the ``on_request_end`` trace hook instead.
+_rejected_upgrade_body: ContextVar[list[bytes] | None] = ContextVar(
+    "_rejected_upgrade_body", default=None
+)
+
+
+async def _capture_rejected_upgrade_body(
+    session: ClientSession,
+    context: SimpleNamespace,
+    params: TraceRequestEndParams,
+) -> None:
+    sink = _rejected_upgrade_body.get()
+    if sink is None or params.response.status < 400:
+        return
+    try:
+        sink.append(await params.response.read())
+    except (ClientError, OSError):
+        pass
+
+
+def _make_trace_config() -> TraceConfig:
+    trace_config = TraceConfig()
+    trace_config.on_request_end.append(_capture_rejected_upgrade_body)
+    return trace_config
+
+
 def _apply_aiohttp_proxy(
     kwargs: dict[str, Any],
     proxy: str | dict[str, str] | None,
@@ -104,6 +188,25 @@ def _apply_aiohttp_proxy(
         )
 
 
+def _split_proxy_credentials(proxy: str) -> tuple[str, str | None]:
+    """Strip userinfo from *proxy*; return the bare URL and a ``Proxy-Authorization`` value.
+
+    aiohttp keeps a proxy URL's userinfo in ``ClientHttpProxyError``'s
+    message, so the credentials are sent as a header instead. (Its
+    ``proxy_auth=``/``BasicAuth`` alternative is deprecated in aiohttp 3.14.)
+    """
+    parts = urlsplit(proxy)
+    userinfo, at, hostport = parts.netloc.rpartition("@")
+    if not at:
+        return proxy, None
+    user, _, password = userinfo.partition(":")
+    userpass = f"{unquote(user)}:{unquote(password)}".encode()
+    return (
+        urlunsplit(parts._replace(netloc=hostport)),
+        "Basic " + base64.b64encode(userpass).decode(),
+    )
+
+
 class AioHttpClient(BaseClient):
     def __init__(
         self,
@@ -115,14 +218,11 @@ class AioHttpClient(BaseClient):
             constants.ACCEPT_HEADER: constants.APPLICATION_JSON_MIME_TYPE,
         }
         self._resolved_proxy: str | None = None
+        self._proxy_authorization: str | None = None
         self._origin, self._path_prefix = _split_base_url(str(configuration.base_url))
+        self._origin_is_tls = urlparse(self._origin).scheme == "https"
+        self._trace_config = _make_trace_config()
         super().__init__(configuration, options)
-
-    async def _get_headers(self) -> dict[str, str]:
-        header = await self.configuration.get_authorization_header()
-        if header is None:
-            return {}
-        return {"Authorization": header}
 
     def _full_path(self, path: str) -> str:
         """Prepend the server URL's path prefix (if any) onto a request path."""
@@ -179,9 +279,12 @@ class AioHttpClient(BaseClient):
             "base_url": self._origin,
             "connector": connector,
             "headers": self._default_headers,
+            "trace_configs": [self._trace_config],
         }
 
         _apply_aiohttp_proxy(kwargs, self.options.proxy, self._origin)
+        if (proxy := cast("str | None", kwargs.get("proxy"))) is not None:
+            kwargs["proxy"], self._proxy_authorization = _split_proxy_credentials(proxy)
         self._resolved_proxy = cast("str | None", kwargs.get("proxy"))
 
         if self.options.trust_env and self._resolved_proxy is not None:
@@ -224,82 +327,111 @@ class AioHttpClient(BaseClient):
             "connector": self._inner_client.connector,
             "connector_owner": False,
             "headers": self._default_headers,
+            "trace_configs": [self._trace_config],
         }
         if self._resolved_proxy is not None:
             kwargs["proxy"] = self._resolved_proxy
         kwargs["trust_env"] = self.options.trust_env and self._resolved_proxy is None
         return kwargs
 
+    def _transport_kwargs(self) -> dict[str, Any]:
+        kwargs: dict[str, Any] = {}
+        if self.configuration.tls_server_name:
+            # SNI and certificate verification both use this name.
+            kwargs["server_hostname"] = self.configuration.tls_server_name
+        if self._proxy_authorization is not None and self._origin_is_tls:
+            # Sent on the CONNECT to the proxy only, never through the tunnel.
+            kwargs["proxy_headers"] = {
+                hdrs.PROXY_AUTHORIZATION: self._proxy_authorization
+            }
+        return kwargs
+
+    async def _headers(self, request: Request) -> "CIMultiDict[str]":
+        headers = CIMultiDict(await self._request_headers(request))
+        if self._proxy_authorization is not None and not self._origin_is_tls:
+            # A plain-HTTP request goes to the proxy itself, and aiohttp only
+            # sends ``proxy_headers`` on a CONNECT.
+            headers[hdrs.PROXY_AUTHORIZATION] = self._proxy_authorization
+        return headers
+
     async def request(self, request: Request) -> Response:
-        headers = await self._get_headers()
-        if request.headers:
-            headers.update(request.headers)
-        extra: dict[str, Any] = {}
+        headers = await self._headers(request)
+        extra = self._transport_kwargs()
         if request.timeout is not Ellipsis:
             extra["timeout"] = _to_aiohttp_timeout(request.timeout)
-        _response = await self._inner_client.request(
-            method=request.method,
-            url=self._full_path(request.url),
-            params=request.query_params,
-            data=request.body,
-            headers=headers,
-            **extra,
-        )
+        with _translate_aiohttp_errors(f"{request.method} {request.url}"):
+            _response = await self._inner_client.request(
+                method=request.method,
+                url=self._full_path(request.url),
+                params=request.query_params,
+                data=request.body,
+                headers=headers,
+                **extra,
+            )
+            content = await _response.read()
         status = _response.status
         response = Response(
             status_code=status,
             headers=HeadersWrapper(_response.headers),
-            content=await _response.read(),
+            content=content,
         )
         if self.options.log_api_warnings:
-            for api_warning in _response.headers.getall("warning", []):
-                for warning in api_warning.split(","):
-                    warnings.warn(
-                        f"API Warning: {warning.strip()}", UserWarning, stacklevel=2
-                    )
+            emit_api_warnings(_response.headers.getall("warning", []))
         if 400 <= status < 600:
             handle_request_error(response)
         return response
 
-    async def stream_lines(self, request: Request) -> AsyncGenerator[str, None]:
-        headers = await self._get_headers()
-        if request.headers:
-            headers.update(request.headers)
-        extra: dict[str, Any] = {}
-        if request.timeout is not Ellipsis:
-            extra["timeout"] = _to_aiohttp_timeout(request.timeout)
-        _response = await self._inner_client.request(
-            method=request.method,
-            url=self._full_path(request.url),
-            params=request.query_params,
-            data=request.body,
-            headers=headers,
-            **extra,
+    def _stream_timeout(self) -> ClientTimeout:
+        """Client timeout with total/read disabled: watches and log follows idle
+        legitimately. Connection setup stays bounded (``total`` falls back to
+        bounding pool wait + connect, as it did before)."""
+        base: ClientTimeout = self._inner_client.timeout
+        return ClientTimeout(
+            total=None,
+            connect=base.connect if base.connect is not None else base.total,
+            sock_connect=base.sock_connect,
+            sock_read=None,
+            ceil_threshold=base.ceil_threshold,
         )
-        try:
-            status = _response.status
-            if 400 <= status < 600:
-                response = Response(
-                    status_code=status,
-                    headers=HeadersWrapper(_response.headers),
-                    content=await _response.read(),
-                )
-                handle_request_error(response)
-            if self.options.log_api_warnings:
-                for api_warning in _response.headers.getall("warning", []):
-                    for warning in api_warning.split(","):
-                        warnings.warn(
-                            f"API Warning: {warning.strip()}",
-                            UserWarning,
-                            stacklevel=2,
-                        )
-            while line := await _response.content.readline():
-                # readline() includes the trailing terminator; httpx's
-                # aiter_lines() strips it, so match that here for parity
-                # between the two backends (api.logs.stream(), etc.).
-                yield line.decode("utf-8").rstrip("\r\n")
-        finally:
-            _response.close()
+
+    async def stream_lines(self, request: Request) -> AsyncGenerator[str, None]:
+        headers = await self._headers(request)
+        extra = self._transport_kwargs()
+        extra["timeout"] = (
+            self._stream_timeout()
+            if request.timeout is Ellipsis
+            else _to_aiohttp_timeout(request.timeout)
+        )
+        with _translate_aiohttp_errors(f"{request.method} {request.url}"):
+            _response = await self._inner_client.request(
+                method=request.method,
+                url=self._full_path(request.url),
+                params=request.query_params,
+                data=request.body,
+                headers=headers,
+                **extra,
+            )
+            try:
+                status = _response.status
+                if 400 <= status < 600:
+                    response = Response(
+                        status_code=status,
+                        headers=HeadersWrapper(_response.headers),
+                        content=await _response.read(),
+                    )
+                    handle_request_error(response)
+                if self.options.log_api_warnings:
+                    emit_api_warnings(_response.headers.getall("warning", []))
+                # Raw chunks + our own splitting: ``readline()`` caps a line at
+                # the read buffer's high-water mark (``LineTooLong``).
+                splitter = LineSplitter()
+                while chunk := await _response.content.readany():
+                    for line in splitter.feed(chunk):
+                        yield line
+                if (tail := splitter.flush()) is not None:
+                    yield tail
+            finally:
+                _response.close()
 
     async def close(self) -> None:
         await self._inner_client.close()
@@ -309,9 +441,7 @@ class AioHttpClient(BaseClient):
         request: Request,
         subprotocols: Sequence[str],
     ) -> WebSocketConnection:
-        headers = await self._get_headers()
-        if request.headers:
-            headers.update(request.headers)
+        headers = await self._headers(request)
         # The session's default ``Accept: application/json`` is appropriate for
         # JSON API calls but the kubelet's portforward endpoint rejects it with
         # ``406 Not Acceptable``. Override per-upgrade so the WebSocket
@@ -369,8 +499,15 @@ class AioHttpClient(BaseClient):
             if handshake_timeout is not None
             else contextlib.nullcontext()
         )
+        rejected_body: list[bytes] = []
+        body_token = _rejected_upgrade_body.set(rejected_body)
         try:
             with timeout_scope:
+                # No ``heartbeat=``: aiohttp closes the connection when a pong
+                # is not processed within heartbeat/2, and pongs are only
+                # processed while the reader drains frames — a consumer
+                # applying backpressure would be disconnected. The adapter
+                # sends pings itself instead, without a pong deadline.
                 ws = await upgrade_session.ws_connect(
                     self._full_path(request.url),
                     protocols=tuple(subprotocols),
@@ -379,8 +516,19 @@ class AioHttpClient(BaseClient):
                     max_msg_size=resolve_ws_max_message_size(
                         self.options.ws_max_message_size
                     ),
+                    **self._transport_kwargs(),
                 )
         except WSServerHandshakeError as exc:
+            if exc.status >= 400:
+                handle_request_error(
+                    Response(
+                        content=rejected_body[0] if rejected_body else b"",
+                        headers=HeadersWrapper(
+                            exc.headers if exc.headers is not None else CIMultiDict()
+                        ),
+                        status_code=exc.status,
+                    )
+                )
             raise KubexClientException(f"WebSocket handshake failed: {exc}") from exc
         except TimeoutError as exc:
             # ``TimeoutError`` may originate from our outer cancel scope OR
@@ -388,17 +536,19 @@ class AioHttpClient(BaseClient):
             # ``sock_read`` via ``ConnectionTimeoutError``/``SocketTimeoutError``,
             # both ``TimeoutError`` subclasses). The actual fired bound is not
             # always our ``handshake_timeout`` — keep the message general.
-            raise KubexClientException("WebSocket handshake timed out") from exc
+            raise KubexTimeoutError("WebSocket handshake timed out") from exc
+        except _CONNECTION_ERRORS as exc:
+            # ``ClientConnectorError``, ``ServerDisconnectedError``, TLS / DNS /
+            # proxy errors, etc.
+            raise KubexConnectionError(
+                f"WebSocket connection failed: {describe_exception(exc)}"
+            ) from exc
         except ClientError as exc:
-            # Covers transport-level failures during the upgrade
-            # (``ClientConnectorError``, ``ServerDisconnectedError``,
-            # TLS / DNS / proxy errors, etc.) so callers see a uniform exec
-            # exception type regardless of whether the upgrade failed during
-            # connect, handshake, or read. Ordered after
-            # ``WSServerHandshakeError`` because that is also a ``ClientError``
-            # subclass and carries a more specific message.
-            raise KubexClientException(f"WebSocket connection failed: {exc}") from exc
+            raise KubexClientException(
+                f"WebSocket connection failed: {describe_exception(exc)}"
+            ) from exc
         finally:
+            _rejected_upgrade_body.reset(body_token)
             if temp_session is not None:
                 # Suppress any close error so a ws_connect failure is what
                 # the caller sees, not a secondary cleanup exception.
@@ -422,16 +572,42 @@ class AioHttpClient(BaseClient):
                 f"{list(subprotocols)}"
             )
 
-        return AioHttpWebSocketConnection(ws)
+        return AioHttpWebSocketConnection(ws, ping_interval=WS_PING_INTERVAL_SECONDS)
 
 
 class AioHttpWebSocketConnection(WebSocketConnection):
-    """Adapter wrapping an :class:`aiohttp.ClientWebSocketResponse`."""
+    """Adapter wrapping an :class:`aiohttp.ClientWebSocketResponse`.
 
-    def __init__(self, ws: ClientWebSocketResponse) -> None:
+    With ``ping_interval`` set, a background task sends a ping every
+    ``ping_interval`` seconds (keeping idle load balancers from dropping the
+    connection) without enforcing a pong deadline.
+    """
+
+    def __init__(
+        self,
+        ws: ClientWebSocketResponse,
+        *,
+        ping_interval: float | None = None,
+    ) -> None:
         self._ws = ws
         self._client_closed = False
         self._peer_closed_clean = False
+        self._ping_task: asyncio.Task[None] | None = None
+        if ping_interval is not None:
+            self._ping_task = asyncio.get_running_loop().create_task(
+                self._keepalive(ping_interval)
+            )
+
+    async def _keepalive(self, interval: float) -> None:
+        while True:
+            await asyncio.sleep(interval)
+            if self._ws.closed:
+                return
+            try:
+                await self._ws.ping()
+            except Exception:
+                # The connection is going away; the read path reports why.
+                return
 
     @property
     def closed(self) -> bool:
@@ -452,13 +628,22 @@ class AioHttpWebSocketConnection(WebSocketConnection):
             raise KubexClientException(
                 "WebSocket send failed: connection reset"
             ) from exc
-        except ClientError as exc:
-            raise KubexClientException(f"WebSocket send failed: {exc}") from exc
+        except KubexException:
+            raise
+        except Exception as exc:
+            raise KubexClientException(
+                f"WebSocket send failed: {describe_exception(exc)}"
+            ) from exc
 
     async def receive_bytes(self) -> bytes:
         if self._client_closed or self._peer_closed_clean:
             raise StopAsyncIteration
-        msg = await self._ws.receive()
+        try:
+            msg = await self._ws.receive()
+        except Exception as exc:
+            raise KubexClientException(
+                f"WebSocket receive failed: {describe_exception(exc)}"
+            ) from exc
         # A concurrent ``close()`` unblocks an in-flight ``receive()`` by
         # feeding ``WS_CLOSING_MESSAGE`` (``WSMsgType.CLOSING``). When the
         # local side initiated the shutdown this is normal teardown, not a
@@ -518,9 +703,9 @@ class AioHttpWebSocketConnection(WebSocketConnection):
                     f"WebSocket closed abnormally (code={close_code})"
                 )
             case WSMsgType.ERROR:
-                exc = self._ws.exception()
-                if exc is not None:
-                    raise KubexClientException(f"WebSocket error: {exc}") from exc
+                ws_exc = self._ws.exception()
+                if ws_exc is not None:
+                    raise KubexClientException(f"WebSocket error: {ws_exc}") from ws_exc
                 raise KubexClientException("WebSocket error")
             case _:
                 raise KubexClientException(
@@ -529,4 +714,12 @@ class AioHttpWebSocketConnection(WebSocketConnection):
 
     async def close(self) -> None:
         self._client_closed = True
-        await self._ws.close()
+        if self._ping_task is not None:
+            self._ping_task.cancel()
+            self._ping_task = None
+        try:
+            await self._ws.close()
+        except Exception as exc:
+            raise KubexClientException(
+                f"WebSocket close failed: {describe_exception(exc)}"
+            ) from exc

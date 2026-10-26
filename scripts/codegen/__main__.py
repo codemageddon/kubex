@@ -37,7 +37,7 @@ def run_generate(
     k8s_version: str,
     *,
     v3_dir: Path | None = None,
-    package_version: str = "0.1.0-alpha.1",
+    package_version: str | None = None,
     output: Path = Path("packages/"),
     only_groups: str | None = None,
     format: bool = True,
@@ -92,8 +92,12 @@ def generate(
         typer.Option(help="Optional directory of v3 per-group files"),
     ] = None,
     package_version: Annotated[
-        str, typer.Option(help="Generated package version")
-    ] = "0.1.0-alpha.1",
+        str | None,
+        typer.Option(
+            help="Generated package version (default: keep the existing "
+            "package's version, or 0.1.0-alpha.1 for a new package)"
+        ),
+    ] = None,
     output: Annotated[Path, typer.Option(help="Output root directory")] = Path(
         "packages/"
     ),
@@ -177,8 +181,12 @@ def regenerate(
         ".cache/schemas"
     ),
     package_version: Annotated[
-        str, typer.Option(help="Generated package version")
-    ] = "0.1.0-alpha.1",
+        str | None,
+        typer.Option(
+            help="Generated package version (default: keep the existing "
+            "package's version, or 0.1.0-alpha.1 for a new package)"
+        ),
+    ] = None,
     output: Annotated[Path, typer.Option(help="Output root directory")] = Path(
         "packages/"
     ),

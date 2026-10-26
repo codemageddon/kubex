@@ -5,7 +5,7 @@ import pytest
 
 from kubex.api import Api
 from kubex.client import BaseClient
-from kubex.core.exceptions import KubexClientException
+from kubex.core.exceptions import NotFound
 from kubex.k8s.v1_35.core.v1.container import Container
 from kubex.k8s.v1_35.core.v1.pod import Pod
 from kubex.k8s.v1_35.core.v1.pod_spec import PodSpec
@@ -172,10 +172,10 @@ async def test_attach_disconnect_does_not_kill_pod(
 
 
 @pytest.mark.anyio
-async def test_attach_nonexistent_pod_raises_kubex_client_exception(
+async def test_attach_nonexistent_pod_raises_not_found(
     client: BaseClient, tmp_namespace_name: str
 ) -> None:
     api: Api[Pod] = Api(Pod, client=client, namespace=tmp_namespace_name)
-    with pytest.raises(KubexClientException):
+    with pytest.raises(NotFound):
         async with api.attach.stream("does-not-exist") as _:
             pass

@@ -2,6 +2,7 @@ from typing import Generic
 
 from kubex_core.models.base import BaseK8sModel
 from kubex_core.models.metadata import ListMetadata
+from kubex_core.models.types import NullAsEmptyList
 from kubex_core.models.typing import ResourceType
 
 
@@ -11,4 +12,4 @@ class ListEntity(BaseK8sModel, Generic[ResourceType]):
     api_version: str
     kind: str
     metadata: ListMetadata
-    items: list[ResourceType]
+    items: NullAsEmptyList[ResourceType]

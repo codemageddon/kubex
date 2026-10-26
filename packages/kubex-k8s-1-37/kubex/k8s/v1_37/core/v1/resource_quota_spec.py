@@ -2,12 +2,13 @@ from pydantic import Field
 
 from kubex.k8s.v1_37.core.v1.scope_selector import ScopeSelector
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Quantity
 
 
 class ResourceQuotaSpec(BaseK8sModel):
     """ResourceQuotaSpec defines the desired hard limits to enforce for Quota."""
 
-    hard: dict[str, str] | None = Field(
+    hard: dict[str, Quantity] | None = Field(
         default=None,
         alias="hard",
         description="hard is the set of desired hard limits for each named resource. More info: https://kubernetes.io/docs/concepts/policy/resource-quotas/",

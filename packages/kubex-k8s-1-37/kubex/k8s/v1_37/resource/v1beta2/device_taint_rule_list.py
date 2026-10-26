@@ -7,6 +7,7 @@ from pydantic import Field
 from kubex.k8s.v1_37.resource.v1beta2.device_taint_rule import DeviceTaintRule
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.metadata import ListMetadata
+from kubex_core.models.types import NullAsEmptyList
 
 
 class DeviceTaintRuleList(ListEntity[DeviceTaintRule]):
@@ -17,7 +18,7 @@ class DeviceTaintRuleList(ListEntity[DeviceTaintRule]):
         alias="apiVersion",
         description="APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
     )
-    items: list[DeviceTaintRule] = Field(
+    items: NullAsEmptyList[DeviceTaintRule] = Field(
         ..., alias="items", description="Items is the list of DeviceTaintRules."
     )
     kind: Literal["DeviceTaintRuleList"] = Field(

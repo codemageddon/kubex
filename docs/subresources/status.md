@@ -144,9 +144,11 @@ updated = await api.status.patch(
 )
 ```
 
-For server-side apply on status, use `ApplyPatch` with `force=True` and a `field_manager`:
+For server-side apply on status, use `ApplyPatch` with `force=True` and a `field_manager`. Only the fields you set are sent, so the condition below becomes owned by `my-controller` while the rest of the status stays with the controllers that wrote it:
 
 ```python
+from datetime import datetime, timezone
+
 from kubex.core.patch import ApplyPatch
 from kubex.k8s.v1_35.apps.v1.deployment import Deployment
 from kubex.k8s.v1_35.apps.v1.deployment_condition import DeploymentCondition
@@ -157,9 +159,16 @@ updated = await api.status.patch(
     "my-deployment",
     ApplyPatch(
         Deployment(
-            metadata=ObjectMetadata(),
+            metadata=ObjectMetadata(name="my-deployment"),
             status=DeploymentStatus(
-                conditions=[DeploymentCondition(status="True", type_="Available")]
+                conditions=[
+                    DeploymentCondition(
+                        type_="ExampleReady",
+                        status="True",
+                        reason="ReconcileSucceeded",
+                        last_transition_time=datetime.now(timezone.utc),
+                    )
+                ]
             ),
         )
     ),
@@ -167,6 +176,8 @@ updated = await api.status.patch(
     field_manager="my-controller",
 )
 ```
+
+`apiVersion`/`kind` are filled in automatically and timestamps are sent in RFC 3339 form; see [`ApplyPatch`](../operations/patch.md#applypatch-server-side-apply).
 
 `patch()` accepts the same options as `replace()` plus `force` and `field_validation`.
 

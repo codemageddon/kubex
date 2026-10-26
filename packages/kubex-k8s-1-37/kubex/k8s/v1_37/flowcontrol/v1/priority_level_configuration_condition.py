@@ -1,14 +1,13 @@
-import datetime
-
 from pydantic import Field
 
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Time
 
 
 class PriorityLevelConfigurationCondition(BaseK8sModel):
     """PriorityLevelConfigurationCondition defines the condition of priority level."""
 
-    last_transition_time: datetime.datetime | None = Field(
+    last_transition_time: Time | None = Field(
         default=None,
         alias="lastTransitionTime",
         description="`lastTransitionTime` is the last time the condition transitioned from one status to another.",

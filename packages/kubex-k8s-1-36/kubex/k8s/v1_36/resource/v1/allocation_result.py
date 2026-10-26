@@ -1,16 +1,15 @@
-import datetime
-
 from pydantic import Field
 
 from kubex.k8s.v1_36.core.v1.node_selector import NodeSelector
 from kubex.k8s.v1_36.resource.v1.device_allocation_result import DeviceAllocationResult
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Time
 
 
 class AllocationResult(BaseK8sModel):
     """AllocationResult contains attributes of an allocated resource."""
 
-    allocation_timestamp: datetime.datetime | None = Field(
+    allocation_timestamp: Time | None = Field(
         default=None,
         alias="allocationTimestamp",
         description="AllocationTimestamp stores the time when the resources were allocated. This field is not guaranteed to be set, in which case that time is unknown. This is a beta field and requires enabling the DRADeviceBindingConditions and DRAResourceClaimDeviceStatus feature gate.",

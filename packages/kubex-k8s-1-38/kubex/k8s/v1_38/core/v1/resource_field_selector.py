@@ -1,6 +1,7 @@
 from pydantic import Field
 
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Quantity
 
 
 class ResourceFieldSelector(BaseK8sModel):
@@ -11,7 +12,7 @@ class ResourceFieldSelector(BaseK8sModel):
         alias="containerName",
         description="containerName is the name of the container: required for volumes, optional for env vars",
     )
-    divisor: str | None = Field(
+    divisor: Quantity | None = Field(
         default=None,
         alias="divisor",
         description="divisor optionally indicates how the resource from the container should be scaled. If unset or 0, the resource is not scaled (divisor is treated as 1).",

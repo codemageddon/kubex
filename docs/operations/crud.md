@@ -20,6 +20,20 @@ async with client:
 
 Pass `resource_version=` to pin the read to a specific version; omit it for the current state.
 
+## Names and namespaces
+
+Every method that targets a single object (`get`, `replace`, `patch`, `delete`, and every subresource call) requires a non-empty name: passing `None` or `""` raises `ValueError("resource name may not be empty")` before any request is sent, so `delete()` can never turn into a collection delete. Names and namespaces are validated like client-go does — `"."`, `".."` and anything containing `/` or `%` raise `ValueError` — and are percent-encoded, so a name such as `weird#name` addresses exactly that object. An empty namespace (`namespace=""`) is also rejected; use `namespace=None` for "all namespaces" on `list`, `watch` and `delete_collection`.
+
+```python
+local = Pod(
+    metadata=ObjectMetadata(generate_name="example-pod-"),
+    spec=PodSpec(containers=[Container(name="example", image="nginx")]),
+)
+created = await api.create(local)
+await api.delete(local.metadata.name)  # ValueError: only the server knows the name
+await api.delete(created.metadata.name)  # OK: the server-assigned name
+```
+
 ## list
 
 List all resources in a namespace (or cluster-wide):
@@ -77,7 +91,22 @@ updated = await api.replace("example-pod", current)
 print(updated.metadata.labels)
 ```
 
-The full object (including `resourceVersion`) must be present in the payload — the API server uses `resourceVersion` as an optimistic-concurrency check.
+The full object (including `resourceVersion`) must be present in the payload — the API server uses `resourceVersion` as an optimistic-concurrency check. If anything else modified the object between the `get` and the `replace` (a controller, the kubelet updating a new pod), the server answers `409 Conflict`; re-read and retry:
+
+```python
+from kubex.core.exceptions import Conflict
+
+for _ in range(5):
+    current = await api.get("example-pod")
+    current.metadata.labels = {**(current.metadata.labels or {}), "env": "staging"}
+    try:
+        updated = await api.replace("example-pod", current)
+    except Conflict:
+        continue
+    break
+```
+
+For changes to a few fields, a [patch](patch.md) avoids the read-modify-write cycle altogether.
 
 ## delete
 
@@ -94,7 +123,7 @@ Control deletion behaviour with optional parameters:
 | `grace_period_seconds` | Override the resource's `terminationGracePeriodSeconds` |
 | `propagation_policy` | `"Foreground"`, `"Background"`, or `"Orphan"` |
 | `preconditions` | `Precondition(uid=..., resource_version=...)` for safe deletes |
-| `dry_run` | Validate without actually deleting |
+| `dry_run` | Validate without actually deleting (`True` or `"All"`) |
 
 ```python
 from kubex.core.params import Precondition

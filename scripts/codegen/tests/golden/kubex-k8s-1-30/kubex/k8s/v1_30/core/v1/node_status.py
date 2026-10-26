@@ -4,6 +4,7 @@ from pydantic import Field
 
 from kubex.k8s.v1_30.core.v1.node_address import NodeAddress
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import NullAsEmptyDict, NullAsEmptyList, Quantity
 
 
 class NodeStatusPhase(str, Enum):
@@ -15,7 +16,8 @@ class NodeStatusPhase(str, Enum):
 class NodeStatus(BaseK8sModel):
     """NodeStatus is information about the current status of a node."""
 
-    addresses: list[NodeAddress] | None = Field(default=None, alias="addresses")
+    addresses: NullAsEmptyList[NodeAddress] = Field(..., alias="addresses")
+    capacity: NullAsEmptyDict[Quantity] = Field(..., alias="capacity")
     phase: NodeStatusPhase | None = Field(
         default=None,
         alias="phase",

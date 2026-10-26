@@ -1,14 +1,13 @@
-import datetime
-
 from pydantic import Field
 
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Time
 
 
 class StorageVersionCondition(BaseK8sModel):
     """Describes the state of the storageVersion at a certain point."""
 
-    last_transition_time: datetime.datetime | None = Field(
+    last_transition_time: Time | None = Field(
         default=None,
         alias="lastTransitionTime",
         description="Last time the condition transitioned from one status to another.",

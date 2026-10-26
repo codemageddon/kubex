@@ -8,17 +8,23 @@ import pytest
 from kubex.client.client import handle_request_error
 from kubex.core.exceptions import (
     BadRequest,
+    ConfigurationError,
+    ConfigurationValueError,
     Conflict,
     Forbidden,
     Gone,
     KubernetesError,
     KubexApiError,
     KubexClientException,
+    KubexConnectionError,
     KubexException,
+    KubexTimeoutError,
     MethodNotAllowed,
     NotFound,
+    TooManyRequests,
     Unauthorized,
     UnprocessableEntity,
+    build_exception,
 )
 from kubex.core.response import HeadersWrapper, Response
 from kubex_core.models.status import Status
@@ -59,8 +65,9 @@ def _make_response(
     status_code: int,
     text: str = "",
     content_type: str | None = None,
+    extra_headers: list[tuple[str, str]] | None = None,
 ) -> Response:
-    pairs: list[tuple[str, str]] = []
+    pairs: list[tuple[str, str]] = list(extra_headers or [])
     if content_type is not None:
         pairs.append(("content-type", content_type))
     return Response(
@@ -97,6 +104,7 @@ STATUS_EXCEPTION_PAIRS = [
     (HTTPStatus.CONFLICT, Conflict),
     (HTTPStatus.GONE, Gone),
     (HTTPStatus.UNPROCESSABLE_ENTITY, UnprocessableEntity),
+    (HTTPStatus.TOO_MANY_REQUESTS, TooManyRequests),
     (HTTPStatus.INTERNAL_SERVER_ERROR, KubernetesError),
 ]
 
@@ -307,6 +315,7 @@ def test_exception_attributes_accessible() -> None:
         (Conflict, HTTPStatus.CONFLICT),
         (Gone, HTTPStatus.GONE),
         (UnprocessableEntity, HTTPStatus.UNPROCESSABLE_ENTITY),
+        (TooManyRequests, HTTPStatus.TOO_MANY_REQUESTS),
         (KubernetesError, HTTPStatus.INTERNAL_SERVER_ERROR),
     ],
     ids=lambda v: v.__name__ if isinstance(v, type) else "",
@@ -361,3 +370,92 @@ def test_second_level_subclass_status_via_constructor() -> None:
 
     err = CustomNotFound(content="gone", status=HTTPStatus.FORBIDDEN)
     assert err.status == HTTPStatus.FORBIDDEN
+
+
+def test_api_error_message_from_status() -> None:
+    body = _make_status_json(404, message='pods "x" not found', reason="NotFound")
+    response = _make_response(404, text=body, content_type="application/json")
+    with pytest.raises(NotFound) as exc_info:
+        handle_request_error(response)
+    assert str(exc_info.value) == '404 Not Found: pods "x" not found (reason: NotFound)'
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("etcd is down", "500 Internal Server Error: etcd is down"),
+        ("", "500 Internal Server Error"),
+        ("x" * 2000, "500 Internal Server Error: " + "x" * 500 + "..."),
+    ],
+    ids=["text", "empty", "truncated"],
+)
+def test_api_error_message_from_text(text: str, expected: str) -> None:
+    with pytest.raises(KubernetesError) as exc_info:
+        handle_request_error(_make_response(500, text=text))
+    assert str(exc_info.value) == expected
+    assert exc_info.value.content == text
+
+
+def test_api_error_explicit_args_still_win() -> None:
+    err = NotFound("body", "custom message")
+    assert str(err) == "custom message"
+    assert err.content == "body"
+
+
+def test_non_status_json_body_kept_as_text() -> None:
+    response = _make_response(
+        503, text='{"error": "upstream connect error"}', content_type="application/json"
+    )
+    with pytest.raises(KubexApiError) as exc_info:
+        handle_request_error(response)
+    assert exc_info.value.content == '{"error": "upstream connect error"}'
+    assert "upstream connect error" in str(exc_info.value)
+
+
+def test_too_many_requests_exposes_retry_after_header() -> None:
+    response = _make_response(
+        429,
+        text=_make_status_json(429, message="slow down", reason="TooManyRequests"),
+        content_type="application/json",
+        extra_headers=[("Retry-After", "7")],
+    )
+    with pytest.raises(TooManyRequests) as exc_info:
+        handle_request_error(response)
+    assert exc_info.value.retry_after == 7.0
+    assert exc_info.value.status == HTTPStatus.TOO_MANY_REQUESTS
+
+
+def test_retry_after_falls_back_to_status_details() -> None:
+    status = Status.model_validate(
+        {"kind": "Status", "code": 429, "details": {"retryAfterSeconds": 3}}
+    )
+    assert build_exception(429, status).retry_after == 3.0
+
+
+def test_retry_after_absent_is_none() -> None:
+    with pytest.raises(TooManyRequests) as exc_info:
+        handle_request_error(_make_response(429, text="rate limited"))
+    assert exc_info.value.retry_after is None
+    assert NotFound("x").retry_after is None
+
+
+def test_transport_exception_hierarchy() -> None:
+    assert issubclass(KubexConnectionError, KubexClientException)
+    assert issubclass(KubexTimeoutError, KubexClientException)
+    assert issubclass(KubexTimeoutError, TimeoutError)
+    assert str(KubexTimeoutError("GET /x timed out")) == "GET /x timed out"
+    assert not issubclass(KubexConnectionError, KubexApiError)
+
+
+def test_configuration_value_error_is_both() -> None:
+    assert issubclass(ConfigurationValueError, ConfigurationError)
+    assert issubclass(ConfigurationValueError, KubexException)
+    assert issubclass(ConfigurationValueError, ValueError)
+    assert not issubclass(ConfigurationError, ValueError)
+
+
+def test_response_text_replaces_invalid_utf8() -> None:
+    response = Response(
+        content=b"ok \xff\xfe log", headers=HeadersWrapper({}), status_code=200
+    )
+    assert response.text == "ok \ufffd\ufffd log"

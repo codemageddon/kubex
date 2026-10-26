@@ -1,17 +1,18 @@
 from pydantic import Field
 
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Quantity
 
 
 class VolumeResourceRequirements(BaseK8sModel):
     """VolumeResourceRequirements describes the storage resource requirements for a volume."""
 
-    limits: dict[str, str] | None = Field(
+    limits: dict[str, Quantity] | None = Field(
         default=None,
         alias="limits",
         description="limits describes the maximum amount of compute resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/",
     )
-    requests: dict[str, str] | None = Field(
+    requests: dict[str, Quantity] | None = Field(
         default=None,
         alias="requests",
         description="requests describes the minimum amount of compute resources required. If Requests is omitted for a container, it defaults to Limits if that is explicitly specified, otherwise to an implementation-defined value. Requests cannot exceed Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/",

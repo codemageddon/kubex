@@ -1,16 +1,33 @@
 from __future__ import annotations
 
+import json
+
 import anyio
 import pytest
 
-from kubex.api._stream_session import StreamSession
+from kubex.api._stream_session import _MAX_FRAME_PAYLOAD, StreamSession
 from kubex.client.websocket import WebSocketConnection
+from kubex.core.exceptions import KubexClientException
 from kubex.core.exec_channels import V5ChannelProtocol
 
+_SUCCESS = b'{"metadata":{},"status":"Success"}'
 
-@pytest.fixture
-def anyio_backend() -> str:
-    return "asyncio"
+
+def _exit_status(code: int) -> bytes:
+    return json.dumps(
+        {
+            "metadata": {},
+            "status": "Failure",
+            "reason": "NonZeroExitCode",
+            "message": f"command terminated with exit code {code}",
+            "details": {"causes": [{"reason": "ExitCode", "message": str(code)}]},
+        }
+    ).encode()
+
+
+@pytest.fixture(params=["asyncio", "trio"])
+def anyio_backend(request: pytest.FixtureRequest) -> str:
+    return str(request.param)
 
 
 class _FakeWebSocket(WebSocketConnection):
@@ -293,7 +310,9 @@ async def test_close_stdin_rolls_back_flag_on_send_failure() -> None:
 
 
 @pytest.mark.anyio
-async def test_invalid_status_payload_does_not_crash_read_loop() -> None:
+async def test_non_json_status_payload_becomes_failure_status() -> None:
+    """A garbled error channel must not crash the read loop, and must not be
+    reported as "no status": it surfaces as a Failure carrying the text."""
     fake = _FakeWebSocket()
     fake.feed(bytes([3]) + b"not valid json")
     fake.feed(bytes([1]) + b"after-error")
@@ -304,88 +323,310 @@ async def test_invalid_status_payload_does_not_crash_read_loop() -> None:
         status = await session.wait_for_status()
 
     assert stdout == [b"after-error"]
-    assert status is None
+    assert status is not None
+    assert status.status == "Failure"
+    assert status.message == "not valid json"
 
 
 @pytest.mark.anyio
-async def test_status_observable_when_consumer_does_not_drain_stdout() -> None:
-    """Regression: a consumer that never reads stdout must not block error/EOF
-    delivery. Earlier the bounded 128-frame buffer would deadlock the read
-    loop once filled, starving channel 3 (status) and EOF detection."""
-    fake = _FakeWebSocket(buffer=512)
-    # Push more frames than the per-channel buffer would admit to make the
-    # regression unambiguous, then a status frame, then EOF.
-    for _ in range(200):
-        fake.feed(bytes([1]) + b"chunk")
-    fake.feed(bytes([3]) + b'{"metadata":{},"status":"Success"}')
-    fake.feed_eof()
+async def test_empty_error_frame_does_not_resolve_status() -> None:
+    """Regression: the server's empty "connection established" frame lands on
+    the error channel when stdout/stderr are disabled. It used to resolve
+    ``wait_for_status()`` immediately with ``None``."""
+    fake = _FakeWebSocket()
+    fake.feed(bytes([3]))
 
-    with anyio.fail_after(2.0):
-        async with StreamSession(fake, V5ChannelProtocol()) as session:
-            # Deliberately do NOT iterate session.stdout. Status must still
-            # arrive because the read loop cannot be parked on a full buffer.
+    async with StreamSession(
+        fake, V5ChannelProtocol(), stdout=False, stderr=False
+    ) as session:
+        with anyio.move_on_after(0.1) as scope:
+            await session.wait_for_status()
+        assert scope.cancelled_caught
+
+        fake.feed(bytes([3]) + _exit_status(3))
+        with anyio.fail_after(2.0):
             status = await session.wait_for_status()
 
     assert status is not None
-    assert status.status == "Success"
+    assert status.details is not None and status.details.causes is not None
+    assert status.details.causes[0].message == "3"
 
 
 @pytest.mark.anyio
-async def test_stdout_buffer_overflow_closes_channel_without_oom() -> None:
-    """Regression: a remote producer that floods one enabled channel while the
-    consumer falls behind must not grow client memory unboundedly. When the
-    bounded per-channel buffer fills, the read loop closes that channel
-    locally (consumer observes EOF after draining what was buffered) instead
-    of either blocking the wire (deadlock) or buffering forever (OOM).
-    Sibling channels keep flowing."""
-    fake = _FakeWebSocket(buffer=2048)
-    # Feed far more than the per-channel buffer can hold.
-    for _ in range(1000):
-        fake.feed(bytes([1]) + b"flood")
-    # Stderr arrives interleaved — must still be deliverable in full
-    # because it has its own buffer and is being drained promptly below.
-    fake.feed(bytes([2]) + b"err-1")
-    fake.feed(bytes([2]) + b"err-2")
-    fake.feed(bytes([3]) + b'{"metadata":{},"status":"Success"}')
-    fake.feed_eof()
-
-    with anyio.fail_after(2.0):
-        async with StreamSession(fake, V5ChannelProtocol()) as session:
-            stderr = [chunk async for chunk in session.stderr]
-            status = await session.wait_for_status()
-            # The stdout channel was closed locally on overflow; iterating
-            # yields whatever was buffered up to the cap, then ends.
-            stdout = [chunk async for chunk in session.stdout]
-
-    assert stderr == [b"err-1", b"err-2"]
-    assert status is not None and status.status == "Success"
-    # Strictly bounded: never the full 1000 floods.
-    assert len(stdout) <= 256
-    assert all(chunk == b"flood" for chunk in stdout)
-    # Consumer can observe that the EOF was a local truncation, not a
-    # normal command end.
-    assert session.stdout_truncated is True
-    assert session.stderr_truncated is False
-
-
-@pytest.mark.anyio
-async def test_truncation_flags_false_on_clean_exit() -> None:
-    """A normal command end (consumer keeps up, no overflow) must leave
-    both ``*_truncated`` flags ``False`` so callers can rely on them as a
-    truthy "we lost data" signal."""
+async def test_status_split_across_frames_is_reassembled() -> None:
+    payload = _exit_status(42)
     fake = _FakeWebSocket()
-    fake.feed(bytes([1]) + b"out")
-    fake.feed(bytes([2]) + b"err")
-    fake.feed(bytes([3]) + b'{"metadata":{},"status":"Success"}')
+    fake.feed(bytes([3]) + payload[:10])
+    fake.feed(bytes([3]) + payload[10:25])
+    fake.feed(bytes([3]) + payload[25:])
+
+    async with StreamSession(fake, V5ChannelProtocol(), stdout=False) as session:
+        with anyio.fail_after(2.0):
+            status = await session.wait_for_status()
+
+    assert status is not None and status.reason == "NonZeroExitCode"
+
+
+@pytest.mark.anyio
+async def test_status_without_metadata_is_parsed() -> None:
+    fake = _FakeWebSocket()
+    fake.feed(bytes([3]) + b'{"status":"Success"}')
     fake.feed_eof()
 
     async with StreamSession(fake, V5ChannelProtocol()) as session:
-        [chunk async for chunk in session.stdout]
-        [chunk async for chunk in session.stderr]
-        await session.wait_for_status()
+        status = await session.wait_for_status()
 
-    assert session.stdout_truncated is False
-    assert session.stderr_truncated is False
+    assert status is not None and status.status == "Success"
+
+
+@pytest.mark.anyio
+async def test_incomplete_status_at_eof_becomes_failure_status() -> None:
+    fake = _FakeWebSocket()
+    fake.feed(bytes([3]) + b'{"status":"Fail')
+    fake.feed_eof()
+
+    async with StreamSession(fake, V5ChannelProtocol()) as session:
+        status = await session.wait_for_status()
+
+    assert status is not None
+    assert status.status == "Failure"
+    assert status.message == '{"status":"Fail'
+
+
+@pytest.mark.anyio
+async def test_empty_payloads_are_not_delivered_to_consumers() -> None:
+    fake = _FakeWebSocket()
+    fake.feed(bytes([1]))
+    fake.feed(bytes([2]))
+    fake.feed(bytes([1]) + b"out")
+    fake.feed(bytes([2]) + b"err")
+    fake.feed(bytes([1]))
+    fake.feed_eof()
+
+    async with StreamSession(fake, V5ChannelProtocol()) as session:
+        stdout = [c async for c in session.stdout]
+        stderr = [c async for c in session.stderr]
+
+    assert stdout == [b"out"]
+    assert stderr == [b"err"]
+
+
+@pytest.mark.anyio
+async def test_slow_consumer_receives_every_frame() -> None:
+    """Regression: a full per-channel queue used to close the channel and
+    drop the rest of the output while the process kept running. The read
+    loop now waits for the consumer instead."""
+    frames = 1000
+    fake = _FakeWebSocket(buffer=frames + 8)
+    for i in range(frames):
+        fake.feed(bytes([1]) + b"line %04d\n" % i)
+    fake.feed(bytes([3]) + _SUCCESS)
+    fake.feed_eof()
+
+    received = bytearray()
+    with anyio.fail_after(10.0):
+        async with StreamSession(
+            fake, V5ChannelProtocol(), stderr=False, buffer_size=2
+        ) as session:
+            async for chunk in session.stdout:
+                received.extend(chunk)
+                await anyio.sleep(0)
+            status = await session.wait_for_status()
+
+    assert received == b"".join(b"line %04d\n" % i for i in range(frames))
+    assert status is not None and status.status == "Success"
+
+
+@pytest.mark.anyio
+async def test_status_waits_behind_undrained_output() -> None:
+    """Backpressure is in-order: the status frame is only read once earlier
+    output has been consumed. Draining stdout releases it."""
+    fake = _FakeWebSocket()
+    for _ in range(5):
+        fake.feed(bytes([1]) + b"chunk")
+    fake.feed(bytes([3]) + _SUCCESS)
+    fake.feed_eof()
+
+    async with StreamSession(fake, V5ChannelProtocol(), buffer_size=1) as session:
+        with anyio.move_on_after(0.1) as scope:
+            await session.wait_for_status()
+        assert scope.cancelled_caught
+        chunks = [c async for c in session.stdout]
+        with anyio.fail_after(2.0):
+            status = await session.wait_for_status()
+
+    assert chunks == [b"chunk"] * 5
+    assert status is not None and status.status == "Success"
+
+
+@pytest.mark.anyio
+async def test_closing_a_receive_stream_discards_that_channel() -> None:
+    """Closing ``session.stderr`` is the opt-out for a channel the caller
+    does not want: its frames are dropped and the rest keeps flowing."""
+    fake = _FakeWebSocket()
+    for _ in range(50):
+        fake.feed(bytes([2]) + b"noise")
+    fake.feed(bytes([1]) + b"wanted")
+    fake.feed(bytes([3]) + _SUCCESS)
+    fake.feed_eof()
+
+    with anyio.fail_after(2.0):
+        async with StreamSession(fake, V5ChannelProtocol(), buffer_size=2) as session:
+            session.stderr.close()
+            stdout = [c async for c in session.stdout]
+            status = await session.wait_for_status()
+
+    assert stdout == [b"wanted"]
+    assert status is not None and status.status == "Success"
+
+
+@pytest.mark.anyio
+async def test_exit_does_not_deadlock_when_stderr_floods_and_only_stdout_is_read() -> (
+    None
+):
+    """A consumer reading only stdout while the process floods stderr stalls
+    (stderr's queue is full, so later stdout frames are never read) — that
+    is the documented cost of backpressure. Leaving the context manager must
+    still tear the session down promptly."""
+    fake = _FakeWebSocket(buffer=512)
+    for _ in range(200):
+        fake.feed(bytes([2]) + b"err")
+    fake.feed(bytes([1]) + b"done")
+    # No EOF: the server keeps the connection open.
+
+    stdout: list[bytes] = []
+    with anyio.fail_after(2.0):
+        async with StreamSession(fake, V5ChannelProtocol(), buffer_size=4) as session:
+            with anyio.move_on_after(0.2):
+                async for chunk in session.stdout:
+                    stdout.append(chunk)
+
+    assert stdout == []
+    assert fake.closed is True
+
+
+@pytest.mark.anyio
+async def test_outer_cancel_while_read_loop_is_blocked_tears_down_promptly() -> None:
+    fake = _FakeWebSocket(buffer=512)
+    for _ in range(100):
+        fake.feed(bytes([1]) + b"x")
+
+    with anyio.fail_after(2.0):
+        with anyio.move_on_after(0.1) as scope:
+            async with StreamSession(fake, V5ChannelProtocol(), buffer_size=1):
+                await anyio.sleep_forever()
+
+    assert scope.cancelled_caught
+    assert fake.closed is True
+
+
+def _stdin_frames(sent: list[bytes]) -> list[bytes]:
+    return [frame for frame in sent if frame[0] == 0]
+
+
+@pytest.mark.anyio
+async def test_large_stdin_write_is_split_into_32k_frames() -> None:
+    """Regression: a large write used to go out as one WebSocket message,
+    which the API server drops (closing with 1000) above its size cap."""
+    data = bytes(range(256)) * 400  # 100 KiB
+    fake = _FakeWebSocket()
+
+    async with StreamSession(fake, V5ChannelProtocol(), stdin=True) as session:
+        await session.stdin.write(data)
+
+    frames = _stdin_frames(fake.sent)
+    assert len(frames) == 4
+    assert all(len(frame) - 1 <= _MAX_FRAME_PAYLOAD for frame in frames)
+    assert b"".join(frame[1:] for frame in frames) == data
+
+
+@pytest.mark.anyio
+async def test_stdin_writes_stay_contiguous_while_resize_interleaves() -> None:
+    """Frames of one stdin write must not interleave with another stdin
+    write, but a resize must not wait for a whole large write either."""
+
+    class _GatedWebSocket(_FakeWebSocket):
+        def __init__(self) -> None:
+            super().__init__()
+            self.first_send = anyio.Event()
+            self.gate = anyio.Event()
+
+        async def send_bytes(self, data: bytes) -> None:
+            self.sent.append(data)
+            if not self.first_send.is_set():
+                self.first_send.set()
+                await self.gate.wait()
+            await anyio.sleep(0)
+
+    chunk = _MAX_FRAME_PAYLOAD
+    a = b"a" * (3 * chunk)
+    b = b"b" * (2 * chunk)
+    fake = _GatedWebSocket()
+
+    async with StreamSession(fake, V5ChannelProtocol(), stdin=True) as session:
+        async with anyio.create_task_group() as tg:
+            tg.start_soon(session.stdin.write, a)
+            await fake.first_send.wait()
+            tg.start_soon(session.stdin.write, b)
+            for _ in range(5):
+                await anyio.sleep(0)
+            tg.start_soon(lambda: session.resize(width=80, height=24))
+            for _ in range(5):
+                await anyio.sleep(0)
+            fake.gate.set()
+
+    kinds = [frame[:2] for frame in fake.sent]
+    assert kinds == [
+        b"\x00a",
+        b"\x04{",
+        b"\x00a",
+        b"\x00a",
+        b"\x00b",
+        b"\x00b",
+    ]
+
+
+@pytest.mark.anyio
+async def test_writes_after_session_exit_raise_kubex_client_exception() -> None:
+    fake = _FakeWebSocket()
+    fake.feed_eof()
+
+    async with StreamSession(fake, V5ChannelProtocol(), stdin=True) as session:
+        pass
+
+    with pytest.raises(KubexClientException, match="closed"):
+        await session.stdin.write(b"late")
+    with pytest.raises(KubexClientException, match="closed"):
+        await session.resize(width=80, height=24)
+    with pytest.raises(KubexClientException, match="closed"):
+        await session.close_stdin()
+    assert fake.sent == []
+
+
+@pytest.mark.anyio
+async def test_close_stdin_after_exit_is_noop_when_already_closed() -> None:
+    fake = _FakeWebSocket()
+    fake.feed_eof()
+
+    async with StreamSession(fake, V5ChannelProtocol(), stdin=True) as session:
+        await session.close_stdin()
+
+    await session.close_stdin()
+    assert fake.sent == [b"\xff\x00"]
+
+
+@pytest.mark.anyio
+async def test_truncation_flags_are_deprecated_and_always_false() -> None:
+    fake = _FakeWebSocket()
+    fake.feed_eof()
+
+    async with StreamSession(fake, V5ChannelProtocol()) as session:
+        pass
+
+    with pytest.warns(DeprecationWarning):
+        assert session.stdout_truncated is False
+    with pytest.warns(DeprecationWarning):
+        assert session.stderr_truncated is False
 
 
 @pytest.mark.anyio

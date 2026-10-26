@@ -44,7 +44,9 @@ class JsonPatchMove(BaseModel):
 
 
 class JsonPatchCopy(BaseModel):
-    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True)
+    # populate_by_name (not validate_by_name/validate_by_alias, which need
+    # pydantic>=2.11) keeps the declared `pydantic>=2.0` floor working.
+    model_config = ConfigDict(populate_by_name=True)
     op: Literal["copy"] = "copy"
     path: JsonPointer
     from_: JsonPointer = Field(alias="from")
@@ -82,34 +84,30 @@ class JsonPatch(RootModel[list[JsonPatchOperation]]):
     root: list[JsonPatchOperation] = []
 
     def add(self, path: str, value: Any) -> JsonPatch:
-        self.root.append(JsonPatchAdd(path=path, value=value))  # ty: ignore[invalid-argument-type]
+        self.root.append(JsonPatchAdd(path=path, value=value))
         return self
 
     def remove(self, path: str) -> JsonPatch:
-        self.root.append(JsonPatchRemove(path=path))  # ty: ignore[invalid-argument-type]
+        self.root.append(JsonPatchRemove(path=path))
         return self
 
     def replace(self, path: str, value: Any) -> JsonPatch:
-        self.root.append(JsonPatchReplace(path=path, value=value))  # ty: ignore[invalid-argument-type]
+        self.root.append(JsonPatchReplace(path=path, value=value))
 
         return self
 
     def move(self, path: str, *, from_: str) -> JsonPatch:
-        self.root.append(
-            JsonPatchMove(path=path, from_=from_)  # ty: ignore[invalid-argument-type,missing-argument, unknown-argument]
-        )
+        self.root.append(JsonPatchMove(path=path, from_=from_))
         return self
 
     def copy(  # type: ignore[override]  # ty: ignore[invalid-method-override]
         self, path: str, *, from_: str
     ) -> JsonPatch:
-        self.root.append(
-            JsonPatchCopy(path=path, from_=from_)  # ty: ignore[invalid-argument-type, missing-argument, unknown-argument]
-        )
+        self.root.append(JsonPatchCopy(path=path, from_=from_))
         return self
 
     def test(self, path: str, value: Any) -> JsonPatch:
-        self.root.append(JsonPatchTest(path=path, value=value))  # ty: ignore[invalid-argument-type]
+        self.root.append(JsonPatchTest(path=path, value=value))
         return self
 
     def serialize(

@@ -4,12 +4,13 @@ from kubex.k8s.v1_32.core.v1.object_reference import ObjectReference
 from kubex.k8s.v1_32.discovery.v1.endpoint_conditions import EndpointConditions
 from kubex.k8s.v1_32.discovery.v1.endpoint_hints import EndpointHints
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import NullAsEmptyList
 
 
 class Endpoint(BaseK8sModel):
     """Endpoint represents a single logical \"backend\" implementing a service."""
 
-    addresses: list[str] = Field(
+    addresses: NullAsEmptyList[str] = Field(
         ...,
         alias="addresses",
         description="addresses of this endpoint. The contents of this field are interpreted according to the corresponding EndpointSlice addressType field. Consumers must handle different types of addresses in the context of their own capabilities. This must contain at least one address but no more than 100. These are all assumed to be fungible and clients may choose to only use the first element. Refer to: https://issue.k8s.io/106267",

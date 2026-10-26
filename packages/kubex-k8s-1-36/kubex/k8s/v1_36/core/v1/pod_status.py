@@ -1,5 +1,3 @@
-import datetime
-
 from pydantic import Field
 
 from kubex.k8s.v1_36.core.v1.container_status import ContainerStatus
@@ -15,12 +13,13 @@ from kubex.k8s.v1_36.core.v1.pod_ip import PodIP
 from kubex.k8s.v1_36.core.v1.pod_resource_claim_status import PodResourceClaimStatus
 from kubex.k8s.v1_36.core.v1.resource_requirements import ResourceRequirements
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Quantity, Time
 
 
 class PodStatus(BaseK8sModel):
     """PodStatus represents information about the status of a pod. Status may trail the actual state of a system, especially if the node that hosts the pod cannot contact the control plane."""
 
-    allocated_resources: dict[str, str] | None = Field(
+    allocated_resources: dict[str, Quantity] | None = Field(
         default=None,
         alias="allocatedResources",
         description="AllocatedResources is the total requests allocated for this pod by the node. If pod-level requests are not set, this will be the total requests aggregated across containers in the pod.",
@@ -122,7 +121,7 @@ class PodStatus(BaseK8sModel):
         alias="resources",
         description="Resources represents the compute resource requests and limits that have been applied at the pod level if pod-level requests or limits are set in PodSpec.Resources",
     )
-    start_time: datetime.datetime | None = Field(
+    start_time: Time | None = Field(
         default=None,
         alias="startTime",
         description="RFC 3339 date and time at which the object was acknowledged by the Kubelet. This is before the Kubelet pulled the container image(s) for the pod.",

@@ -1,8 +1,7 @@
-import datetime
-
 from pydantic import Field
 
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Time
 
 
 class ContainerStateTerminated(BaseK8sModel):
@@ -18,7 +17,7 @@ class ContainerStateTerminated(BaseK8sModel):
         alias="exitCode",
         description="exitCode is the exit status from the last termination of the container",
     )
-    finished_at: datetime.datetime | None = Field(
+    finished_at: Time | None = Field(
         default=None,
         alias="finishedAt",
         description="finishedAt is the time at which the container last terminated",
@@ -38,7 +37,7 @@ class ContainerStateTerminated(BaseK8sModel):
         alias="signal",
         description="signal from the last termination of the container",
     )
-    started_at: datetime.datetime | None = Field(
+    started_at: Time | None = Field(
         default=None,
         alias="startedAt",
         description="startedAt is the time at which previous execution of the container started",

@@ -183,3 +183,42 @@ def test_stream_logs_timeout(
         assert req.timeout is None
     elif isinstance(expected, Timeout):
         assert req.timeout == expected
+
+
+# --- since_time -----------------------------------------------------------
+
+
+def test_logs_since_time_rfc3339_utc(ns_builder: RequestBuilder) -> None:
+    from datetime import datetime, timedelta, timezone
+
+    cest = timezone(timedelta(hours=2))
+    opts = LogOptions(since_time=datetime(2026, 10, 24, 0, 18, 5, tzinfo=cest))
+    req = ns_builder.logs("my-pod", "default", opts)
+    assert req.query_params == {"sinceTime": "2026-10-23T22:18:05Z"}
+
+
+def test_logs_since_time_keeps_fractional_seconds(ns_builder: RequestBuilder) -> None:
+    from datetime import datetime, timezone
+
+    opts = LogOptions(
+        since_time=datetime(2026, 10, 23, 22, 18, 5, 250000, timezone.utc)
+    )
+    req = ns_builder.stream_logs("my-pod", "default", opts)
+    assert req.query_params == {
+        "sinceTime": "2026-10-23T22:18:05.250000Z",
+        "follow": "true",
+    }
+
+
+def test_logs_since_time_rejects_naive_datetime() -> None:
+    from datetime import datetime
+
+    with pytest.raises(ValueError, match="timezone-aware"):
+        LogOptions(since_time=datetime(2026, 10, 23, 22, 18))
+
+
+def test_logs_since_time_and_since_seconds_mutually_exclusive() -> None:
+    from datetime import datetime, timezone
+
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        LogOptions(since_seconds=10, since_time=datetime.now(timezone.utc))

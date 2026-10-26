@@ -9,6 +9,7 @@ from kubex.k8s.v1_35.storagemigration.v1beta1.storage_version_migration import (
 )
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.metadata import ListMetadata
+from kubex_core.models.types import NullAsEmptyList
 
 
 class StorageVersionMigrationList(ListEntity[StorageVersionMigration]):
@@ -19,7 +20,7 @@ class StorageVersionMigrationList(ListEntity[StorageVersionMigration]):
         alias="apiVersion",
         description="APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
     )
-    items: list[StorageVersionMigration] = Field(
+    items: NullAsEmptyList[StorageVersionMigration] = Field(
         ..., alias="items", description="Items is the list of StorageVersionMigration"
     )
     kind: Literal["StorageVersionMigrationList"] = Field(

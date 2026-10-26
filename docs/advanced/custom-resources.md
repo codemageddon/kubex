@@ -56,6 +56,56 @@ class Widget(NamespaceScopedEntity, HasStatusSubresource):
 
 `api_version` and `kind` fields use `Literal` types so Pydantic serializes them as fixed strings and mypy can verify type safety on API responses.
 
+## Field names and aliases
+
+`BaseK8sModel` derives each field's wire name with Pydantic's `to_camel` alias generator, so `ready_replicas` is sent and read as `readyReplicas`. The generator does not know about acronyms: `pod_ip` becomes `podIp`, not the `podIP` the API server uses, and the field would silently stay `None`. Give acronym fields (and any other name `to_camel` cannot produce, such as `x-kubernetes-*` or `$ref`) an explicit alias:
+
+```python
+class WidgetStatus(BaseK8sModel):
+    ready_replicas: int | None = None  # readyReplicas: derived correctly
+    pod_ip: str | None = Field(default=None, alias="podIP")
+    host_ips: list[str] | None = Field(default=None, alias="hostIPs")
+    api_url: str | None = Field(default=None, alias="apiURL")
+```
+
+## Timestamps, quantities and nullable collections
+
+`kubex_core.models.types` provides the annotated types the generated models use, so custom resources get the same wire behaviour:
+
+| Type | Use for | Behaviour |
+|---|---|---|
+| `Time` | `metav1.Time` fields (`format: date-time`) | `datetime`; serialized as `2024-05-01T10:00:00Z` (UTC, seconds) |
+| `MicroTime` | `metav1.MicroTime` fields (e.g. lease renew times) | `datetime`; serialized as `2024-05-01T10:00:00.000000Z` (UTC, always six fractional digits, which the API server requires) |
+| `Quantity` | resource quantities (`cpu`, `memory`, ...) | `str`; numeric input such as `cpu: 1` or `cpu: 0.5` from YAML is converted to a string |
+| `NullAsEmptyList[T]` / `NullAsEmptyDict[T]` | required collections | read `null` as `[]` / `{}` (Go nil slices and maps are sent as `null`) |
+
+```python
+from kubex_core.models.types import MicroTime, Quantity, Time
+
+
+class WidgetSpec(BaseK8sModel):
+    replicas: int = 1
+    cpu: Quantity | None = None
+    resources: dict[str, Quantity] | None = None
+    not_before: Time | None = None
+    last_heartbeat: MicroTime | None = None
+```
+
+Naive `datetime` values are treated as UTC. The serializers apply in JSON mode (`model_dump(mode="json")`, `model_dump_json()`, which kubex uses for request bodies); `model_dump()` in Python mode keeps `datetime` objects. A plain `datetime.datetime` field still parses server responses, but it is serialized without the `Z` suffix the API server expects for naive values and without the fixed fraction `MicroTime` needs.
+
+## Unknown fields are preserved
+
+Fields your model does not declare are kept, under their original wire names, and sent back on `create`, `replace` and patches. A model that only declares part of the CRD schema (or an older version of it) can therefore do a get → modify → replace without deleting the fields it does not know about:
+
+```python
+widget = await api.get("my-widget")      # server object also has spec.color
+widget.spec.replicas = 3                  # WidgetSpec has no `color` field
+await api.replace("my-widget", widget)    # spec.color is sent back unchanged
+print(widget.spec.model_extra)            # {'color': 'red'}
+```
+
+Undeclared fields are untyped: read them through `model_extra` (keyed by wire name) and declare them on the model once you rely on them.
+
 ## Cluster-scoped CRDs
 
 For cluster-scoped resources, inherit from `ClusterScopedEntity` and set `scope=Scope.CLUSTER`:
@@ -179,12 +229,14 @@ See `examples/custom_resource.py` in the repository for a complete runnable vers
 
 ## Automatic pluralization
 
-When `plural` is omitted from `ResourceConfig`, kubex derives it from `kind` at first access using simple English rules:
+When `plural` is omitted from `ResourceConfig`, kubex derives it from `kind` at first access using regular English rules (matching the plurals `controller-gen`/kubebuilder generate for CRDs):
 
 | Kind ends with | Rule | Example |
 |---|---|---|
-| `y` | replace `y` → `ies` | `Category` → `categories` |
-| `s` or `x` | append `es` | `Ingress` → `ingresses` |
+| consonant + `y` | replace `y` → `ies` | `Policy` → `policies` |
+| vowel + `y` | append `s` | `Gateway` → `gateways` |
+| `s`, `x`, `z`, `ch` or `sh` | append `es` | `Ingress` → `ingresses`, `Mesh` → `meshes` |
+| `endpoints` | unchanged | `Endpoints` → `endpoints` |
 | anything else | append `s` | `Widget` → `widgets` |
 
-Override `plural` explicitly when the CRD declares a plural that the auto-derivation rules would not produce — for example, a `FooInstance` resource whose CRD registers `plural: foo-instances` rather than the auto-derived `fooinstances`.
+Override `plural` explicitly when the CRD declares a plural that the auto-derivation rules would not produce — for example, a `FooInstance` resource whose CRD registers `plural: foo-instances` rather than the auto-derived `fooinstances`, or an irregular plural such as `Index` → `indices`.

@@ -50,6 +50,7 @@ def test_package_layout(generated_package: Path) -> None:
     assert (src / "apps" / "v1" / "deployment.py").is_file()
     assert (src / "apps" / "v1" / "deployment_list.py").is_file()
     assert (generated_package / "pyproject.toml").is_file()
+    assert (generated_package / "LICENSE").is_file()
     # Old flat files should NOT exist
     assert not (src / "core_v1.py").exists()
     assert not (src / "apps_v1.py").exists()
@@ -125,12 +126,15 @@ def test_generated_imports_and_validates(generated_package: Path) -> None:
                             "someNiceAPI": "api-1",
                         }
                     ],
+                    # Required map sent as null by the server (Go nil map).
+                    "capacity": None,
                     "phase": "Running",
                 },
             }
         )
         assert node.metadata.name == "worker-1"
         assert node.status is not None
+        assert node.status.capacity == {}
         addr = node.status.addresses[0]
         assert addr.internal_ip == "10.0.0.1"
         assert addr.pod_ips == ["10.0.0.1"]
@@ -140,6 +144,49 @@ def test_generated_imports_and_validates(generated_package: Path) -> None:
         assert dumped["status"]["addresses"][0]["internalIP"] == "10.0.0.1"
         assert dumped["status"]["addresses"][0]["podIPs"] == ["10.0.0.1"]
         assert dumped["status"]["phase"] == "Running"
+
+        # Required list sent as null; Quantity accepts numbers.
+        bare = Node.model_validate(
+            {
+                "metadata": {"name": "worker-2"},
+                "status": {"addresses": None, "capacity": {"cpu": 4, "memory": "8Gi"}},
+            }
+        )
+        assert bare.status is not None
+        assert bare.status.addresses == []
+        assert bare.status.capacity == {"cpu": "4", "memory": "8Gi"}
+        assert NodeList.model_validate({"metadata": {}, "items": None}).items == []
+
+        # Required Time: present but null is accepted; JSON output uses `Z`.
+        condition_mod = importlib.import_module(
+            "kubex.k8s.v1_30.apps.v1.deployment_condition"
+        )
+        DeploymentCondition = condition_mod.DeploymentCondition
+        cond = DeploymentCondition.model_validate(
+            {"type": "Available", "status": "True", "lastTransitionTime": None}
+        )
+        assert cond.last_transition_time is None
+        cond = DeploymentCondition.model_validate(
+            {
+                "type": "Available",
+                "status": "True",
+                "lastTransitionTime": "2024-05-01T10:00:00+02:00",
+            }
+        )
+        assert (
+            cond.model_dump(mode="json", by_alias=True, exclude_none=True)[
+                "lastTransitionTime"
+            ]
+            == "2024-05-01T08:00:00Z"
+        )
+
+        # Unknown fields round-trip.
+        future = Node.model_validate(
+            {"metadata": {"name": "n"}, "futureField": {"a": 1}}
+        )
+        assert future.model_dump(by_alias=True, exclude_none=True)["futureField"] == {
+            "a": 1
+        }
 
         with pytest.raises(ValueError):
             Node.__RESOURCE_CONFIG__.url(namespace="x")

@@ -2,7 +2,7 @@ from typing import cast
 
 from kubex.api import Api
 from kubex.client import create_client
-from kubex.core.patch import JsonPatch, MergePatch, StrategicMergePatch
+from kubex.core.patch import ApplyPatch, JsonPatch, MergePatch, StrategicMergePatch
 from kubex.k8s.v1_35.apps.v1.deployment import Deployment
 from kubex.k8s.v1_35.apps.v1.deployment_spec import DeploymentSpec
 from kubex.k8s.v1_35.core.v1.container import Container
@@ -80,6 +80,32 @@ async def main() -> None:
             json_patch = JsonPatch().add("/metadata/labels/version", "v1")
             patched = await api.patch(name, json_patch)
             print(f"After JsonPatch: labels={patched.metadata.labels}")
+
+            # ApplyPatch — server-side apply: send the fields this manager owns.
+            # apiVersion/kind are filled in automatically.
+            apply_patch = ApplyPatch(
+                Deployment(
+                    metadata=ObjectMetadata(name=name),
+                    spec=DeploymentSpec(
+                        replicas=2,
+                        selector=LabelSelector(match_labels={"app": "example"}),
+                        template=PodTemplateSpec(
+                            metadata=ObjectMetadata(labels={"app": "example"}),
+                            spec=PodSpec(
+                                containers=[
+                                    Container(name="nginx", image="nginx:latest")
+                                ],
+                            ),
+                        ),
+                    ),
+                )
+            )
+            patched = await api.patch(
+                name, apply_patch, field_manager="kubex-example", force=True
+            )
+            print(
+                f"After ApplyPatch: replicas={patched.spec and patched.spec.replicas}"
+            )
         finally:
             await api.delete(name)
 

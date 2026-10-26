@@ -1,14 +1,13 @@
-import datetime
-
 from pydantic import Field
 
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Time
 
 
 class MigrationCondition(BaseK8sModel):
     """Describes the state of a migration at a certain point."""
 
-    last_update_time: datetime.datetime | None = Field(
+    last_update_time: Time | None = Field(
         default=None,
         alias="lastUpdateTime",
         description="The last time this condition was updated.",

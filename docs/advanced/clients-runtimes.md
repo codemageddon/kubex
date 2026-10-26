@@ -33,7 +33,7 @@ The plain `kubex[httpx]` extra intentionally omits `httpx-ws` so that non-WebSoc
 
 ### Auto-detection
 
-`create_client()` picks a backend automatically. It tries `aiohttp` first, then `httpx`, and raises `ImportError` if neither is installed:
+`create_client()` picks a backend automatically. It tries `aiohttp` first, then `httpx`, and raises `ImportError` if neither is installed. When it is called outside asyncio (e.g. under trio) it picks `httpx`, since `aiohttp` is asyncio-only:
 
 ```python
 from kubex.client import create_client

@@ -36,6 +36,10 @@ Auto-generated reference for the `kubex_core` package — the shared base models
 
 ::: kubex_core.models.partial_object_meta
 
+## Field types
+
+::: kubex_core.models.types
+
 ## Type aliases
 
 ::: kubex_core.models.typing

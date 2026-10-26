@@ -1,8 +1,7 @@
-import datetime
-
 from pydantic import Field
 
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Time
 
 
 class Taint(BaseK8sModel):
@@ -18,7 +17,7 @@ class Taint(BaseK8sModel):
         alias="key",
         description="key is the taint key to be applied to a node. Required. The taint key to be applied to a node.",
     )
-    time_added: datetime.datetime | None = Field(
+    time_added: Time | None = Field(
         default=None,
         alias="timeAdded",
         description="timeAdded represents the time at which the taint was added.",

@@ -53,6 +53,7 @@ from kubex.k8s.v1_33.core.v1.vsphere_virtual_disk_volume_source import (
     VsphereVirtualDiskVolumeSource,
 )
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import Quantity
 
 
 class PersistentVolumeSpec(BaseK8sModel):
@@ -78,7 +79,7 @@ class PersistentVolumeSpec(BaseK8sModel):
         alias="azureFile",
         description="azureFile represents an Azure File Service mount on the host and bind mount to the pod. Deprecated: AzureFile is deprecated. All operations for the in-tree azureFile type are redirected to the file.csi.azure.com CSI driver.",
     )
-    capacity: dict[str, str] | None = Field(
+    capacity: dict[str, Quantity] | None = Field(
         default=None,
         alias="capacity",
         description="capacity is the description of the persistent volume's resources and capacity. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#capacity",

@@ -7,6 +7,7 @@ from pydantic import Field
 from kubex.k8s.v1_38.core.v1.service import Service
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.metadata import ListMetadata
+from kubex_core.models.types import NullAsEmptyList
 
 
 class ServiceList(ListEntity[Service]):
@@ -17,7 +18,9 @@ class ServiceList(ListEntity[Service]):
         alias="apiVersion",
         description="APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
     )
-    items: list[Service] = Field(..., alias="items", description="List of services")
+    items: NullAsEmptyList[Service] = Field(
+        ..., alias="items", description="List of services"
+    )
     kind: Literal["ServiceList"] = Field(
         default="ServiceList",
         alias="kind",

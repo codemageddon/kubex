@@ -7,6 +7,7 @@ from pydantic import Field
 from kubex.k8s.v1_38.coordination.v1beta1.lease_candidate import LeaseCandidate
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.metadata import ListMetadata
+from kubex_core.models.types import NullAsEmptyList
 
 
 class LeaseCandidateList(ListEntity[LeaseCandidate]):
@@ -17,7 +18,7 @@ class LeaseCandidateList(ListEntity[LeaseCandidate]):
         alias="apiVersion",
         description="APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
     )
-    items: list[LeaseCandidate] = Field(
+    items: NullAsEmptyList[LeaseCandidate] = Field(
         ..., alias="items", description="items is a list of schema objects."
     )
     kind: Literal["LeaseCandidateList"] = Field(

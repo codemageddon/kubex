@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-import math
+import logging
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import Any, AsyncIterator, Generic, Sequence, Type, TypeVar, overload
+from typing import Any, AsyncIterator, Generic, Self, Sequence, Type, TypeVar, overload
 
 import anyio
+from anyio.streams.memory import MemoryObjectReceiveStream
 
 from kubex.api._stream_session import StreamSession, _resolve_protocol
 from kubex.client.client import BaseClient
-from kubex.core.exceptions import KubexClientException
+from kubex.core.exceptions import KubexClientException, KubexTimeoutError
 from kubex.core.exec_channels import (
     DEFAULT_PROTOCOLS,
     ChannelProtocol,
@@ -32,11 +33,36 @@ from ._protocol import (
 
 __all__ = [
     "ExecAccessor",
+    "ExecError",
     "ExecResult",
     "_ExecDescriptor",
 ]
 
 _E = TypeVar("_E", bound=HasExec)
+
+_logger = logging.getLogger("kubex.exec")
+
+
+class ExecError(KubexClientException):
+    """Raised by :meth:`ExecResult.raise_for_status` when a command did not succeed.
+
+    The message is the server's ``Status.message`` when there is one; the full
+    result (output, ``status``, ``exit_code``) is available as ``result``.
+    """
+
+    def __init__(self, message: str, result: ExecResult) -> None:
+        super().__init__(message)
+        self.result = result
+
+    @property
+    def status(self) -> Status | None:
+        """The failed command's ``Status``, or ``None`` if none was reported."""
+        return self.result.status
+
+    @property
+    def exit_code(self) -> int | None:
+        """The failed command's exit code, or ``None``; see :attr:`ExecResult.exit_code`."""
+        return self.result.exit_code
 
 
 @dataclass
@@ -56,9 +82,33 @@ class ExecResult:
         non-zero exit, or ``None`` when ``status`` is missing or carries no
         recognisable exit information. Note that ``None`` does not imply
         success — for failures without a recognisable exit code (e.g. the
-        container could not start), inspect ``status`` directly.
+        container could not start), inspect ``status`` directly, or call
+        :meth:`raise_for_status`.
         """
         return _parse_exit_code(self.status)
+
+    def raise_for_status(self) -> Self:
+        """Raise :class:`ExecError` unless the command reported ``Success``.
+
+        Covers non-zero exits as well as failures without an exit code (e.g.
+        the binary does not exist) and a missing status. Returns ``self`` so
+        it can be chained: ``(await api.exec.run(...)).raise_for_status()``.
+
+        Returns:
+            Self: this result, unchanged, when the status is ``Success``.
+
+        Raises:
+            ExecError: the status is missing or is not ``Success``. Its message is
+                the server's ``Status.message`` (or ``reason``) when there is one.
+        """
+        status = self.status
+        if status is not None and status.status == "Success":
+            return self
+        if status is None:
+            message = "exec finished without reporting a status"
+        else:
+            message = status.message or status.reason or "exec failed"
+        raise ExecError(message, self)
 
 
 def _parse_exit_code(status: Status | None) -> int | None:
@@ -118,7 +168,6 @@ class ExecAccessor(Generic[ResourceType]):
         stderr: bool,
         tty: bool,
         request_timeout: ApiRequestTimeoutTypes,
-        buffer_size: float | None,
     ) -> StreamSession:
         _namespace = ensure_required_namespace(namespace, self._namespace, self._scope)
         options = ExecOptions(
@@ -138,15 +187,14 @@ class ExecAccessor(Generic[ResourceType]):
         )
         try:
             protocol = _resolve_protocol(connection, self._channel_protocols)
-            kwargs: dict[str, Any] = {
-                "stdin": stdin,
-                "stdout": stdout,
-                "stderr": stderr,
-                "tty": tty,
-            }
-            if buffer_size is not None:
-                kwargs["buffer_size"] = buffer_size
-            return StreamSession(connection, protocol, **kwargs)
+            return StreamSession(
+                connection,
+                protocol,
+                stdin=stdin,
+                stdout=stdout,
+                stderr=stderr,
+                tty=tty,
+            )
         except BaseException:
             # Suppress cleanup errors so the original exception (e.g. an
             # unsupported-subprotocol ``KubexClientException``) is preserved
@@ -181,6 +229,55 @@ class ExecAccessor(Generic[ResourceType]):
 
            **Experimental.** This WebSocket-based API is still under active
            development and may change in future releases without notice.
+
+        Output is never dropped: a channel whose consumer falls behind pauses
+        the whole session (backpressure). Drain every enabled output channel
+        concurrently, or disable the ones you don't need (e.g.
+        ``stderr=False``).
+
+        Leaving the ``async with`` block closes the session, even while the
+        command is still running.
+
+        Args:
+            name: The name of the Pod to run the command in.
+            command: The command and its arguments, e.g. ``["sh", "-c", "ls"]``.
+                Must be a non-empty sequence of strings, not a single string.
+            container: The container to run the command in. Required when the Pod
+                has more than one container.
+            namespace: The namespace of the Pod. If not provided,
+                the namespace provided when creating the API will be used.
+                The namespace is required for namespaced resources.
+                If namespace is provided for cluster-scoped resources, an error will be raised.
+            stdin: Open the stdin channel, for writing with ``session.stdin``.
+            stdout: Open the stdout channel.
+            stderr: Open the stderr channel. Ignored with ``tty=True``.
+            tty: Allocate a pseudo-terminal. The kubelet then merges stderr into
+                stdout, so ``session.stderr`` closes immediately.
+            request_timeout: HTTP-level timeout override for the WebSocket
+                handshake. A number is interpreted as the total timeout in
+                seconds. Pass ``None`` to disable timeouts entirely. Omit to use
+                the client default. It does not bound the session itself.
+
+        Yields:
+            StreamSession: the open session, with ``stdin``, ``stdout``,
+                ``stderr``, ``resize()``, ``close_stdin()`` and
+                ``wait_for_status()``.
+
+        Raises:
+            ValueError: an argument is invalid, e.g. an empty or malformed ``name``,
+                or a namespace that is missing for a namespace-scoped resource or
+                given for a cluster-scoped one; or ``command`` is empty.
+            TypeError: ``command`` is a single string (or bytes) instead of a
+                sequence of strings, or contains a non-string item.
+            KubexApiError: the WebSocket handshake was rejected; the subclass matches
+                the HTTP status (e.g. ``NotFound`` for a missing pod, ``BadRequest``
+                for an unknown container, ``Forbidden``).
+            KubexConnectionError: the API server could not be reached.
+            KubexTimeoutError: the WebSocket handshake timed out.
+            KubexClientException: the WebSocket handshake failed for another reason,
+                or the connection closed abnormally.
+            ConfigurationError: credentials could not be obtained, or the httpx
+                client is used without the ``httpx-ws`` extra installed.
         """
         session = await self._open_session(
             name,
@@ -192,7 +289,6 @@ class ExecAccessor(Generic[ResourceType]):
             stderr=stderr,
             tty=tty,
             request_timeout=request_timeout,
-            buffer_size=None,
         )
         async with session:
             yield session
@@ -228,6 +324,54 @@ class ExecAccessor(Generic[ResourceType]):
         indefinite hangs). ``Ellipsis`` defers to the client default for the
         handshake without imposing an additional wall-clock bound; an
         explicit ``None`` disables timeouts entirely.
+
+        ``stdin`` is sent in frames of at most 32 KiB and then half-closed. A
+        failure while sending it (e.g. the command exited without reading
+        all of it) is logged, not raised: the result reflects what the
+        server reported. Use :meth:`ExecResult.raise_for_status` to turn a
+        non-successful status into an exception.
+
+        Args:
+            name: The name of the Pod to run the command in.
+            command: The command and its arguments, e.g. ``["cat", "/etc/hostname"]``.
+                Must be a non-empty sequence of strings, not a single string.
+            container: The container to run the command in. Required when the Pod
+                has more than one container.
+            namespace: The namespace of the Pod. If not provided,
+                the namespace provided when creating the API will be used.
+                The namespace is required for namespaced resources.
+                If namespace is provided for cluster-scoped resources, an error will be raised.
+            stdin: Bytes to send to the command's stdin, which is then closed.
+                ``None`` (the default) does not open a stdin channel at all;
+                ``b""`` opens it and closes it right away.
+            stdout: Capture stdout.
+            stderr: Capture stderr.
+            request_timeout: Timeout override for this call, bounding both the
+                handshake and the command's run; see above. A number is
+                interpreted as the total timeout in seconds. Pass ``None`` to
+                disable timeouts entirely. Omit to use the client default for the
+                handshake only.
+
+        Returns:
+            ExecResult: the captured ``stdout`` and ``stderr`` bytes and the
+                ``status`` the server reported (``None`` if it reported none).
+
+        Raises:
+            ValueError: an argument is invalid, e.g. an empty or malformed ``name``,
+                or a namespace that is missing for a namespace-scoped resource or
+                given for a cluster-scoped one; or ``command`` is empty.
+            TypeError: ``command`` is a single string (or bytes) instead of a
+                sequence of strings, or contains a non-string item.
+            KubexApiError: the WebSocket handshake was rejected; the subclass matches
+                the HTTP status (e.g. ``NotFound`` for a missing pod, ``BadRequest``
+                for an unknown container, ``Forbidden``).
+            KubexConnectionError: the API server could not be reached.
+            KubexTimeoutError: the WebSocket handshake or the command did not finish
+                within ``request_timeout``.
+            KubexClientException: the WebSocket handshake failed for another reason,
+                or the connection closed abnormally.
+            ConfigurationError: credentials could not be obtained, or the httpx
+                client is used without the ``httpx-ws`` extra installed.
         """
         # Resolve the wall-clock bound for the post-handshake portion.
         # ``Ellipsis`` and a ``Timeout`` whose ``total`` and ``read`` are
@@ -241,22 +385,10 @@ class ExecAccessor(Generic[ResourceType]):
             if coerced is not None:
                 delay = coerced.total if coerced.total is not None else coerced.read
 
-        # Bypass ``stream()`` to use unbounded per-channel buffers. The
-        # default bounded buffers exist to apply backpressure when the
-        # consumer iterates lazily; ``run()`` instead spawns drainer tasks
-        # that race with the read loop, and the read loop is started in
-        # ``StreamSession.__aenter__`` *before* those drainers are scheduled.
-        # That scheduling gap means a fast command emitting many frames
-        # could fill the bounded buffer and trigger the local
-        # close-on-overflow path before the drainers ran even once,
-        # silently truncating ``ExecResult.stdout`` / ``stderr``. Unbounded
-        # buffers are safe here because ``run`` collects all output in
-        # memory anyway — OOM risk is identical.
-        #
         # The handshake is bounded by ``request_timeout`` propagation into
         # the per-backend WebSocket upgrade (see ``HttpxClient`` /
         # ``AioHttpClient``). The wall-clock ``fail_after`` below covers
-        # only the post-handshake portion — keeping it *outside* the
+        # only the post-handshake portion — keeping it *inside* the
         # ``async with session`` block ensures ``StreamSession.__aexit__``
         # (and the underlying ``connection.close()``) runs in an
         # un-cancelled scope so the HTTP/WebSocket transport is always
@@ -271,25 +403,28 @@ class ExecAccessor(Generic[ResourceType]):
             stderr=stderr,
             tty=False,
             request_timeout=request_timeout,
-            buffer_size=math.inf,
         )
+        stdout_buf = bytearray()
+        stderr_buf = bytearray()
+        status: Status | None = None
         async with session:
-            stdout_buf = bytearray()
-            stderr_buf = bytearray()
-            status: Status | None = None
 
-            async def _drain_stdout() -> None:
-                async for chunk in session.stdout:
-                    stdout_buf.extend(chunk)
+            async def _drain(
+                stream: MemoryObjectReceiveStream[bytes], buf: bytearray
+            ) -> None:
+                async for chunk in stream:
+                    buf.extend(chunk)
 
-            async def _drain_stderr() -> None:
-                async for chunk in session.stderr:
-                    stderr_buf.extend(chunk)
-
-            async def _write_stdin() -> None:
-                if stdin is not None:
-                    await session.stdin.write(stdin)
+            async def _write_stdin(data: bytes) -> None:
+                # Like client-go, a failed stdin copy does not decide the
+                # outcome: the command may have exited without reading all
+                # of its input, and the read side still reports its status.
+                # A broken connection surfaces there as well.
+                try:
+                    await session.stdin.write(data)
                     await session.close_stdin()
+                except Exception as exc:
+                    _logger.debug("exec stdin write failed: %r", exc)
 
             # ``anyio.fail_after`` raises a bare ``TimeoutError`` at scope
             # exit when the deadline fires. The exec layer normalises every
@@ -301,13 +436,19 @@ class ExecAccessor(Generic[ResourceType]):
             try:
                 with anyio.fail_after(delay):
                     async with anyio.create_task_group() as tg:
-                        tg.start_soon(_drain_stdout)
-                        tg.start_soon(_drain_stderr)
-                        tg.start_soon(_write_stdin)
-
-                    status = await session.wait_for_status()
+                        if stdin is not None:
+                            tg.start_soon(_write_stdin, stdin)
+                        # Both channels are drained concurrently: the read
+                        # loop waits for a full channel, so draining only one
+                        # could stall the session.
+                        async with anyio.create_task_group() as readers:
+                            readers.start_soon(_drain, session.stdout, stdout_buf)
+                            readers.start_soon(_drain, session.stderr, stderr_buf)
+                        status = await session.wait_for_status()
+                        # The command has finished; unsent stdin is moot.
+                        tg.cancel_scope.cancel()
             except TimeoutError as exc:
-                raise KubexClientException(
+                raise KubexTimeoutError(
                     f"exec call exceeded {delay}s wall-clock bound"
                 ) from exc
             except BaseExceptionGroup as eg:
@@ -315,8 +456,7 @@ class ExecAccessor(Generic[ResourceType]):
                 # in a ``BaseExceptionGroup`` even when only a single task
                 # failed. Unwrap a single-exception group so callers that
                 # catch ``KubexClientException`` (the documented exec
-                # exception type) observe transport-level failures from
-                # ``_drain_*`` or ``_write_stdin`` directly instead of
+                # exception type) observe failures directly instead of
                 # having to reach into an exception group.
                 if len(eg.exceptions) == 1:
                     raise eg.exceptions[0] from None

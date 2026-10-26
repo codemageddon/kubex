@@ -7,6 +7,7 @@ from pydantic import Field
 from kubex.k8s.v1_33.storage.v1.volume_attachment import VolumeAttachment
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.metadata import ListMetadata
+from kubex_core.models.types import NullAsEmptyList
 
 
 class VolumeAttachmentList(ListEntity[VolumeAttachment]):
@@ -17,7 +18,7 @@ class VolumeAttachmentList(ListEntity[VolumeAttachment]):
         alias="apiVersion",
         description="APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
     )
-    items: list[VolumeAttachment] = Field(
+    items: NullAsEmptyList[VolumeAttachment] = Field(
         ..., alias="items", description="items is the list of VolumeAttachments"
     )
     kind: Literal["VolumeAttachmentList"] = Field(

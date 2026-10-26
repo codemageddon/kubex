@@ -4,7 +4,7 @@ import json
 from typing import Any
 
 import pytest
-from pydantic import TypeAdapter, ValidationError
+from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from kubex.core.json_pointer import JsonPointer
 from kubex.core.json_patch import (
@@ -371,3 +371,15 @@ def test_json_patch_round_trip() -> None:
     serialized = original.serialize()
     restored = JsonPatch.model_validate_json(serialized)
     assert json.loads(restored.serialize()) == json.loads(serialized)
+
+
+@pytest.mark.parametrize("model", [JsonPatchMove, JsonPatchCopy])
+def test_from_alias_config_supports_pydantic_floor(model: type[BaseModel]) -> None:
+    """`validate_by_name`/`validate_by_alias` need pydantic>=2.11 (the floor is
+    2.0); `populate_by_name` accepts both `from_=` and `from` everywhere."""
+    assert model.model_config.get("populate_by_name") is True
+    assert "validate_by_name" not in model.model_config
+    assert "validate_by_alias" not in model.model_config
+    by_name = model(path="/a", from_="/b")
+    by_alias = model.model_validate({"path": "/a", "from": "/b"})
+    assert by_name == by_alias

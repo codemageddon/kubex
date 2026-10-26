@@ -7,6 +7,7 @@ from pydantic import Field
 from kubex.k8s.v1_34.core.v1.node import Node
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.metadata import ListMetadata
+from kubex_core.models.types import NullAsEmptyList
 
 
 class NodeList(ListEntity[Node]):
@@ -17,7 +18,9 @@ class NodeList(ListEntity[Node]):
         alias="apiVersion",
         description="APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
     )
-    items: list[Node] = Field(..., alias="items", description="List of nodes")
+    items: NullAsEmptyList[Node] = Field(
+        ..., alias="items", description="List of nodes"
+    )
     kind: Literal["NodeList"] = Field(
         default="NodeList",
         alias="kind",

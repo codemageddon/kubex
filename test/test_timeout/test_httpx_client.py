@@ -41,3 +41,31 @@ def test_to_httpx_timeout_translates_granular_fields() -> None:
 def test_to_httpx_timeout_none_means_disabled() -> None:
     translated = _to_httpx_timeout(None)
     assert translated == httpx.Timeout(None)
+
+
+@pytest.mark.parametrize(
+    ("client_timeout", "expected"),
+    [
+        pytest.param(
+            ..., httpx.Timeout(None, connect=5.0, write=5.0, pool=5.0), id="default"
+        ),
+        pytest.param(
+            Timeout(total=30),
+            httpx.Timeout(None, connect=30.0, write=30.0, pool=30.0),
+            id="total",
+        ),
+        pytest.param(
+            Timeout(connect=2, read=60),
+            httpx.Timeout(None, connect=2.0),
+            id="connect-read",
+        ),
+        pytest.param(None, httpx.Timeout(None), id="disabled"),
+    ],
+)
+def test_stream_timeout_keeps_connection_bounds_and_drops_read(
+    client_timeout: object, expected: object
+) -> None:
+    # Watches and log follows idle legitimately; only connection setup is
+    # bounded by the client default.
+    client = HttpxClient(_configuration(), ClientOptions(timeout=client_timeout))
+    assert client._stream_timeout() == expected

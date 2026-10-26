@@ -7,6 +7,7 @@ from pydantic import Field
 from kubex.k8s.v1_37.batch.v1.job import Job
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.metadata import ListMetadata
+from kubex_core.models.types import NullAsEmptyList
 
 
 class JobList(ListEntity[Job]):
@@ -17,7 +18,7 @@ class JobList(ListEntity[Job]):
         alias="apiVersion",
         description="APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
     )
-    items: list[Job] = Field(
+    items: NullAsEmptyList[Job] = Field(
         ..., alias="items", description="items is the list of Jobs."
     )
     kind: Literal["JobList"] = Field(

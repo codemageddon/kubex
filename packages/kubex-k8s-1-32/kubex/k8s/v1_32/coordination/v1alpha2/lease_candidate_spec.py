@@ -1,8 +1,7 @@
-import datetime
-
 from pydantic import Field
 
 from kubex_core.models.base import BaseK8sModel
+from kubex_core.models.types import MicroTime
 
 
 class LeaseCandidateSpec(BaseK8sModel):
@@ -23,12 +22,12 @@ class LeaseCandidateSpec(BaseK8sModel):
         alias="leaseName",
         description="LeaseName is the name of the lease for which this candidate is contending. This field is immutable.",
     )
-    ping_time: datetime.datetime | None = Field(
+    ping_time: MicroTime | None = Field(
         default=None,
         alias="pingTime",
         description="PingTime is the last time that the server has requested the LeaseCandidate to renew. It is only done during leader election to check if any LeaseCandidates have become ineligible. When PingTime is updated, the LeaseCandidate will respond by updating RenewTime.",
     )
-    renew_time: datetime.datetime | None = Field(
+    renew_time: MicroTime | None = Field(
         default=None,
         alias="renewTime",
         description="RenewTime is the time that the LeaseCandidate was last updated. Any time a Lease needs to do leader election, the PingTime field is updated to signal to the LeaseCandidate that they should update the RenewTime. Old LeaseCandidate objects are also garbage collected if it has been hours since the last renew. The PingTime field is updated regularly to prevent garbage collection for still active LeaseCandidates.",

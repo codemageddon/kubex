@@ -42,7 +42,7 @@ async with await create_client() as client:
 
 ### Multi-version Kubernetes support
 
-Kubex ships separate model packages for Kubernetes 1.32 through 1.37. You can depend on exactly the versions you need, or use multiple versions simultaneously — useful when managing clusters at different upgrade stages:
+Kubex ships separate model packages for Kubernetes 1.32 through 1.38. You can depend on exactly the versions you need, or use multiple versions simultaneously — useful when managing clusters at different upgrade stages:
 
 ```python
 from kubex.k8s.v1_34.apps.v1.deployment import Deployment as Deployment134
@@ -62,7 +62,7 @@ Kubex works with both **asyncio** and **trio** (via httpx), with no framework lo
 * Basic support for kubeconfig files.
 * `httpx` and `aiohttp` as an underlying http-client support.
 * `asyncio` and `trio` async runtime support (only `httpx` client is supported for `trio`).
-* Comprehensive, fully-typed Kubernetes resource models (1.32–1.37) generated from the OpenAPI spec via a built-in code generator.
+* Comprehensive, fully-typed Kubernetes resource models (1.32–1.38) generated from the OpenAPI spec via a built-in code generator.
 * Custom Resource Definitions (CRDs) — define a Pydantic model inheriting from `NamespaceScopedEntity` or `ClusterScopedEntity` with `__RESOURCE_CONFIG__` and use `Api[T]` for full CRUD, watch, and subresource access. No code generation required. See `examples/custom_resource.py` and the [Custom Resources docs](https://kubex.codemageddon.me/advanced/custom-resources/).
 * `ClientOptions` — per-client HTTP configuration: `proxy` (single URL string or per-scheme `{"http": …, "https": …}` dict), `keep_alive` / `keep_alive_timeout`, `buffer_size` (aiohttp read buffer), `ws_max_message_size` (WebSocket frame cap for exec/attach/portforward), `pool_size` (total connection pool), `pool_size_per_host`, and `trust_env` (opt-in to `HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY` env vars and `~/.netrc` proxy credentials on both backends). Pass `options=ClientOptions(…)` to `create_client()`. See `examples/client_options.py`.
 

@@ -7,6 +7,7 @@ from pydantic import Field
 from kubex.k8s.v1_38.core.v1.persistent_volume_claim import PersistentVolumeClaim
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.metadata import ListMetadata
+from kubex_core.models.types import NullAsEmptyList
 
 
 class PersistentVolumeClaimList(ListEntity[PersistentVolumeClaim]):
@@ -17,7 +18,7 @@ class PersistentVolumeClaimList(ListEntity[PersistentVolumeClaim]):
         alias="apiVersion",
         description="APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
     )
-    items: list[PersistentVolumeClaim] = Field(
+    items: NullAsEmptyList[PersistentVolumeClaim] = Field(
         ...,
         alias="items",
         description="items is a list of persistent volume claims. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims",
