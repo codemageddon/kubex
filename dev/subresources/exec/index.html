@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/logo.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
     
     
       
@@ -31,10 +31,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -1408,6 +1408,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#checking-for-success" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Checking for success
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#passing-stdin-to-run" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1451,6 +1462,17 @@
     <span class="md-ellipsis">
       
         StreamSession API
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reading-output-backpressure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reading output: backpressure
       
     </span>
   </a>
@@ -2146,6 +2168,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#checking-for-success" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Checking for success
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#passing-stdin-to-run" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2189,6 +2222,17 @@
     <span class="md-ellipsis">
       
         StreamSession API
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reading-output-backpressure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reading output: backpressure
       
     </span>
   </a>
@@ -2360,9 +2404,19 @@ Requires Kubernetes ≥ 1.30 (v5 channel protocol).</p>
 <td>All stderr output collected from the command</td>
 </tr>
 <tr>
+<td><code>status</code></td>
+<td><code>Status | None</code></td>
+<td>The final <code>Status</code> the server sent on the error channel</td>
+</tr>
+<tr>
 <td><code>exit_code</code></td>
 <td><code>int | None</code></td>
 <td>Exit code of the command — see semantics below</td>
+</tr>
+<tr>
+<td><code>raise_for_status()</code></td>
+<td>method</td>
+<td>Raise <code>ExecError</code> unless the command succeeded; returns the result otherwise</td>
 </tr>
 </tbody>
 </table>
@@ -2373,11 +2427,28 @@ Requires Kubernetes ≥ 1.30 (v5 channel protocol).</p>
 <li>an <code>int</code> — the non-zero exit code parsed from <code>status.details.causes</code> (where <code>reason == "ExitCode"</code>)</li>
 <li><code>None</code> — the status frame was missing or carried no recognisable exit information</li>
 </ul>
-<p><strong><code>None</code> does not imply success.</strong> If the WebSocket connection closed unexpectedly before a status frame arrived, <code>exit_code</code> is <code>None</code>.</p>
+<p><strong><code>None</code> does not imply success.</strong> If the WebSocket connection closed unexpectedly before a status frame arrived, <code>exit_code</code> is <code>None</code>. So is a command that could not start at all (e.g. a missing binary): the server reports <code>status="Failure"</code> without an exit code, so <code>if result.exit_code:</code> would wrongly treat it as success.</p>
+<h3 id="checking-for-success">Checking for success<a class="headerlink" href="#checking-for-success" title="Permanent link">&para;</a></h3>
+<p><code>ExecResult.raise_for_status()</code> raises <code>ExecError</code> (a <code>KubexClientException</code> subclass) unless the
+server reported <code>Success</code>, covering non-zero exits, commands that failed to start, and a missing
+status. The exception message is the server's <code>Status.message</code>; <code>exc.result</code>, <code>exc.status</code> and
+<code>exc.exit_code</code> carry the details. It returns the result, so it chains:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.api._exec</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExecError</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">result</span> <span class="o">=</span> <span class="p">(</span><span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">exec</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">pod_name</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="p">[</span><span class="s2">"cat"</span><span class="p">,</span> <span class="s2">"/etc/hostname"</span><span class="p">]))</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="k">except</span> <span class="n">ExecError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"command failed (exit code </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">exit_code</span><span class="si">}</span><span class="s2">): </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</code></pre></div>
 <h3 id="passing-stdin-to-run">Passing stdin to <code>run()</code><a class="headerlink" href="#passing-stdin-to-run" title="Permanent link">&para;</a></h3>
 <p>Pass <code>stdin=None</code> (default) to skip opening a stdin channel entirely. Pass <code>stdin=b""</code> to open the channel, write zero bytes, and immediately close it — useful for commands that check whether stdin is a terminal:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">exec</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">pod_name</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="p">[</span><span class="s2">"cat"</span><span class="p">,</span> <span class="s2">"/etc/hostname"</span><span class="p">],</span> <span class="n">stdin</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">exec</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">pod_name</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="p">[</span><span class="s2">"cat"</span><span class="p">,</span> <span class="s2">"/etc/hostname"</span><span class="p">],</span> <span class="n">stdin</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 </code></pre></div>
+<p><code>stdin</code> is sent in frames of at most 32 KiB (the API server rejects oversized WebSocket messages),
+then half-closed. If sending it fails part-way — typically because the command exited without
+reading all of its input — the error is logged (<code>kubex.exec</code> logger, <code>DEBUG</code>) and <code>run()</code> still
+returns whatever status the server reported.</p>
 <h3 id="run-options"><code>run()</code> options<a class="headerlink" href="#run-options" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -2427,64 +2498,64 @@ Requires Kubernetes ≥ 1.30 (v5 channel protocol).</p>
 </table>
 <h2 id="interactive-streaming">Interactive streaming<a class="headerlink" href="#interactive-streaming" title="Permanent link">&para;</a></h2>
 <p><code>api.exec.stream()</code> is an async context manager that opens a bidirectional WebSocket session and returns a <code>StreamSession</code>. Use it for interactive shells, long-running commands with live output, or anything that needs to resize the terminal.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">cast</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">anyio</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.api</span><span class="w"> </span><span class="kn">import</span> <span class="n">Api</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.client</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_client</span>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.k8s.v1_35.core.v1.container</span><span class="w"> </span><span class="kn">import</span> <span class="n">Container</span>
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.k8s.v1_35.core.v1.pod</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pod</span>
-<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.k8s.v1_35.core.v1.pod_spec</span><span class="w"> </span><span class="kn">import</span> <span class="n">PodSpec</span>
-<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex_core.models.metadata</span><span class="w"> </span><span class="kn">import</span> <span class="n">ObjectMetadata</span>
-<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>
-<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>
-<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>    <span class="n">client</span> <span class="o">=</span> <span class="k">await</span> <span class="n">create_client</span><span class="p">()</span>
-<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>    <span class="k">async</span> <span class="k">with</span> <span class="n">client</span><span class="p">:</span>
-<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>        <span class="n">api</span><span class="p">:</span> <span class="n">Api</span><span class="p">[</span><span class="n">Pod</span><span class="p">]</span> <span class="o">=</span> <span class="n">Api</span><span class="p">(</span><span class="n">Pod</span><span class="p">,</span> <span class="n">client</span><span class="o">=</span><span class="n">client</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="s2">"default"</span><span class="p">)</span>
-<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>        <span class="n">pod</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
-<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>            <span class="n">Pod</span><span class="p">(</span>
-<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>                <span class="n">metadata</span><span class="o">=</span><span class="n">ObjectMetadata</span><span class="p">(</span><span class="n">generate_name</span><span class="o">=</span><span class="s2">"example-exec-"</span><span class="p">),</span>
-<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>                <span class="n">spec</span><span class="o">=</span><span class="n">PodSpec</span><span class="p">(</span>
-<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>                    <span class="n">containers</span><span class="o">=</span><span class="p">[</span>
-<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>                        <span class="n">Container</span><span class="p">(</span>
-<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a>                            <span class="n">name</span><span class="o">=</span><span class="s2">"main"</span><span class="p">,</span>
-<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a>                            <span class="n">image</span><span class="o">=</span><span class="s2">"busybox:1.36"</span><span class="p">,</span>
-<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a>                            <span class="n">command</span><span class="o">=</span><span class="p">[</span><span class="s2">"sleep"</span><span class="p">,</span> <span class="s2">"3600"</span><span class="p">],</span>
-<a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a>                        <span class="p">)</span>
-<a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a>                    <span class="p">]</span>
-<a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a>                <span class="p">),</span>
-<a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a>            <span class="p">),</span>
-<a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a>        <span class="p">)</span>
-<a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a>        <span class="n">pod_name</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">pod</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-<a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a>        <span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a>            <span class="k">async</span> <span class="k">with</span> <span class="n">api</span><span class="o">.</span><span class="n">exec</span><span class="o">.</span><span class="n">stream</span><span class="p">(</span>
-<a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a>                <span class="n">pod_name</span><span class="p">,</span>
-<a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a>                <span class="n">command</span><span class="o">=</span><span class="p">[</span><span class="s2">"sh"</span><span class="p">],</span>
-<a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a>                <span class="n">stdin</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a>                <span class="n">stdout</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a>                <span class="n">stderr</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-4-39" name="__codelineno-4-39" href="#__codelineno-4-39"></a>                <span class="n">tty</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-4-40" name="__codelineno-4-40" href="#__codelineno-4-40"></a>            <span class="p">)</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
-<a id="__codelineno-4-41" name="__codelineno-4-41" href="#__codelineno-4-41"></a>                <span class="k">await</span> <span class="n">session</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">40</span><span class="p">)</span>
-<a id="__codelineno-4-42" name="__codelineno-4-42" href="#__codelineno-4-42"></a>                <span class="k">await</span> <span class="n">session</span><span class="o">.</span><span class="n">stdin</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">b</span><span class="s2">"echo MARK-$$</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
-<a id="__codelineno-4-43" name="__codelineno-4-43" href="#__codelineno-4-43"></a>
-<a id="__codelineno-4-44" name="__codelineno-4-44" href="#__codelineno-4-44"></a>                <span class="n">buf</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">()</span>
-<a id="__codelineno-4-45" name="__codelineno-4-45" href="#__codelineno-4-45"></a>                <span class="k">with</span> <span class="n">anyio</span><span class="o">.</span><span class="n">fail_after</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
-<a id="__codelineno-4-46" name="__codelineno-4-46" href="#__codelineno-4-46"></a>                    <span class="k">async</span> <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">session</span><span class="o">.</span><span class="n">stdout</span><span class="p">:</span>
-<a id="__codelineno-4-47" name="__codelineno-4-47" href="#__codelineno-4-47"></a>                        <span class="n">buf</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
-<a id="__codelineno-4-48" name="__codelineno-4-48" href="#__codelineno-4-48"></a>                        <span class="k">if</span> <span class="sa">b</span><span class="s2">"MARK-"</span> <span class="ow">in</span> <span class="n">buf</span><span class="p">:</span>
-<a id="__codelineno-4-49" name="__codelineno-4-49" href="#__codelineno-4-49"></a>                            <span class="k">break</span>
-<a id="__codelineno-4-50" name="__codelineno-4-50" href="#__codelineno-4-50"></a>                <span class="nb">print</span><span class="p">(</span><span class="s2">"interactive output:"</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">buf</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">errors</span><span class="o">=</span><span class="s2">"replace"</span><span class="p">))</span>
-<a id="__codelineno-4-51" name="__codelineno-4-51" href="#__codelineno-4-51"></a>
-<a id="__codelineno-4-52" name="__codelineno-4-52" href="#__codelineno-4-52"></a>                <span class="k">await</span> <span class="n">session</span><span class="o">.</span><span class="n">stdin</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">b</span><span class="s2">"exit 0</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
-<a id="__codelineno-4-53" name="__codelineno-4-53" href="#__codelineno-4-53"></a>                <span class="k">await</span> <span class="n">session</span><span class="o">.</span><span class="n">close_stdin</span><span class="p">()</span>
-<a id="__codelineno-4-54" name="__codelineno-4-54" href="#__codelineno-4-54"></a>
-<a id="__codelineno-4-55" name="__codelineno-4-55" href="#__codelineno-4-55"></a>                <span class="n">status</span> <span class="o">=</span> <span class="k">await</span> <span class="n">session</span><span class="o">.</span><span class="n">wait_for_status</span><span class="p">()</span>
-<a id="__codelineno-4-56" name="__codelineno-4-56" href="#__codelineno-4-56"></a>                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"session status: </span><span class="si">{</span><span class="n">status</span><span class="o">.</span><span class="n">status</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'unknown'</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<a id="__codelineno-4-57" name="__codelineno-4-57" href="#__codelineno-4-57"></a>        <span class="k">finally</span><span class="p">:</span>
-<a id="__codelineno-4-58" name="__codelineno-4-58" href="#__codelineno-4-58"></a>            <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">pod_name</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">cast</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">anyio</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.api</span><span class="w"> </span><span class="kn">import</span> <span class="n">Api</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.client</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_client</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.k8s.v1_35.core.v1.container</span><span class="w"> </span><span class="kn">import</span> <span class="n">Container</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.k8s.v1_35.core.v1.pod</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pod</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.k8s.v1_35.core.v1.pod_spec</span><span class="w"> </span><span class="kn">import</span> <span class="n">PodSpec</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex_core.models.metadata</span><span class="w"> </span><span class="kn">import</span> <span class="n">ObjectMetadata</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>    <span class="n">client</span> <span class="o">=</span> <span class="k">await</span> <span class="n">create_client</span><span class="p">()</span>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>    <span class="k">async</span> <span class="k">with</span> <span class="n">client</span><span class="p">:</span>
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>        <span class="n">api</span><span class="p">:</span> <span class="n">Api</span><span class="p">[</span><span class="n">Pod</span><span class="p">]</span> <span class="o">=</span> <span class="n">Api</span><span class="p">(</span><span class="n">Pod</span><span class="p">,</span> <span class="n">client</span><span class="o">=</span><span class="n">client</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="s2">"default"</span><span class="p">)</span>
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>        <span class="n">pod</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>            <span class="n">Pod</span><span class="p">(</span>
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>                <span class="n">metadata</span><span class="o">=</span><span class="n">ObjectMetadata</span><span class="p">(</span><span class="n">generate_name</span><span class="o">=</span><span class="s2">"example-exec-"</span><span class="p">),</span>
+<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>                <span class="n">spec</span><span class="o">=</span><span class="n">PodSpec</span><span class="p">(</span>
+<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>                    <span class="n">containers</span><span class="o">=</span><span class="p">[</span>
+<a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>                        <span class="n">Container</span><span class="p">(</span>
+<a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a>                            <span class="n">name</span><span class="o">=</span><span class="s2">"main"</span><span class="p">,</span>
+<a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>                            <span class="n">image</span><span class="o">=</span><span class="s2">"busybox:1.36"</span><span class="p">,</span>
+<a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a>                            <span class="n">command</span><span class="o">=</span><span class="p">[</span><span class="s2">"sleep"</span><span class="p">,</span> <span class="s2">"3600"</span><span class="p">],</span>
+<a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a>                        <span class="p">)</span>
+<a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a>                    <span class="p">]</span>
+<a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a>                <span class="p">),</span>
+<a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a>            <span class="p">),</span>
+<a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a>        <span class="p">)</span>
+<a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a>        <span class="n">pod_name</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">pod</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+<a id="__codelineno-5-32" name="__codelineno-5-32" href="#__codelineno-5-32"></a>        <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-5-33" name="__codelineno-5-33" href="#__codelineno-5-33"></a>            <span class="k">async</span> <span class="k">with</span> <span class="n">api</span><span class="o">.</span><span class="n">exec</span><span class="o">.</span><span class="n">stream</span><span class="p">(</span>
+<a id="__codelineno-5-34" name="__codelineno-5-34" href="#__codelineno-5-34"></a>                <span class="n">pod_name</span><span class="p">,</span>
+<a id="__codelineno-5-35" name="__codelineno-5-35" href="#__codelineno-5-35"></a>                <span class="n">command</span><span class="o">=</span><span class="p">[</span><span class="s2">"sh"</span><span class="p">],</span>
+<a id="__codelineno-5-36" name="__codelineno-5-36" href="#__codelineno-5-36"></a>                <span class="n">stdin</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-5-37" name="__codelineno-5-37" href="#__codelineno-5-37"></a>                <span class="n">stdout</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-5-38" name="__codelineno-5-38" href="#__codelineno-5-38"></a>                <span class="n">stderr</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-5-39" name="__codelineno-5-39" href="#__codelineno-5-39"></a>                <span class="n">tty</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-5-40" name="__codelineno-5-40" href="#__codelineno-5-40"></a>            <span class="p">)</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+<a id="__codelineno-5-41" name="__codelineno-5-41" href="#__codelineno-5-41"></a>                <span class="k">await</span> <span class="n">session</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">40</span><span class="p">)</span>
+<a id="__codelineno-5-42" name="__codelineno-5-42" href="#__codelineno-5-42"></a>                <span class="k">await</span> <span class="n">session</span><span class="o">.</span><span class="n">stdin</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">b</span><span class="s2">"echo MARK-$$</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-5-43" name="__codelineno-5-43" href="#__codelineno-5-43"></a>
+<a id="__codelineno-5-44" name="__codelineno-5-44" href="#__codelineno-5-44"></a>                <span class="n">buf</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">()</span>
+<a id="__codelineno-5-45" name="__codelineno-5-45" href="#__codelineno-5-45"></a>                <span class="k">with</span> <span class="n">anyio</span><span class="o">.</span><span class="n">fail_after</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+<a id="__codelineno-5-46" name="__codelineno-5-46" href="#__codelineno-5-46"></a>                    <span class="k">async</span> <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">session</span><span class="o">.</span><span class="n">stdout</span><span class="p">:</span>
+<a id="__codelineno-5-47" name="__codelineno-5-47" href="#__codelineno-5-47"></a>                        <span class="n">buf</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+<a id="__codelineno-5-48" name="__codelineno-5-48" href="#__codelineno-5-48"></a>                        <span class="k">if</span> <span class="sa">b</span><span class="s2">"MARK-"</span> <span class="ow">in</span> <span class="n">buf</span><span class="p">:</span>
+<a id="__codelineno-5-49" name="__codelineno-5-49" href="#__codelineno-5-49"></a>                            <span class="k">break</span>
+<a id="__codelineno-5-50" name="__codelineno-5-50" href="#__codelineno-5-50"></a>                <span class="nb">print</span><span class="p">(</span><span class="s2">"interactive output:"</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">buf</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">errors</span><span class="o">=</span><span class="s2">"replace"</span><span class="p">))</span>
+<a id="__codelineno-5-51" name="__codelineno-5-51" href="#__codelineno-5-51"></a>
+<a id="__codelineno-5-52" name="__codelineno-5-52" href="#__codelineno-5-52"></a>                <span class="k">await</span> <span class="n">session</span><span class="o">.</span><span class="n">stdin</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">b</span><span class="s2">"exit 0</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-5-53" name="__codelineno-5-53" href="#__codelineno-5-53"></a>                <span class="k">await</span> <span class="n">session</span><span class="o">.</span><span class="n">close_stdin</span><span class="p">()</span>
+<a id="__codelineno-5-54" name="__codelineno-5-54" href="#__codelineno-5-54"></a>
+<a id="__codelineno-5-55" name="__codelineno-5-55" href="#__codelineno-5-55"></a>                <span class="n">status</span> <span class="o">=</span> <span class="k">await</span> <span class="n">session</span><span class="o">.</span><span class="n">wait_for_status</span><span class="p">()</span>
+<a id="__codelineno-5-56" name="__codelineno-5-56" href="#__codelineno-5-56"></a>                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"session status: </span><span class="si">{</span><span class="n">status</span><span class="o">.</span><span class="n">status</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'unknown'</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-5-57" name="__codelineno-5-57" href="#__codelineno-5-57"></a>        <span class="k">finally</span><span class="p">:</span>
+<a id="__codelineno-5-58" name="__codelineno-5-58" href="#__codelineno-5-58"></a>            <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">pod_name</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="streamsession-api">StreamSession API<a class="headerlink" href="#streamsession-api" title="Permanent link">&para;</a></h3>
 <table>
@@ -2512,16 +2583,6 @@ Requires Kubernetes ≥ 1.30 (v5 channel protocol).</p>
 <td>Async iterable yielding stderr chunks</td>
 </tr>
 <tr>
-<td><code>stdout_truncated</code></td>
-<td><code>bool</code></td>
-<td><code>True</code> if the stdout buffer overflowed and frames were dropped</td>
-</tr>
-<tr>
-<td><code>stderr_truncated</code></td>
-<td><code>bool</code></td>
-<td><code>True</code> if the stderr buffer overflowed and frames were dropped</td>
-</tr>
-<tr>
 <td><code>resize(width, height)</code></td>
 <td>coroutine</td>
 <td>Send a terminal resize event</td>
@@ -2534,13 +2595,45 @@ Requires Kubernetes ≥ 1.30 (v5 channel protocol).</p>
 <tr>
 <td><code>wait_for_status()</code></td>
 <td>coroutine</td>
-<td>Await the final status frame; returns <code>Status | None</code></td>
+<td>Await the final status; returns <code>Status | None</code> (<code>None</code> if the server closed without one)</td>
 </tr>
 </tbody>
 </table>
-<p><code>stdout</code>/<code>stderr</code> are each bounded at 128 buffered frames; if a consumer falls behind and the
-buffer fills, kubex closes that channel locally rather than blocking forever. Check
-<code>stdout_truncated</code>/<code>stderr_truncated</code> after the iterator ends to tell that apart from a normal EOF.</p>
+<p><code>stdin.write()</code> sends large payloads in frames of at most 32 KiB; frames of one write are never
+interleaved with another write. Calling <code>stdin.write()</code>, <code>resize()</code> or <code>close_stdin()</code> after the
+session has ended raises <code>KubexClientException</code>. <code>stdout_truncated</code>/<code>stderr_truncated</code> are
+deprecated and always <code>False</code>.</p>
+<h3 id="reading-output-backpressure">Reading output: backpressure<a class="headerlink" href="#reading-output-backpressure" title="Permanent link">&para;</a></h3>
+<p>Output is never dropped. <code>stdout</code> and <code>stderr</code> each queue up to 128 frames; when a queue is full,
+kubex stops reading from the WebSocket until you consume more (the same backpressure <code>kubectl</code>
+and client-go apply), which in turn pauses the remote process once its pipes fill.</p>
+<p>Because both channels — and the final status — share one WebSocket, <strong>a channel you don't read
+stalls the others</strong>: a consumer that only iterates <code>stdout</code> while the command floods <code>stderr</code>
+will stop receiving stdout once the stderr queue fills, and <code>wait_for_status()</code> waits behind
+unread output too. For every channel you enable, do one of:</p>
+<ul>
+<li>read it concurrently with the others (e.g. one task per channel),</li>
+<li>disable it in the request (<code>stderr=False</code>), or</li>
+<li>close it to discard its data: <code>session.stderr.close()</code>.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">anyio</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="k">async</span> <span class="k">with</span> <span class="n">api</span><span class="o">.</span><span class="n">exec</span><span class="o">.</span><span class="n">stream</span><span class="p">(</span><span class="n">pod_name</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="p">[</span><span class="s2">"sh"</span><span class="p">,</span> <span class="s2">"-c"</span><span class="p">,</span> <span class="s2">"./run-job.sh"</span><span class="p">])</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">drain_stderr</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>        <span class="k">async</span> <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">session</span><span class="o">.</span><span class="n">stderr</span><span class="p">:</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>    <span class="k">async</span> <span class="k">with</span> <span class="n">anyio</span><span class="o">.</span><span class="n">create_task_group</span><span class="p">()</span> <span class="k">as</span> <span class="n">tg</span><span class="p">:</span>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>        <span class="n">tg</span><span class="o">.</span><span class="n">start_soon</span><span class="p">(</span><span class="n">drain_stderr</span><span class="p">)</span>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>        <span class="k">async</span> <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">session</span><span class="o">.</span><span class="n">stdout</span><span class="p">:</span>
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>            <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>    <span class="n">status</span> <span class="o">=</span> <span class="k">await</span> <span class="n">session</span><span class="o">.</span><span class="n">wait_for_status</span><span class="p">()</span>
+</code></pre></div>
+<p>Leaving the <code>async with</code> block (or cancelling the surrounding scope) always tears the session
+down promptly, even while kubex is waiting on a full queue.</p>
 <h3 id="tty-mode-and-stderr">TTY mode and stderr<a class="headerlink" href="#tty-mode-and-stderr" title="Permanent link">&para;</a></h3>
 <p>When <code>tty=True</code>, the kubelet merges stderr into stdout — only the stdout channel is opened. <code>session.stderr</code> will close immediately. Always read only <code>session.stdout</code> when <code>tty=True</code>.</p>
 <h3 id="exiting-a-stream-early">Exiting a stream early<a class="headerlink" href="#exiting-a-stream-early" title="Permanent link">&para;</a></h3>
@@ -2599,14 +2692,16 @@ buffer fills, kubex closes that channel locally rather than blocking forever. Ch
 </table>
 <h2 id="error-handling">Error handling<a class="headerlink" href="#error-handling" title="Permanent link">&para;</a></h2>
 <p>WebSocket handshake failures, abnormal close codes, and per-call timeouts surface as <code>KubexClientException</code>. A missing WebSocket dependency raises <code>ConfigurationError</code>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.core.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">KubexClientException</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">exec</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">pod_name</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="p">[</span><span class="s2">"false"</span><span class="p">])</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"command failed with exit code </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">exit_code</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="k">except</span> <span class="n">KubexClientException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"WebSocket error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.api._exec</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExecError</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.core.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">KubexClientException</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>    <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">exec</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">pod_name</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="p">[</span><span class="s2">"false"</span><span class="p">])</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="n">result</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="k">except</span> <span class="n">ExecError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"command failed (exit code </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">exit_code</span><span class="si">}</span><span class="s2">): </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="k">except</span> <span class="n">KubexClientException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"WebSocket error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </code></pre></div>
 
 
@@ -2665,10 +2760,10 @@ buffer fills, kubex closes that channel locally rather than blocking forever. Ch
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
       
     
   </body>

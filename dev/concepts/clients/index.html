@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/logo.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
     
     
       
@@ -31,10 +31,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -896,6 +896,17 @@
     <span class="md-ellipsis">
       
         Backend asymmetries
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#connection-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Connection behavior
       
     </span>
   </a>
@@ -2277,6 +2288,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#connection-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Connection behavior
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#aiohttpclient" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2355,7 +2377,7 @@
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="c1"># use the client</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="o">...</span>
 </code></pre></div>
-<p>Auto-detection order: <strong>aiohttp</strong> is tried first, then <strong>httpx</strong>. If neither is installed, <code>create_client()</code> raises <code>ImportError</code>.</p>
+<p>Auto-detection order: <strong>aiohttp</strong> is tried first, then <strong>httpx</strong>. If neither is installed, <code>create_client()</code> raises <code>ImportError</code>. aiohttp only runs on asyncio, so under any other runtime (e.g. trio) auto-detection always picks <strong>httpx</strong>.</p>
 <p>To force a specific client:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.client</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_client</span><span class="p">,</span> <span class="n">ClientChoice</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
@@ -2402,7 +2424,7 @@
 <tbody>
 <tr>
 <td><code>...</code> (the default)</td>
-<td>Use the HTTP library's own default (httpx: 5 s total; aiohttp: 300 s total, 30 s sock_connect)</td>
+<td>Use the HTTP library's own default (httpx: 5 s per phase — connect, read, write, pool — with no overall cap; aiohttp: 300 s total, 30 s sock_connect)</td>
 </tr>
 <tr>
 <td><code>None</code></td>
@@ -2410,7 +2432,7 @@
 </tr>
 <tr>
 <td><code>int</code> or <code>float</code></td>
-<td>Treat as a <code>total</code> timeout in seconds; coerced to <code>Timeout</code> automatically</td>
+<td>Treat as a <code>total</code> timeout in seconds (a wall-clock bound on both backends); coerced to <code>Timeout</code> automatically</td>
 </tr>
 <tr>
 <td><code>Timeout(...)</code></td>
@@ -2418,7 +2440,7 @@
 </tr>
 </tbody>
 </table>
-<p>Individual calls can override this via the <code>request_timeout=</code> parameter. See <a href="../../operations/timeouts/">Timeouts</a> for the full picture.</p>
+<p>Individual calls can override this via the <code>request_timeout=</code> parameter. Streaming calls (<code>watch()</code>, <code>logs.stream()</code>) only inherit the connection-setup part of this default. See <a href="../../operations/timeouts/">Timeouts</a> for the full picture.</p>
 <h3 id="log_api_warnings"><code>log_api_warnings</code><a class="headerlink" href="#log_api_warnings" title="Permanent link">&para;</a></h3>
 <p>When <code>True</code> (the default), kubex emits a Python <code>UserWarning</code> for every <code>Warning:</code> HTTP response header returned by the API server. The Kubernetes API server uses these headers to flag deprecated API usage (e.g. calling a removed API version). Set to <code>False</code> to silence them.</p>
 <h3 id="proxy"><code>proxy</code><a class="headerlink" href="#proxy" title="Permanent link">&para;</a></h3>
@@ -2487,7 +2509,7 @@
 <a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">options</span> <span class="o">=</span> <span class="n">ClientOptions</span><span class="p">(</span><span class="n">keep_alive_timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="buffer_size"><code>buffer_size</code><a class="headerlink" href="#buffer_size" title="Permanent link">&para;</a></h3>
-<p>HTTP-response read buffer size in bytes. Uses the three-state sentinel pattern:</p>
+<p>HTTP-response read buffer size in bytes — how much response data aiohttp buffers before it pauses reading from the socket. It does not limit the length of a streamed line: <code>watch()</code> and <code>logs.stream()</code> accept lines of any size. Uses the three-state sentinel pattern:</p>
 <table>
 <thead>
 <tr>
@@ -2498,11 +2520,11 @@
 <tbody>
 <tr>
 <td><code>...</code> (the default)</td>
-<td>Kubex default of <code>2**21</code> bytes (preserves current aiohttp behavior)</td>
+<td>Kubex default of <code>2**21</code> bytes (2 MiB)</td>
 </tr>
 <tr>
 <td><code>None</code></td>
-<td>Library default (aiohttp: <code>2**16</code> bytes)</td>
+<td>aiohttp's own default (version-dependent: 64 KiB in aiohttp 3.11, 256 KiB in 3.14)</td>
 </tr>
 <tr>
 <td><code>int &gt; 0</code></td>
@@ -2581,6 +2603,14 @@ than <code>...</code> on an httpx-backed client emits a <code>UserWarning</code>
 <a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="c1"># Unlimited</span>
 <a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="n">options</span> <span class="o">=</span> <span class="n">ClientOptions</span><span class="p">(</span><span class="n">pool_size</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 </code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Long-lived streams hold a pool connection</p>
+<p>Every open watch, log stream, <code>exec</code>/<code>attach</code>/<code>portforward</code> session and each
+connection accepted by <code>api.portforward.listen()</code> holds one connection from this
+pool for as long as it stays open. With the default of 100, an application that
+keeps many streams open at once can starve its own regular requests (they wait
+for a free connection) — raise <code>pool_size</code> accordingly.</p>
+</div>
 <h3 id="pool_size_per_host"><code>pool_size_per_host</code><a class="headerlink" href="#pool_size_per_host" title="Permanent link">&para;</a></h3>
 <p>Per-host connection pool size. Uses the three-state sentinel pattern:</p>
 <table>
@@ -2730,6 +2760,15 @@ than <code>...</code> on an httpx-backed client emits a <code>UserWarning</code>
 </tbody>
 </table>
 <p>Cross-reference: see <a href="../../operations/timeouts/">Timeouts</a> for the note on <code>Timeout.write</code> and <code>Timeout.pool</code> being httpx-only fields.</p>
+<h2 id="connection-behavior">Connection behavior<a class="headerlink" href="#connection-behavior" title="Permanent link">&para;</a></h2>
+<p>These apply to both backends:</p>
+<ul>
+<li><strong>Errors are backend-independent.</strong> Connection failures (refused, DNS, TLS, the connection dropping mid-response) raise <code>KubexConnectionError</code>; client-side timeouts raise <code>KubexTimeoutError</code> (also a <code>TimeoutError</code>). The original httpx/aiohttp exception is kept as <code>__cause__</code>. See <a href="../exceptions/">Exceptions</a>.</li>
+<li><strong>TLS material is loaded once.</strong> The CA bundle and client certificate/key files are read when the client is constructed. If they are rotated on disk (e.g. a renewed client certificate), create a new client to pick them up.</li>
+<li><strong><code>tls-server-name</code></strong> from the kubeconfig (<code>ClientConfiguration(tls_server_name=...)</code>) is used both as the SNI name and as the name the server certificate is verified against, for REST and WebSocket connections. Exception: the httpx backend cannot apply it through an HTTP proxy (explicit <code>proxy</code> or one picked up with <code>trust_env=True</code>) and warns at construction; certificate verification then uses the host in the server URL. Use aiohttp for that setup.</li>
+<li><strong>Impersonation headers</strong> (<code>Impersonate-User</code>, <code>Impersonate-Group</code>, …) from the configuration are sent on every REST and WebSocket request; repeated headers such as several <code>Impersonate-Group</code> values are preserved.</li>
+<li><strong>WebSocket keepalive.</strong> <code>exec</code>, <code>attach</code> and <code>portforward</code> connections send a ping every 20 seconds so idle connections survive load balancers. No pong deadline is enforced: a consumer that pauses reading (backpressure) is not disconnected.</li>
+</ul>
 <h2 id="aiohttpclient"><code>AioHttpClient</code><a class="headerlink" href="#aiohttpclient" title="Permanent link">&para;</a></h2>
 <p>Requires: <code>pip install "kubex[aiohttp]"</code></p>
 <p>aiohttp has WebSocket support built in — no extra package needed for <code>exec</code>, <code>attach</code>, and <code>portforward</code>. Supports asyncio only.</p>
@@ -2874,10 +2913,10 @@ than <code>...</code> on an httpx-backed client emits a <code>UserWarning</code>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
       
     
   </body>

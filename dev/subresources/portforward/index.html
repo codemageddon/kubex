@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/logo.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
     
     
       
@@ -31,10 +31,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -1503,6 +1503,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#connection-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Connection lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#error-logging" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2163,6 +2174,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#connection-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Connection lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#error-logging" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2342,23 +2364,18 @@ channel-protocol layer is relatively new. The API may change between minor relea
 <td><code>Mapping[int, MemoryObjectReceiveStream[str]]</code></td>
 <td>Per-port kubelet error messages (typically empty on success)</td>
 </tr>
-<tr>
-<td><code>port_data_truncated</code></td>
-<td><code>Mapping[int, bool]</code></td>
-<td>Per-port: <code>True</code> if that port's data buffer overflowed and the stream was closed locally</td>
-</tr>
-<tr>
-<td><code>port_error_truncated</code></td>
-<td><code>Mapping[int, bool]</code></td>
-<td>Per-port: <code>True</code> if that port's error buffer overflowed and the error stream was closed locally</td>
-</tr>
 </tbody>
 </table>
-<p><code>PortForwardStream</code> is an <code>anyio.abc.ByteStream</code>, so you can use <code>send()</code> and <code>receive()</code> on it directly.</p>
-<p>Each port's incoming data — and, independently, its error messages — is buffered up to 128
-frames; if a consumer falls behind and a buffer fills, kubex closes that channel locally rather
-than blocking forever. Check <code>pf.port_data_truncated[port]</code>/<code>pf.port_error_truncated[port]</code> after
-the corresponding stream ends to tell that apart from a normal EOF.</p>
+<p><code>PortForwardStream</code> is an <code>anyio.abc.ByteStream</code>, so you can use <code>send()</code> and <code>receive()</code> on it
+directly. <code>send()</code> splits large payloads into frames of at most 32 KiB and raises
+<code>KubexClientException</code> once the session has ended. <code>port_data_truncated</code>/<code>port_error_truncated</code>
+are deprecated and always <code>False</code>.</p>
+<p>Incoming data is never dropped. Each port's data — and, independently, its error messages — is
+queued up to 128 frames; when a queue is full, kubex stops reading the WebSocket until you consume
+more, so backpressure reaches the pod. All ports of one <code>forward()</code> call share a single WebSocket,
+so <strong>a port you don't read stalls the other ports</strong> once its queue fills (as with
+<code>kubectl port-forward</code>). Read every forwarded port concurrently, or <code>aclose()</code> the streams you
+don't need. Leaving the <code>async with</code> block always tears the session down promptly.</p>
 <h3 id="forwarding-multiple-ports">Forwarding multiple ports<a class="headerlink" href="#forwarding-multiple-ports" title="Permanent link">&para;</a></h3>
 <p>Pass multiple ports to <code>forward()</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">async</span> <span class="k">with</span> <span class="n">api</span><span class="o">.</span><span class="n">portforward</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">pod_name</span><span class="p">,</span> <span class="n">ports</span><span class="o">=</span><span class="p">[</span><span class="mi">80</span><span class="p">,</span> <span class="mi">443</span><span class="p">])</span> <span class="k">as</span> <span class="n">pf</span><span class="p">:</span>
@@ -2428,8 +2445,22 @@ the corresponding stream ends to tell that apart from a normal EOF.</p>
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="c1"># connect with: psql -h 127.0.0.1 -p 15432 ...</span>
 <a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="o">...</span>
 </code></pre></div>
+<h3 id="connection-lifecycle">Connection lifecycle<a class="headerlink" href="#connection-lifecycle" title="Permanent link">&para;</a></h3>
+<p>Like <code>kubectl port-forward</code>, each local connection is closed as soon as the remote side finishes
+(or the kubelet reports an error for it). A local half-close (<code>shutdown(SHUT_WR)</code>) only ends the
+local→pod direction; the pod's response keeps flowing until it is complete.</p>
+<p>The kubelet only offers the v4 portforward protocol, which cannot signal end-of-stream, so the pod
+never sees the local side's EOF. Two consequences:</p>
+<ul>
+<li>A pod service that waits for EOF before it replies never replies.</li>
+<li>When a local client disconnects, its connection stays open until the pod closes it or sends
+  more data (which then fails). A pod service that keeps idle connections open forever, such as an
+  HTTP server without an idle timeout, keeps one WebSocket open per disconnected client.</li>
+</ul>
 <h3 id="error-logging">Error logging<a class="headerlink" href="#error-logging" title="Permanent link">&para;</a></h3>
-<p><code>listen()</code> logs kubelet error frames via the <code>kubex.portforward</code> logger at <code>WARNING</code> level. Configure Python logging to capture them:</p>
+<p><code>listen()</code> logs kubelet error frames, and connections that fail with a WebSocket error, via the
+<code>kubex.portforward</code> logger at <code>WARNING</code> level (without a traceback). Configure Python logging to
+capture them:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
 <a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">)</span>
@@ -2499,10 +2530,10 @@ the corresponding stream ends to tell that apart from a normal EOF.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
       
     
   </body>

@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/logo.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
     
     
       
@@ -31,10 +31,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2121,25 +2121,40 @@
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="k">async</span> <span class="k">with</span> <span class="k">await</span> <span class="n">create_client</span><span class="p">(</span><span class="n">configuration</span><span class="o">=</span><span class="n">config</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
 <a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="o">...</span>
 </code></pre></div>
-<p>To load a specific file or context:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.configuration.configuration</span><span class="w"> </span><span class="kn">import</span> <span class="n">KubeConfig</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.configuration.file_config</span><span class="w"> </span><span class="kn">import</span> <span class="n">configure_from_kubeconfig</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">yaml</span><span class="w"> </span><span class="kn">import</span> <span class="n">safe_load</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">raw</span> <span class="o">=</span> <span class="n">safe_load</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">"/path/to/kubeconfig"</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">())</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="n">kube_config</span> <span class="o">=</span> <span class="n">KubeConfig</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="n">config</span> <span class="o">=</span> <span class="k">await</span> <span class="n">configure_from_kubeconfig</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">kube_config</span><span class="p">,</span> <span class="n">use_context</span><span class="o">=</span><span class="s2">"staging"</span><span class="p">)</span>
+<p>To load a specific file or context, pass <code>config_file=</code> and/or <code>use_context=</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.configuration.file_config</span><span class="w"> </span><span class="kn">import</span> <span class="n">configure_from_kubeconfig</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">config</span> <span class="o">=</span> <span class="k">await</span> <span class="n">configure_from_kubeconfig</span><span class="p">(</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">config_file</span><span class="o">=</span><span class="s2">"/path/to/kubeconfig"</span><span class="p">,</span> <span class="n">use_context</span><span class="o">=</span><span class="s2">"staging"</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="p">)</span>
 </code></pre></div>
+<p>As with <code>kubectl</code>, relative file paths inside the kubeconfig (<code>certificate-authority</code>,
+<code>client-certificate</code>, <code>client-key</code>, <code>tokenFile</code>, the oidc <code>idp-certificate-authority</code>, and an
+exec <code>command</code> that contains a path separator) are resolved against the kubeconfig file's
+directory. You can also pass an already-parsed <code>KubeConfig</code> as <code>config=</code>, but then relative paths
+are used as-is (relative to the current directory).</p>
 <p>Kubeconfig supports:
 - Bearer token (<code>users[].user.token</code>)
 - Token file (<code>users[].user.tokenFile</code>)
+- Basic auth (<code>users[].user.username</code> / <code>password</code>), used when no token source is set
 - Client certificate + key (<code>users[].user.client-certificate</code> / <code>client-key</code>)
-- Inline base64 certificate data (decoded to temp files automatically)
+- Inline base64 data (<code>certificate-authority-data</code>, <code>client-certificate-data</code>,
+  <code>client-key-data</code>), decoded to private temp files; a <code>*-data</code> field overrides the matching
+  file path, as in client-go
+- Impersonation (<code>users[].user.as</code>, <code>as-uid</code>, <code>as-groups</code>, <code>as-user-extra</code>), sent as
+  <code>Impersonate-*</code> headers on every request
 - Exec provider (see below)
 - OIDC, <code>auth-provider: oidc</code> only (see below)
+- <code>clusters[].cluster.tls-server-name</code> (the name the server certificate is verified against,
+  instead of the host in <code>server</code>)
 - <code>clusters[].cluster.insecure-skip-tls-verify</code> (forwarded only when <code>true</code>; a cluster that
-  omits it keeps kubex's normal system-trust-store/explicit-CA behavior)</p>
+  omits it keeps kubex's normal system-trust-store/explicit-CA behavior)
+- A context <code>namespace</code>; a context without one uses <code>default</code>, like <code>kubectl</code></p>
+<p>Only the selected context's cluster and user are checked, so a stale entry for another context
+(e.g. a deleted minikube profile) does not break loading. For the selected one, a referenced file
+that does not exist raises <code>ConfigurationError</code> naming the field and path, and a <code>server</code> without
+a scheme (<code>10.0.0.1:6443</code>) is treated as <code>https://</code>. Validation errors never echo kubeconfig
+values, so tokens and keys do not end up in logs.</p>
 <p>A context whose user sets <code>auth-provider:</code> to anything other than <code>oidc</code>, or an <code>oidc</code>
 <code>auth-provider</code> block that fails to validate, raises <code>ConfigurationError</code> rather than
 silently returning an unauthenticated client.</p>
@@ -2159,8 +2174,11 @@ cluster that sets it emits a <code>UserWarning</code>; pass the equivalent proxy
 <p>This reads:
 - Token: <code>/var/run/secrets/kubernetes.io/serviceaccount/token</code>
 - CA certificate: <code>/var/run/secrets/kubernetes.io/serviceaccount/ca.crt</code>
-- Namespace: <code>/var/run/secrets/kubernetes.io/serviceaccount/namespace</code>
-- Server URL: from <code>KUBERNETES_SERVICE_HOST</code> and <code>KUBERNETES_SERVICE_PORT</code> environment variables</p>
+- Namespace: <code>/var/run/secrets/kubernetes.io/serviceaccount/namespace</code> (<code>default</code> if the file is
+  absent)
+- Server URL: from <code>KUBERNETES_SERVICE_HOST</code> and <code>KUBERNETES_SERVICE_PORT</code> environment variables
+  (IPv6 hosts are bracketed). If either is unset, <code>ConfigurationError</code> is raised: the process is
+  not running inside a cluster.</p>
 <p>Token auto-refresh is enabled by default (<code>try_refresh_token=True</code>). The token is re-read from disk every 60 seconds, which matches the default rotation window used by Kubernetes projected volume tokens.</p>
 <h2 id="exec-provider">Exec provider<a class="headerlink" href="#exec-provider" title="Permanent link">&para;</a></h2>
 <p>Exec provider authentication runs an external command to obtain a bearer token — the standard
@@ -2179,28 +2197,43 @@ The exec provider config lives in the kubeconfig <code>users[].user.exec</code> 
 <a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-cluster</span>
 </code></pre></div>
 <p><code>configure_from_kubeconfig()</code> resolves this block: it wraps <code>ExecAuthProvider</code> (which runs the
-command via <code>anyio.run_process</code> and parses the <code>ExecCredential</code> JSON response) in an
-<code>ExecRefreshableToken</code> and stores it on <code>ClientConfiguration.refreshable_token</code>. Both HTTP
-backends call <code>ClientConfiguration.get_authorization_header()</code> on every request, which awaits
-<code>ExecRefreshableToken.to_header()</code> — the exec command re-runs whenever the cached token is within
-10 seconds of expiring.</p>
-<p>Caveat: <code>ExecCredential.status.expirationTimestamp</code> is not read. The cached token is treated as
-expiring after a fixed 60 seconds regardless of what the plugin actually reported, so a plugin
-issuing longer- or shorter-lived tokens re-runs on that fixed cadence rather than the token's real
-lifetime.</p>
+command and parses the <code>ExecCredential</code> JSON it prints) in an <code>ExecRefreshableToken</code> and stores it
+on <code>ClientConfiguration.refreshable_token</code>. Both HTTP backends call
+<code>ClientConfiguration.get_authorization_header()</code> on every request, which awaits
+<code>ExecRefreshableToken.to_header()</code> — the exec command re-runs when the cached token is within
+10 seconds of the plugin's <code>expirationTimestamp</code>, or every 60 seconds if it reports none.</p>
+<ul>
+<li>The plugin's stderr is passed through to your process's stderr as it runs, so login prompts and
+  device-code instructions reach the user. On a non-zero exit, the tail of that stderr is included
+  in the raised error.</li>
+<li><code>interactiveMode</code> defaults to <code>IfAvailable</code>. The plugin gets your stdin only when running
+  interactively (stdin is a terminal); otherwise its stdin is empty.</li>
+<li>A <code>command</code> containing a path separator (<code>./bin/get-token</code>) is resolved against the kubeconfig
+  file's directory; a bare name (<code>aws</code>) is looked up on <code>PATH</code>.</li>
+<li><code>provideClusterInfo: true</code> passes the cluster's <code>server</code>, <code>certificate-authority-data</code>,
+  <code>tls-server-name</code>, <code>insecure-skip-tls-verify</code>, <code>proxy-url</code> and its
+  <code>client.authentication.k8s.io/exec</code> extension (as <code>config</code>) to the plugin in
+  <code>KUBERNETES_EXEC_INFO</code>.</li>
+<li>Only token credentials are supported. A plugin that returns a client certificate
+  (<code>clientCertificateData</code>/<code>clientKeyData</code>) raises <code>ConfigurationError</code>.</li>
+</ul>
 <h2 id="oidc">OIDC<a class="headerlink" href="#oidc" title="Permanent link">&para;</a></h2>
 <p>OIDC (<code>auth-provider: oidc</code>) is resolved the same way: <code>configure_from_kubeconfig()</code> wraps
 <code>OIDCAuthProvider</code> in an <code>OidcRefreshableToken</code>. Only <code>auth-provider: oidc</code> is supported — any
-other <code>auth-provider</code> name raises <code>ConfigurationError</code>. The same fixed-60-second refresh caveat
-as the exec provider applies (the OIDC token response's real expiry is not read either).</p>
+other <code>auth-provider</code> name raises <code>ConfigurationError</code>.</p>
+<p>As in client-go, the configured <code>id-token</code> is used until its <code>exp</code> claim is reached; only then is
+the <code>refresh-token</code> redeemed at the issuer's token endpoint, and the new id_token is used until
+its own <code>exp</code>. <code>client-secret</code> and <code>refresh-token</code> are optional (public clients, or an id-token
+kept fresh by another tool); with neither a valid id-token nor a refresh token, requests fail with
+<code>ConfigurationError</code>. The issuer's TLS certificate is verified against
+<code>idp-certificate-authority-data</code> or the <code>idp-certificate-authority</code> file when set.</p>
 <p>If the identity provider rotates refresh tokens (e.g. Auth0, Okta, or Keycloak with rotation
 enabled), a fresh refresh token issued during a kubex refresh is kept only in memory for the
-life of the process — it is <strong>not</strong> written back to the kubeconfig file on disk. Combined with
-the fixed 60-second refresh cadence above, this means the on-disk refresh token is invalidated
-roughly once a minute; a fresh process (or a concurrent <code>kubectl</code> invocation reading the same
-kubeconfig) will need to re-authenticate interactively once that has happened. Identity
-providers that do not rotate refresh tokens for the client type in use (e.g. Google's OAuth
-for installed applications) are unaffected.</p>
+life of the process — it is <strong>not</strong> written back to the kubeconfig file on disk. The on-disk
+refresh token is therefore invalidated by the first refresh; a fresh process (or a concurrent
+<code>kubectl</code> invocation reading the same kubeconfig) will need to re-authenticate interactively
+once that has happened. Identity providers that do not rotate refresh tokens for the client type
+in use (e.g. Google's OAuth for installed applications) are unaffected.</p>
 <h2 id="manual-clientconfiguration">Manual <code>ClientConfiguration</code><a class="headerlink" href="#manual-clientconfiguration" title="Permanent link">&para;</a></h2>
 <p>For programmatic or testing use cases, construct <code>ClientConfiguration</code> directly:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.configuration</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClientConfiguration</span>
@@ -2226,11 +2259,23 @@ for installed applications) are unaffected.</p>
 <a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>    <span class="n">insecure_skip_tls_verify</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a>    <span class="n">token</span><span class="o">=</span><span class="s2">"my-token"</span><span class="p">,</span>
 <a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a><span class="p">)</span>
+<a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a>
+<a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a><span class="c1"># Basic auth, impersonation, and a TLS server name different from the URL host</span>
+<a id="__codelineno-6-26" name="__codelineno-6-26" href="#__codelineno-6-26"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ClientConfiguration</span><span class="p">(</span>
+<a id="__codelineno-6-27" name="__codelineno-6-27" href="#__codelineno-6-27"></a>    <span class="n">url</span><span class="o">=</span><span class="s2">"https://10.0.0.1:6443"</span><span class="p">,</span>
+<a id="__codelineno-6-28" name="__codelineno-6-28" href="#__codelineno-6-28"></a>    <span class="n">server_ca_file</span><span class="o">=</span><span class="s2">"/path/to/ca.crt"</span><span class="p">,</span>
+<a id="__codelineno-6-29" name="__codelineno-6-29" href="#__codelineno-6-29"></a>    <span class="n">tls_server_name</span><span class="o">=</span><span class="s2">"kubernetes.default.svc"</span><span class="p">,</span>
+<a id="__codelineno-6-30" name="__codelineno-6-30" href="#__codelineno-6-30"></a>    <span class="n">username</span><span class="o">=</span><span class="s2">"admin"</span><span class="p">,</span>
+<a id="__codelineno-6-31" name="__codelineno-6-31" href="#__codelineno-6-31"></a>    <span class="n">password</span><span class="o">=</span><span class="s2">"s3cret"</span><span class="p">,</span>
+<a id="__codelineno-6-32" name="__codelineno-6-32" href="#__codelineno-6-32"></a>    <span class="n">impersonate_user</span><span class="o">=</span><span class="s2">"jane"</span><span class="p">,</span>
+<a id="__codelineno-6-33" name="__codelineno-6-33" href="#__codelineno-6-33"></a>    <span class="n">impersonate_groups</span><span class="o">=</span><span class="p">[</span><span class="s2">"developers"</span><span class="p">],</span>
+<a id="__codelineno-6-34" name="__codelineno-6-34" href="#__codelineno-6-34"></a><span class="p">)</span>
 </code></pre></div>
-<p>The <code>namespace</code> parameter is populated by <code>configure_from_pod_env()</code> from the pod's service-account
-namespace file. <code>Api</code>/<code>create_api()</code> fall back to it when a <strong>namespace-scoped</strong> resource is
-created without an explicit <code>namespace=</code> argument — so running in-cluster and omitting the
-namespace scopes <code>get()</code>/<code>create()</code>/<code>list()</code>/<code>watch()</code> to the pod's own namespace, rather than
+<p>The <code>namespace</code> parameter is populated by <code>configure_from_kubeconfig()</code> from the selected
+context's <code>namespace</code> (<code>default</code> when unset) and by <code>configure_from_pod_env()</code> from the pod's
+service-account namespace file. <code>Api</code>/<code>create_api()</code> fall back to it when a <strong>namespace-scoped</strong>
+resource is created without an explicit <code>namespace=</code> argument — so omitting the namespace scopes
+<code>get()</code>/<code>create()</code>/<code>list()</code>/<code>watch()</code> to the configured namespace (as <code>kubectl</code> does), rather than
 "all namespaces". Pass <code>namespace=None</code> explicitly to opt back into all-namespaces behavior, or a
 specific string to target a different namespace. Cluster-scoped resources never receive a
 namespace, configured or not.</p>
@@ -2291,10 +2336,10 @@ namespace, configured or not.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
       
     
   </body>

@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/logo.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
     
     
       
@@ -31,10 +31,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2171,10 +2171,12 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>uv<span class="w"> </span>add<span class="w"> </span><span class="s2">"kubex[httpx,k8s-1.34,k8s-1.35]"</span>
 </code></pre></div>
 <h2 id="api-compatibility-across-versions">API compatibility across versions<a class="headerlink" href="#api-compatibility-across-versions" title="Permanent link">&para;</a></h2>
-<p>Most Kubernetes APIs are stable across minor versions. Fields added in newer versions are <code>None</code> by default in older models, so code written against 1.34 models generally works unchanged against a 1.35 cluster. Fields removed between versions are silently ignored — all kubex models inherit Pydantic's default <code>extra='ignore'</code>, so unknown keys in an API response never raise or warn.</p>
+<p>Most Kubernetes APIs are stable across minor versions. Fields added in newer versions are <code>None</code> by default in older models, so code written against 1.34 models generally works unchanged against a 1.35 cluster.</p>
+<p>Fields an older model does not know about are not dropped: every kubex model keeps unknown keys from an API response (under their wire names, in <code>model_extra</code>) and serializes them back on <code>create</code>, <code>replace</code> and patches. A get → modify → replace with 1.34 models against a 1.35 cluster therefore preserves fields that only exist in 1.35. Unknown keys never raise or warn, but they are untyped — use the model package that matches your cluster to get them as typed attributes.</p>
 <p>For strict compatibility, always match the model package version to your cluster version.</p>
 <h2 id="openapi-spec-correspondence">OpenAPI spec correspondence<a class="headerlink" href="#openapi-spec-correspondence" title="Permanent link">&para;</a></h2>
-<p>Each model package is generated from the official <code>swagger.json</code> (OpenAPI v2) spec published with each Kubernetes release. The generator maps every OpenAPI schema to a Pydantic v2 model with proper field types — no <code>dict[str, Any]</code> catch-alls. Marker interfaces (<code>HasLogs</code>, <code>HasExec</code>, etc.) are added based on which subresource endpoints exist in the spec for that version.</p>
+<p>Each model package is generated from the official <code>swagger.json</code> (OpenAPI v2) spec published with each Kubernetes release. The generator maps every OpenAPI schema to a Pydantic v2 model with proper field types; only genuinely free-form values (<code>RawExtension</code>, CRD <code>JSON</code> such as <code>default</code>/<code>enum</code> in a schema) are <code>dict[str, Any]</code> or <code>Any</code>. Timestamps use the <code>Time</code>/<code>MicroTime</code> types and resource quantities the <code>Quantity</code> type from <code>kubex_core.models.types</code> (see <a href="../custom-resources/#timestamps-quantities-and-nullable-collections">Custom Resources</a>). Marker interfaces (<code>HasLogs</code>, <code>HasExec</code>, etc.) are added based on which subresource endpoints exist in the spec for that version.</p>
+<p>The generated types follow what the API server actually sends rather than the spec's <code>required</code> lists alone: a spec-required list or map that Go sends as <code>null</code> (a nil slice or map) is read as an empty collection, and a spec-required timestamp, <code>[]byte</code> or <code>RawExtension</code> field, whose Go zero value is <code>null</code>, is typed <code>T | None</code>.</p>
 
 
 
@@ -2232,10 +2234,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
       
     
   </body>

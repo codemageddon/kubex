@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/logo.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
     
     
       
@@ -31,10 +31,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -1094,6 +1094,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#when-a-timeout-fires" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When a timeout fires
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#timeout_seconds-on-list-and-delete_collection" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2056,6 +2067,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#when-a-timeout-fires" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When a timeout fires
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#timeout_seconds-on-list-and-delete_collection" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2115,7 +2137,7 @@
 <tbody>
 <tr>
 <td><code>total</code></td>
-<td>Overall timeout in seconds. Acts as the default for unset granular fields.</td>
+<td>Overall wall-clock timeout in seconds for the whole request, on both backends. Also the default for unset granular fields.</td>
 </tr>
 <tr>
 <td><code>connect</code></td>
@@ -2145,7 +2167,8 @@
 <a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">options</span><span class="o">=</span><span class="n">ClientOptions</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="n">Timeout</span><span class="p">(</span><span class="n">total</span><span class="o">=</span><span class="mf">30.0</span><span class="p">)),</span>
 <a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="p">)</span>
 </code></pre></div>
-<p>If no <code>options</code> is provided (or <code>timeout=...</code>, the default), the underlying HTTP library's own default applies (httpx: 5 s total; aiohttp: 300 s total, 30 s sock_connect).</p>
+<p>If no <code>options</code> is provided (or <code>timeout=...</code>, the default), the underlying HTTP library's own default applies (httpx: 5 s per phase — connect, read, write, pool — with no overall cap; aiohttp: 300 s total, 30 s sock_connect).</p>
+<p>A client-level default applies in full to regular (non-streaming) requests. Streaming calls only inherit its connection-setup part — see <a href="#watch-and-long-lived-streams">Watch and long-lived streams</a>.</p>
 <h2 id="per-call-override-with-request_timeout">Per-call override with <code>request_timeout</code><a class="headerlink" href="#per-call-override-with-request_timeout" title="Permanent link">&para;</a></h2>
 <p>Every <code>Api</code> method accepts <code>request_timeout=</code> to override the client default for that call alone. The parameter accepts <code>TimeoutTypes</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Use the client default (Ellipsis = "inherit from client")</span>
@@ -2191,35 +2214,59 @@
 <h2 id="watch-and-long-lived-streams">Watch and long-lived streams<a class="headerlink" href="#watch-and-long-lived-streams" title="Permanent link">&para;</a></h2>
 <div class="admonition warning">
 <p class="admonition-title">Server-side default closes the stream</p>
-<p>The Kubernetes API server applies its own default <code>timeoutSeconds</code> (typically
-around 5 minutes) when the client does not provide one. A <code>watch()</code> call
+<p>The Kubernetes API server applies its own default <code>timeoutSeconds</code> (usually
+somewhere between 30 and 60 minutes) when the client does not provide one. A <code>watch()</code> call
 will <em>not</em> stream forever — your loop must reconnect when the server closes
 the stream. Pass an explicit <code>timeout_seconds=</code> to make the bound visible
-in code, and combine with the <a href="../watch/#restart-on-gone-pattern">restart-on-<code>Gone</code> pattern</a>
+in code, and combine with the <a href="../watch/#resuming-after-gone">resume-after-<code>Gone</code> pattern</a>
 to keep the watch alive across reconnects.</p>
 </div>
-<p>For <code>api.watch()</code> and log streaming, a short <code>read</code> timeout will terminate the stream prematurely. Either disable the HTTP timeout for these calls or set a generous <code>read</code> value:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># No HTTP timeout on watch — the Kubernetes server-side timeout controls duration</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">async</span> <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">api</span><span class="o">.</span><span class="n">watch</span><span class="p">(</span><span class="n">request_timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout_seconds</span><span class="o">=</span><span class="mi">300</span><span class="p">):</span>
+<p>A watch or a followed log stream legitimately goes quiet for long periods, so when <code>request_timeout</code> is <strong>not</strong> passed, <code>api.watch()</code>, <code>api.metadata.watch()</code> and <code>api.logs.stream()</code> use a <em>connect-only</em> timeout: the connection-setup bounds of the client default are kept (<code>connect</code>/<code>pool</code>, or <code>total</code> while connecting — the library defaults if <code>ClientOptions.timeout</code> is not set), and the <code>read</code> and <code>total</code> bounds are dropped. A stream therefore never fails just because no event arrived for a while.</p>
+<p>An explicit <code>request_timeout</code> is applied to the stream as given — a short value will terminate the stream. (On streams, httpx applies a <code>total</code> per phase — e.g. as the longest allowed gap between chunks — rather than as a wall-clock limit; aiohttp applies it to the whole stream.)</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Connect-only (the default): runs until the server closes the stream</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">async</span> <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">api</span><span class="o">.</span><span class="n">watch</span><span class="p">(</span><span class="n">timeout_seconds</span><span class="o">=</span><span class="mi">300</span><span class="p">):</span>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="o">...</span>
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1"># Or use a long read timeout</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="k">async</span> <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">api</span><span class="o">.</span><span class="n">watch</span><span class="p">(</span><span class="n">request_timeout</span><span class="o">=</span><span class="n">Timeout</span><span class="p">(</span><span class="n">connect</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span> <span class="n">read</span><span class="o">=</span><span class="mf">600.0</span><span class="p">)):</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1"># No HTTP timeout at all, not even for connecting</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="k">async</span> <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">api</span><span class="o">.</span><span class="n">watch</span><span class="p">(</span><span class="n">request_timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout_seconds</span><span class="o">=</span><span class="mi">300</span><span class="p">):</span>
 <a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="o">...</span>
 </code></pre></div>
+<div class="admonition tip">
+<p class="admonition-title">Detecting a dead connection</p>
+<p>Without a read timeout, a connection that dies silently (e.g. a dropped NAT
+entry, no TCP reset) keeps the stream waiting. To bound that, pass
+<code>timeout_seconds</code> <em>and</em> a slightly larger client-side <code>request_timeout</code>:
+the server ends a healthy stream after <code>timeout_seconds</code>, so hitting the
+client timeout means the connection is gone.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">async</span> <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">api</span><span class="o">.</span><span class="n">watch</span><span class="p">(</span><span class="n">timeout_seconds</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">request_timeout</span><span class="o">=</span><span class="mi">330</span><span class="p">):</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="o">...</span>
+</code></pre></div>
+<p>For log follows (which have no server-side timeout), use a generous <code>read</code>
+timeout instead, e.g. <code>request_timeout=Timeout(connect=10, read=600)</code>.</p>
+</div>
 <div class="admonition warning">
 <p class="admonition-title">Two timeout parameters on <code>watch()</code></p>
 <p><code>watch(timeout_seconds=N)</code> tells the <em>API server</em> to close the stream after N seconds.
 <code>watch(request_timeout=M)</code> tells the <em>HTTP client</em> to abort the connection after M seconds.
 They are independent — set both if you want server-side control <em>and</em> a client-side safety net.</p>
 </div>
+<h2 id="when-a-timeout-fires">When a timeout fires<a class="headerlink" href="#when-a-timeout-fires" title="Permanent link">&para;</a></h2>
+<p>A client-side timeout raises <code>KubexTimeoutError</code> on both backends — for regular requests, streams (including mid-stream) and WebSocket handshakes. It subclasses both <code>KubexClientException</code> and the built-in <code>TimeoutError</code>, so either <code>except</code> clause catches it:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.core.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">KubexTimeoutError</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">pod</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"my-pod"</span><span class="p">,</span> <span class="n">request_timeout</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="k">except</span> <span class="n">KubexTimeoutError</span><span class="p">:</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="o">...</span>
+</code></pre></div>
+<p>Cancelling the calling task (e.g. an enclosing <code>anyio.move_on_after()</code>) is never converted: it propagates as the runtime's own cancellation.</p>
 <h2 id="timeout_seconds-on-list-and-delete_collection"><code>timeout_seconds</code> on <code>list()</code> and <code>delete_collection()</code><a class="headerlink" href="#timeout_seconds-on-list-and-delete_collection" title="Permanent link">&para;</a></h2>
 <p>The <code>timeout_seconds</code> parameter on <code>list()</code> and <code>delete_collection()</code> is the Kubernetes server-side <code>timeoutSeconds</code> parameter, not the HTTP client timeout. It limits how long the API server will process the request:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Server-side: abort the list after 10 s (Kubernetes timeoutSeconds)</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">pods</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">list</span><span class="p">(</span><span class="n">timeout_seconds</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># Client-side: abort the HTTP call after 15 s (HTTP read timeout)</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">pods</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">list</span><span class="p">(</span><span class="n">request_timeout</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Server-side: abort the list after 10 s (Kubernetes timeoutSeconds)</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">pods</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">list</span><span class="p">(</span><span class="n">timeout_seconds</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1"># Client-side: abort the HTTP call after 15 s (HTTP read timeout)</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="n">pods</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">list</span><span class="p">(</span><span class="n">request_timeout</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
 </code></pre></div>
 
 
@@ -2278,10 +2325,10 @@ They are independent — set both if you want server-side control <em>and</em> a
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
       
     
   </body>

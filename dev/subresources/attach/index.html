@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/logo.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
     
     
       
@@ -31,10 +31,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2309,16 +2309,6 @@ Requires Kubernetes ≥ 1.30 (v5 channel protocol).</p>
 <td>Async iterable yielding stderr chunks</td>
 </tr>
 <tr>
-<td><code>stdout_truncated</code></td>
-<td><code>bool</code></td>
-<td><code>True</code> if the stdout buffer overflowed and frames were dropped</td>
-</tr>
-<tr>
-<td><code>stderr_truncated</code></td>
-<td><code>bool</code></td>
-<td><code>True</code> if the stderr buffer overflowed and frames were dropped</td>
-</tr>
-<tr>
 <td><code>resize(width, height)</code></td>
 <td>coroutine</td>
 <td>Send a terminal resize event</td>
@@ -2331,13 +2321,17 @@ Requires Kubernetes ≥ 1.30 (v5 channel protocol).</p>
 <tr>
 <td><code>wait_for_status()</code></td>
 <td>coroutine</td>
-<td>Await the final status frame; returns <code>Status | None</code></td>
+<td>Await the final status; returns <code>Status | None</code> (<code>None</code> if the server closed without one)</td>
 </tr>
 </tbody>
 </table>
-<p><code>stdout</code>/<code>stderr</code> are each bounded at 128 buffered frames; if a consumer falls behind and the
-buffer fills, kubex closes that channel locally rather than blocking forever. Check
-<code>stdout_truncated</code>/<code>stderr_truncated</code> after the iterator ends to tell that apart from a normal EOF.</p>
+<p>Output is never dropped: <code>stdout</code> and <code>stderr</code> each queue up to 128 frames, and when a queue is
+full kubex stops reading the WebSocket until you consume more. Since both channels share one
+connection, <strong>a channel you don't read stalls the other</strong> — read every enabled channel
+concurrently, disable it (<code>stderr=False</code>), or discard it with <code>session.stderr.close()</code>. See
+<a href="../exec/#reading-output-backpressure">exec: reading output</a> for details. Large <code>stdin.write()</code>
+payloads are sent in frames of at most 32 KiB, and writing after the session has ended raises
+<code>KubexClientException</code>. <code>stdout_truncated</code>/<code>stderr_truncated</code> are deprecated and always <code>False</code>.</p>
 <h3 id="tty-mode-and-stderr">TTY mode and stderr<a class="headerlink" href="#tty-mode-and-stderr" title="Permanent link">&para;</a></h3>
 <p>When <code>tty=True</code>, the kubelet merges stderr into stdout. <code>session.stderr</code> closes immediately. Read only <code>session.stdout</code> when <code>tty=True</code>.</p>
 <h3 id="stream-options"><code>stream()</code> options<a class="headerlink" href="#stream-options" title="Permanent link">&para;</a></h3>
@@ -2446,10 +2440,10 @@ buffer fills, kubex closes that channel locally rather than blocking forever. Ch
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
       
     
   </body>

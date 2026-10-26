@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/logo.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
     
     
       
@@ -31,10 +31,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -1049,10 +1049,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#restart-on-gone-pattern" class="md-nav__link">
+  <a href="#resuming-after-gone" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Restart-on-Gone pattern
+        Resuming after Gone
       
     </span>
   </a>
@@ -1064,6 +1064,17 @@
     <span class="md-ellipsis">
       
         Server-side timeout
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#client-side-timeouts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Client-side timeouts
       
     </span>
   </a>
@@ -2100,10 +2111,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#restart-on-gone-pattern" class="md-nav__link">
+  <a href="#resuming-after-gone" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Restart-on-Gone pattern
+        Resuming after Gone
       
     </span>
   </a>
@@ -2115,6 +2126,17 @@
     <span class="md-ellipsis">
       
         Server-side timeout
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#client-side-timeouts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Client-side timeouts
       
     </span>
   </a>
@@ -2193,6 +2215,7 @@
 </tr>
 </tbody>
 </table>
+<p><code>ERROR</code> events are never yielded: the generator raises the matching exception instead — most importantly <code>Gone</code> (HTTP 410) when the requested <code>resourceVersion</code> is too old. See <a href="#resuming-after-gone">Resuming after <code>Gone</code></a>.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.core.watch_event</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventType</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="k">async</span> <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">api</span><span class="o">.</span><span class="n">watch</span><span class="p">():</span>
@@ -2223,34 +2246,54 @@
 <a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">event</span><span class="o">.</span><span class="n">type</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">ns</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="send_initial_events-pattern"><code>send_initial_events</code> pattern<a class="headerlink" href="#send_initial_events-pattern" title="Permanent link">&para;</a></h2>
-<p>Kubernetes 1.27+ supports <code>sendInitialEvents=true</code>, which causes the watch stream to first emit <code>ADDED</code> events for every existing resource before switching to live updates. Set <code>send_initial_events=True</code> together with <code>allow_bookmarks=True</code> to get a single stream that covers both current state and future changes:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">async</span> <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">api</span><span class="o">.</span><span class="n">watch</span><span class="p">(</span><span class="n">send_initial_events</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">allow_bookmarks</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<p><code>send_initial_events=True</code> makes the stream start with synthetic <code>ADDED</code> events for every existing resource, then a <code>BOOKMARK</code> annotated with <code>k8s.io/initial-events-end: "true"</code>, then live updates — current state and future changes in one stream. The server requires bookmarks for this, so <code>allow_bookmarks</code> defaults to <code>True</code> when <code>send_initial_events=True</code> (passing <code>allow_bookmarks=False</code> together with it raises <code>ValueError</code>). It needs the API server's <code>WatchList</code> feature; a server without it rejects the request with <code>422</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">async</span> <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">api</span><span class="o">.</span><span class="n">watch</span><span class="p">(</span><span class="n">send_initial_events</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">EventType</span><span class="o">.</span><span class="n">BOOKMARK</span><span class="p">:</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>        <span class="nb">print</span><span class="p">(</span><span class="s2">"initial list complete, watching for changes now"</span><span class="p">)</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">object</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>        <span class="n">annotations</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">object</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">annotations</span> <span class="ow">or</span> <span class="p">{}</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>        <span class="k">if</span> <span class="n">annotations</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"k8s.io/initial-events-end"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"true"</span><span class="p">:</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>            <span class="nb">print</span><span class="p">(</span><span class="s2">"initial state complete, watching for changes now"</span><span class="p">)</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>        <span class="k">continue</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">object</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 </code></pre></div>
-<h2 id="restart-on-gone-pattern">Restart-on-<code>Gone</code> pattern<a class="headerlink" href="#restart-on-gone-pattern" title="Permanent link">&para;</a></h2>
-<p>The Kubernetes API server expires watch streams with HTTP 410 <code>Gone</code> when the <code>resourceVersion</code> becomes too old, and closes streams on its own default <code>timeoutSeconds</code>. The simplest robust pattern is to re-call <code>watch()</code> with <code>send_initial_events=True</code> on every reconnect — the server replays a synthetic <code>ADDED</code> snapshot before resuming live updates, so you do not need a separate <code>list()</code> step:</p>
+<p>Not every bookmark marks the end of the initial events — periodic checkpoint bookmarks look the same apart from the annotation.</p>
+<h2 id="resuming-after-gone">Resuming after <code>Gone</code><a class="headerlink" href="#resuming-after-gone" title="Permanent link">&para;</a></h2>
+<p>A watch does not last forever. The server ends the stream cleanly after <code>timeout_seconds</code> (or its own default, usually 30–60 minutes), and it raises <code>Gone</code> (HTTP 410) — on connect, or as an <code>ERROR</code> event mid-stream — when the <code>resourceVersion</code> you resume from has been compacted away. A long-running watcher therefore tracks the last <code>resourceVersion</code> it saw, resumes from it after a normal end of stream, and re-lists to get a fresh one after <code>Gone</code>. Bookmarks keep that <code>resourceVersion</code> current while nothing changes, which makes <code>Gone</code> far less likely:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.core.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Gone</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>        <span class="k">async</span> <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">api</span><span class="o">.</span><span class="n">watch</span><span class="p">(</span>
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>            <span class="n">allow_bookmarks</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>            <span class="n">send_initial_events</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>        <span class="p">):</span>
-<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>            <span class="n">handle</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
-<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="k">except</span> <span class="n">Gone</span><span class="p">:</span>
-<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>        <span class="c1"># resourceVersion expired — just re-watch.</span>
-<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>        <span class="c1"># send_initial_events=True replays the snapshot before live updates.</span>
-<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>        <span class="k">continue</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.core.watch_event</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventType</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">watch_forever</span><span class="p">(</span><span class="n">api</span><span class="p">:</span> <span class="n">Api</span><span class="p">[</span><span class="n">Pod</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">resource_version</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>        <span class="k">if</span> <span class="n">resource_version</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>            <span class="c1"># (Re-)list: the current state plus a resourceVersion to watch from.</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>            <span class="n">pods</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">list</span><span class="p">()</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>            <span class="k">for</span> <span class="n">pod</span> <span class="ow">in</span> <span class="n">pods</span><span class="o">.</span><span class="n">items</span><span class="p">:</span>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>                <span class="n">handle_existing</span><span class="p">(</span><span class="n">pod</span><span class="p">)</span>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>            <span class="n">resource_version</span> <span class="o">=</span> <span class="n">pods</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">resource_version</span>
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>        <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>            <span class="k">async</span> <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">api</span><span class="o">.</span><span class="n">watch</span><span class="p">(</span>
+<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>                <span class="n">resource_version</span><span class="o">=</span><span class="n">resource_version</span><span class="p">,</span> <span class="n">allow_bookmarks</span><span class="o">=</span><span class="kc">True</span>
+<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>            <span class="p">):</span>
+<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>                <span class="n">resource_version</span> <span class="o">=</span> <span class="p">(</span>
+<a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>                    <span class="n">event</span><span class="o">.</span><span class="n">object</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">resource_version</span> <span class="ow">or</span> <span class="n">resource_version</span>
+<a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>                <span class="p">)</span>
+<a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>                <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="n">EventType</span><span class="o">.</span><span class="n">BOOKMARK</span><span class="p">:</span>
+<a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a>                    <span class="n">handle</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+<a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a>        <span class="k">except</span> <span class="n">Gone</span><span class="p">:</span>
+<a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a>            <span class="c1"># Too old to resume from: start over with a fresh list.</span>
+<a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a>            <span class="n">resource_version</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-6-26" name="__codelineno-6-26" href="#__codelineno-6-26"></a>        <span class="c1"># A normal end of stream (server-side timeout) resumes from</span>
+<a id="__codelineno-6-27" name="__codelineno-6-27" href="#__codelineno-6-27"></a>        <span class="c1"># resource_version on the next iteration.</span>
 </code></pre></div>
+<p>Events between the list and the watch are not lost: watching from the list's <code>resourceVersion</code> delivers everything that changed after it. Changes that happened while the watcher was disconnected for longer than the server keeps history are covered by the re-list, so <code>handle_existing</code> should reconcile (update or create local state, and drop objects that no longer exist) rather than assume a clean slate.</p>
 <h2 id="server-side-timeout">Server-side timeout<a class="headerlink" href="#server-side-timeout" title="Permanent link">&para;</a></h2>
-<p>Pass <code>timeout_seconds=</code> to set a server-side timeout on the watch call (sent as the Kubernetes <code>timeoutSeconds</code> query parameter). The server closes the stream after this many seconds; your loop can then reconnect:</p>
+<p>Pass <code>timeout_seconds=</code> to set a server-side timeout on the watch call (sent as the Kubernetes <code>timeoutSeconds</code> query parameter). The server closes the stream cleanly after this many seconds and the <code>async for</code> loop simply ends; reconnect as shown above:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">async</span> <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">api</span><span class="o">.</span><span class="n">watch</span><span class="p">(</span><span class="n">timeout_seconds</span><span class="o">=</span><span class="mi">60</span><span class="p">):</span>
 <a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="o">...</span>
 </code></pre></div>
+<h2 id="client-side-timeouts">Client-side timeouts<a class="headerlink" href="#client-side-timeouts" title="Permanent link">&para;</a></h2>
+<p>A watch can stay quiet for minutes, so it does not inherit the client's short request timeouts: when <code>request_timeout</code> is left unset, a watch stream only applies the connect timeout and otherwise waits for the server to send events or end the stream (bound it with <code>timeout_seconds</code> instead). Passing an explicit <code>request_timeout</code> applies it as given — a short read or total timeout will cut off a quiet stream with a timeout error, so only do that deliberately (or pass <code>request_timeout=None</code> to disable client-side timeouts entirely).</p>
 <h2 id="example-from-exampleswatch_podspy">Example from <code>examples/watch_pods.py</code><a class="headerlink" href="#example-from-exampleswatch_podspy" title="Permanent link">&para;</a></h2>
 <div class="admonition note">
 <p class="admonition-title">asyncio-only example</p>
@@ -2352,10 +2395,10 @@ Trio users should replace these with <a href="https://anyio.readthedocs.io/en/st
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
       
     
   </body>
