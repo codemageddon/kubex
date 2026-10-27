@@ -92,7 +92,13 @@ def _validate_list_with_invalid(
     The list itself (``apiVersion``, ``kind``, ``metadata``) is validated as
     strictly as by ``list_model``; only its items are tolerated.
     """
-    raw = json.loads(content)
+    try:
+        raw = json.loads(content)
+    except ValueError:
+        # Not JSON (or not UTF-8): raise the strict model's ``ValidationError``,
+        # as without ``INCLUDE``. Should pydantic parse it after all, keep ours.
+        list_model.model_validate_json(content)
+        raise
     raw_items = raw.get("items") if isinstance(raw, dict) else None
     items: list[ResourceType] = []
     invalid: list[InvalidObject] = []

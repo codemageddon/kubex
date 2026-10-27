@@ -354,6 +354,11 @@ async def test_list_include_with_null_items() -> None:
         pytest.param(
             _list_json({"kind": "Pod", "metadata": {}, "spec": 1}), id="item-no-name"
         ),
+        pytest.param(b"<html>Bad Gateway</html>", id="not-json"),
+        pytest.param(
+            b'{"apiVersion": "v1", "kind": "PodList", "items": [', id="cut-off"
+        ),
+        pytest.param(b'{"kind": "\xff"}', id="not-utf8"),
     ],
 )
 async def test_list_include_still_raises_for_a_broken_list(content: bytes) -> None:
