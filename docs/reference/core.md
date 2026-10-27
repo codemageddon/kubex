@@ -20,6 +20,10 @@ Auto-generated reference for the `kubex.core` module.
 
 ::: kubex.core.watch_event
 
+## Objects that do not fit the model
+
+::: kubex.core.invalid_object
+
 ## Patch types
 
 ::: kubex.core.patch

@@ -97,12 +97,25 @@ class DryRun(str, Enum):
     ALL = "All"
 
 
+class InvalidObjects(str, Enum):
+    """What ``list()`` and ``watch()`` do with an object that does not fit the model.
+
+    ``RAISE`` (the default) raises pydantic's ``ValidationError``. ``INCLUDE`` keeps
+    the object as an ``InvalidObject`` instead: ``list()`` returns it in
+    ``ListWithInvalid.invalid`` and ``watch()`` yields an ``InvalidWatchEvent``.
+    """
+
+    RAISE = "raise"
+    INCLUDE = "include"
+
+
 PropagationPolicyTypes = (
     PropagationPolicy | Literal["Background", "Foreground", "Orphan"] | None
 )
 DryRunTypes = DryRun | bool | Literal["All"] | None
 VersionMatchTypes = VersionMatch | Literal["Exact", "NotOlderThan"] | None
 FieldValidationTypes = FieldValidation | Literal["Ignore", "Strict", "Warn"] | None
+InvalidObjectsTypes = InvalidObjects | Literal["raise", "include"]
 UidTypes = UUID | str | None
 ResourceVersionTypes = str | None
 NamespaceTypes = str | None
