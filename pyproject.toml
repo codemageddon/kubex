@@ -15,7 +15,7 @@ dependencies = [
     "pydantic>=2.0,<3",
     "pyyaml>=6.0.2",
     # Released in lock-step with kubex: keep equal to kubex/__version__.py.
-    "kubex-core==0.1.0-beta.3",
+    "kubex-core==0.1.0-beta.4",
     "anyio>=4.6.0",
 ]
 classifiers = [
