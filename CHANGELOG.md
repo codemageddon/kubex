@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `kubex_core.models.types`: `Time`, `MicroTime`, `Quantity`, `NullAsEmptyList`,
   `NullAsEmptyDict`.
 - `ObjectMetadata.managed_fields`/`self_link` and `ListMetadata.shard_info`.
+- `invalid=InvalidObjects.INCLUDE` for `Api.list()` and `Api.watch()`: objects that do not fit
+  the model come back as `InvalidObject`s (in `ListWithInvalid.invalid`, or as
+  `InvalidWatchEvent`s) instead of raising.
+- `WatchEvent.is_initial_events_end`.
 
 ### Fixed
 

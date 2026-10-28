@@ -24,6 +24,7 @@ Each yielded value is a `WatchEvent[ResourceType]`:
 |---|---|---|
 | `event.type` | `EventType` | `ADDED`, `MODIFIED`, `DELETED`, or `BOOKMARK` |
 | `event.object` | `ResourceType | Bookmark` | Fully parsed resource (or `Bookmark` for bookmark events) |
+| `event.is_initial_events_end` | `bool` | `True` only for the bookmark that ends the initial events (see [`send_initial_events` pattern](#send_initial_events-pattern)) |
 
 `ERROR` events are never yielded: the generator raises the matching exception instead — most importantly `Gone` (HTTP 410) when the requested `resourceVersion` is too old. See [Resuming after `Gone`](#resuming-after-gone).
 
@@ -75,17 +76,22 @@ async for event in api.watch(namespace=None):
 
 `send_initial_events=True` makes the stream start with synthetic `ADDED` events for every existing resource, then a `BOOKMARK` annotated with `k8s.io/initial-events-end: "true"`, then live updates — current state and future changes in one stream. The server requires bookmarks for this, so `allow_bookmarks` defaults to `True` when `send_initial_events=True` (passing `allow_bookmarks=False` together with it raises `ValueError`). It needs the API server's `WatchList` feature; a server without it rejects the request with `422`.
 
+`event.is_initial_events_end` is `True` only for that bookmark. Periodic checkpoint bookmarks look the same apart from the annotation, so they return `False`:
+
 ```python
 async for event in api.watch(send_initial_events=True):
-    if event.type == EventType.BOOKMARK:
-        annotations = event.object.metadata.annotations or {}
-        if annotations.get("k8s.io/initial-events-end") == "true":
-            print("initial state complete, watching for changes now")
-        continue
-    print(event.type, event.object.metadata.name)
+    if event.is_initial_events_end:
+        print("initial state complete, watching for changes now")
+    elif event.type != EventType.BOOKMARK:
+        print(event.type, event.object.metadata.name)
 ```
 
-Not every bookmark marks the end of the initial events — periodic checkpoint bookmarks look the same apart from the annotation.
+### Where to resume from
+
+The initial `ADDED` events carry each object's own `resourceVersion`, in no particular order, so none of them is a point to resume from. The end bookmark's `resourceVersion` is the first one:
+
+- If the stream ends before the end bookmark, discard what you collected and start again with `send_initial_events=True`.
+- After it, resume with `watch(resource_version=...)` from the last `resourceVersion` you saw (an event's or a bookmark's), as in [Resuming after `Gone`](#resuming-after-gone).
 
 ## Resuming after `Gone`
 
@@ -122,6 +128,36 @@ async def watch_forever(api: Api[Pod]) -> None:
 ```
 
 Events between the list and the watch are not lost: watching from the list's `resourceVersion` delivers everything that changed after it. Changes that happened while the watcher was disconnected for longer than the server keeps history are covered by the re-list, so `handle_existing` should reconcile (update or create local state, and drop objects that no longer exist) rather than assume a clean slate.
+
+## Objects that do not fit the model
+
+By default, an object the model cannot parse raises pydantic's `ValidationError`, which ends the stream. This mostly happens with custom resources: the API server does not re-validate objects stored before a CRD schema change, so an old object can break a model written for the current schema. Reconnecting does not help, because the same object comes back.
+
+Pass `invalid=InvalidObjects.INCLUDE` (or the string `"include"`) to keep going. Such an object then arrives as an `InvalidWatchEvent` instead of a `WatchEvent`:
+
+| Attribute | Type | Description |
+|---|---|---|
+| `event.type` | `EventType` | `ADDED`, `MODIFIED` or `DELETED` |
+| `event.object.raw` | `dict[str, Any]` | The object as the server sent it |
+| `event.object.error` | `ValidationError` | Why it does not fit the model |
+| `event.object.metadata` | `ObjectMetadata` | Its metadata; always has a `name` |
+
+```python
+from kubex.core.params import InvalidObjects
+from kubex.core.watch_event import InvalidWatchEvent
+
+async for event in api.watch(invalid=InvalidObjects.INCLUDE):
+    if isinstance(event, InvalidWatchEvent):
+        print(f"skipping {event.object.metadata.name}: {event.object.error}")
+        continue
+    handle(event)
+```
+
+Both kinds of event have `type` and `object.metadata`, so code that only needs an object's name, namespace or `resourceVersion` (keeping a resume point, or dropping a deleted object from a cache) works on both without the `isinstance` check.
+
+Only `ADDED`, `MODIFIED` and `DELETED` objects are tolerated. These still raise, because they mean the stream itself is broken: an `ERROR` event, a bookmark that does not parse, an object without a readable `metadata.name`, and a line that is not JSON.
+
+`list()` takes the same option; see [Objects that do not fit the model](crud.md#objects-that-do-not-fit-the-model) for lists. Other calls still parse the object with the model: `get()` raises `ValidationError` for it, and so do `delete()`, `patch()` and `replace()`, after the server has carried out the change. Use [`api.metadata`](../subresources/metadata.md), which only parses metadata (for example, to remove a finalizer), or a looser model for those.
 
 ## Server-side timeout
 

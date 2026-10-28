@@ -99,13 +99,16 @@ kubex/                          # Main package — PEP 420 namespace package (no
     ├── response.py             # Response dataclass + HeadersWrapper
     ├── params.py               # API option classes (ListOptions, GetOptions, DeleteOptions, ExecOptions, AttachOptions, PortForwardOptions, etc.)
                                 #   + Timeout, TimeoutTypes — HTTP timeout configuration
+                                #   + InvalidObjects enum (RAISE/INCLUDE) for list()/watch(invalid=)
+    ├── invalid_object.py       # InvalidObject (raw + ValidationError + parsed ObjectMetadata) and ListWithInvalid(ListEntity)
+                                #   — what list()/watch(invalid=InvalidObjects.INCLUDE) return for objects that do not fit the model
     ├── json_patch.py           # JSON Patch RFC 6902 operation models (JsonPatchAdd, etc.) + JsonPatch RootModel
     ├── json_pointer.py         # JSON Pointer RFC 6901 implementation (JsonPointer custom str type)
     ├── patch.py                # Patch protocol + ApplyPatch, MergePatch, StrategicMergePatch
                                 #   Re-exports JsonPatch models and JsonPointer from json_patch/json_pointer
     ├── subresource.py          # Subresource definitions
     ├── exec_channels.py        # WebSocket channel protocol (V5ChannelProtocol, channel ID constants, select_protocol()) + portforward helpers (data_channel_for_port_index, error_channel_for_port_index, port_prefix_encode/decode)
-    ├── watch_event.py          # WatchEvent[ResourceType] and EventType enum
+    ├── watch_event.py          # WatchEvent[ResourceType] (+ is_initial_events_end), InvalidWatchEvent and EventType enum
     └── request_builder/        # Constructs HTTP requests from API calls
         ├── _paths.py           # path_segment()/object_url()/collection_url() — the only way builders build URLs:
                                 #   validates (no empty/None name — that would hit the collection URL) and percent-encodes names/namespaces
@@ -172,6 +175,7 @@ test/                           # Test suite
 │   ├── test_portforward.py     # E2E tests for Pod portforward subresource (forward() + listen() against K3S)
 │   ├── test_bearer_token_auth.py # E2E tests for bearer-token auth (no proxy): valid SA token succeeds, invalid token returns 401
 │   ├── test_api_safety.py      # E2E: empty-name rejection, dry-run delete, escaped names, server-side apply
+│   ├── test_invalid_objects.py # E2E: list()/watch(invalid=INCLUDE) with a CRD object the model rejects; initial-events-end bookmark
 │   └── proxy/                  # E2E tests for trust_env proxy support (Squid on shared Docker network)
 │       ├── _constants.py       # SQUID_PROXY_USER / SQUID_PROXY_PASSWORD shared by conftest and tests
 │       ├── conftest.py         # Fixtures: Docker network, K3S-in-network, Squid, proxy_url, proxy config,
@@ -190,6 +194,7 @@ test/                           # Test suite
 │       └── test_refreshable_token.py # Token refresh and async lock tests
 ├── test_error_handling.py      # handle_request_error() and exception hierarchy tests
 ├── test_metadata_accessor.py   # MetadataAccessor (get, list, patch) tests
+├── test_invalid_objects.py     # list()/watch(invalid=) parsing rules, is_initial_events_end, overload types (assert_type)
 ├── test_api_request_validation.py # Api-level name/namespace validation (nothing reaches the client)
 ├── test_models/                # Unit tests for kubex-core models, field types and generated-model behaviour
 │   └── test_eviction.py        # Eviction model tests
@@ -299,6 +304,9 @@ All models inherit from `BaseK8sModel` which uses `alias_generator=to_camel`, `p
 
 ### Configuration auto-loading
 `create_client()` → tries kubeconfig file first → falls back to in-cluster pod environment.
+
+### Objects that do not fit the model
+`Api.list()` and `Api.watch()` take `invalid: InvalidObjectsTypes` (`InvalidObjects` enum or `"raise"`/`"include"`); overloads pick the return type. `RAISE` (default) raises pydantic's `ValidationError`. `INCLUDE` returns `ListWithInvalid` (`items` + `invalid: list[InvalidObject]`) or yields `InvalidWatchEvent` and keeps streaming. Only ADDED/MODIFIED/DELETED objects are tolerated, and only when their metadata parses with a name; ERROR events, unparseable bookmarks and non-JSON lines still raise. `MetadataAccessor` has no such option (`PartialObjectMetadata` has only optional fields). The watch loop parses before `yield`, so the yield is never inside an `except`.
 
 ### Ellipsis sentinel for optional overrides
 `Ellipsis` (`...`) is used as a sentinel to distinguish "not provided" (use the default) from `None` (explicitly disabled). This pattern is used in two places:

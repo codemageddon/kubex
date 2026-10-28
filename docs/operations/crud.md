@@ -60,6 +60,22 @@ Pass `namespace=None` to list across all namespaces even when the `Api` instance
 all_pods = await api.list(namespace=None)
 ```
 
+### Objects that do not fit the model
+
+By default, `list()` raises pydantic's `ValidationError` if any item does not fit the model. Pass `invalid=InvalidObjects.INCLUDE` (or the string `"include"`) to get a `ListWithInvalid` instead: `items` holds the objects that fit, and `invalid` the others, each an `InvalidObject` with `raw`, `error` and `metadata`:
+
+```python
+from kubex.core.params import InvalidObjects
+
+pods = await api.list(invalid=InvalidObjects.INCLUDE)
+for pod in pods.items:
+    print(pod.metadata.name)
+for bad in pods.invalid:
+    print(f"{bad.metadata.name} does not fit the model: {bad.error}")
+```
+
+`ListWithInvalid` is a `ListEntity`, so `metadata.resource_version` and `metadata.continue_` work as usual; `invalid` is not serialized. The list itself is still checked strictly, and an item without a readable `metadata.name` still raises. See [Objects that do not fit the model](watch.md#objects-that-do-not-fit-the-model) for when this happens and what other calls do with such objects.
+
 ## create
 
 Create a new resource. The returned object is the server-assigned representation (including `metadata.name` when `generate_name` was used):

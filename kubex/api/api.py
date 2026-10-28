@@ -4,17 +4,22 @@ import json
 from typing import (
     AsyncGenerator,
     Generic,
+    Literal,
     Type,
+    overload,
 )
 
 from pydantic import ValidationError
 
 from kubex.client.client import BaseClient, create_client
+from kubex.core.invalid_object import ListWithInvalid, _validate_list_with_invalid
 from kubex.core.params import (
     DeleteOptions,
     DryRunTypes,
     FieldValidationTypes,
     GetOptions,
+    InvalidObjects,
+    InvalidObjectsTypes,
     ListOptions,
     PatchOptions,
     PostOptions,
@@ -26,7 +31,7 @@ from kubex.core.params import (
 )
 from kubex.core.patch import Patch
 from kubex.core.request_builder.builder import RequestBuilder
-from kubex.core.watch_event import WatchEvent
+from kubex.core.watch_event import InvalidWatchEvent, WatchEvent, _parse_watch_event
 from kubex_core.models.list_entity import ListEntity
 from kubex_core.models.resource_config import Scope
 from kubex_core.models.status import Status
@@ -165,6 +170,7 @@ class Api(Generic[ResourceType]):
         response = await self._client.request(request)
         return self._resource.model_validate_json(response.content)
 
+    @overload
     async def list(
         self,
         *,
@@ -177,6 +183,54 @@ class Api(Generic[ResourceType]):
         version_match: VersionMatchTypes = None,
         resource_version: ResourceVersionTypes = None,
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
+        invalid: Literal[InvalidObjects.RAISE, "raise"] = InvalidObjects.RAISE,
+    ) -> ListEntity[ResourceType]: ...
+
+    @overload
+    async def list(
+        self,
+        *,
+        namespace: ApiNamespaceTypes = Ellipsis,
+        label_selector: str | None = None,
+        field_selector: str | None = None,
+        timeout_seconds: int | None = None,
+        limit: int | None = None,
+        continue_token: str | None = None,
+        version_match: VersionMatchTypes = None,
+        resource_version: ResourceVersionTypes = None,
+        request_timeout: ApiRequestTimeoutTypes = Ellipsis,
+        invalid: Literal[InvalidObjects.INCLUDE, "include"],
+    ) -> ListWithInvalid[ResourceType]: ...
+
+    @overload
+    async def list(
+        self,
+        *,
+        namespace: ApiNamespaceTypes = Ellipsis,
+        label_selector: str | None = None,
+        field_selector: str | None = None,
+        timeout_seconds: int | None = None,
+        limit: int | None = None,
+        continue_token: str | None = None,
+        version_match: VersionMatchTypes = None,
+        resource_version: ResourceVersionTypes = None,
+        request_timeout: ApiRequestTimeoutTypes = Ellipsis,
+        invalid: InvalidObjectsTypes,
+    ) -> ListEntity[ResourceType]: ...
+
+    async def list(
+        self,
+        *,
+        namespace: ApiNamespaceTypes = Ellipsis,
+        label_selector: str | None = None,
+        field_selector: str | None = None,
+        timeout_seconds: int | None = None,
+        limit: int | None = None,
+        continue_token: str | None = None,
+        version_match: VersionMatchTypes = None,
+        resource_version: ResourceVersionTypes = None,
+        request_timeout: ApiRequestTimeoutTypes = Ellipsis,
+        invalid: InvalidObjectsTypes = InvalidObjects.RAISE,
     ) -> ListEntity[ResourceType]:
         """List objects of kind.
 
@@ -205,15 +259,25 @@ class Api(Generic[ResourceType]):
             request_timeout: HTTP-level timeout override for this call. A number is
                 interpreted as the total timeout in seconds. Pass ``None`` to disable
                 timeouts entirely for this call. Omit to use the client default.
+            invalid: What to do with an object that does not fit the model.
+                ``InvalidObjects.RAISE`` (the default) raises pydantic's
+                ``ValidationError``. ``InvalidObjects.INCLUDE`` returns a
+                ``ListWithInvalid`` that keeps such objects in ``invalid``, each an
+                ``InvalidObject`` with its raw data, the error and its metadata.
 
         Returns:
             ListEntity[ResourceType]: the list of resources, with the list's
-                ``metadata`` (``resource_version``, ``continue_``).
+                ``metadata`` (``resource_version``, ``continue_``). A
+                ``ListWithInvalid`` with ``invalid=InvalidObjects.INCLUDE``.
 
         Raises:
             ValueError: an argument is invalid, e.g. a namespace given for a
                 cluster-scoped resource, or an unknown option value (e.g. for
                 ``version_match``).
+            ValidationError: an object does not fit the model (unless
+                ``invalid=InvalidObjects.INCLUDE``), or the response is not a
+                valid list; with ``INCLUDE``, also an object without a readable
+                ``metadata.name``.
             KubexApiError: the API server rejected the request; the subclass
                 matches the HTTP status (e.g. ``Forbidden``, ``UnprocessableEntity``).
             KubexConnectionError: the API server could not be reached.
@@ -221,6 +285,7 @@ class Api(Generic[ResourceType]):
             ConfigurationError: credentials could not be obtained, e.g. an exec
                 plugin or OIDC token refresh failed.
         """
+        invalid_objects = InvalidObjects(invalid)
         _namespace = ensure_optional_namespace(
             namespace, self._namespace, self._resource.__RESOURCE_CONFIG__.scope
         )
@@ -238,6 +303,10 @@ class Api(Generic[ResourceType]):
         )
         response = await self._client.request(request)
         list_model = self._resource.__RESOURCE_CONFIG__.list_model
+        if invalid_objects is InvalidObjects.INCLUDE:
+            return _validate_list_with_invalid(
+                self._resource, list_model, response.content
+            )
         return list_model.model_validate_json(response.content)
 
     async def create(
@@ -602,6 +671,51 @@ class Api(Generic[ResourceType]):
         response = await self._client.request(request)
         return self._resource.model_validate_json(response.content)
 
+    @overload
+    def watch(
+        self,
+        *,
+        namespace: ApiNamespaceTypes = Ellipsis,
+        label_selector: str | None = None,
+        field_selector: str | None = None,
+        allow_bookmarks: bool | None = None,
+        send_initial_events: bool | None = None,
+        resource_version: ResourceVersionTypes = None,
+        timeout_seconds: int | None = None,
+        request_timeout: ApiRequestTimeoutTypes = Ellipsis,
+        invalid: Literal[InvalidObjects.RAISE, "raise"] = InvalidObjects.RAISE,
+    ) -> AsyncGenerator[WatchEvent[ResourceType], None]: ...
+
+    @overload
+    def watch(
+        self,
+        *,
+        namespace: ApiNamespaceTypes = Ellipsis,
+        label_selector: str | None = None,
+        field_selector: str | None = None,
+        allow_bookmarks: bool | None = None,
+        send_initial_events: bool | None = None,
+        resource_version: ResourceVersionTypes = None,
+        timeout_seconds: int | None = None,
+        request_timeout: ApiRequestTimeoutTypes = Ellipsis,
+        invalid: Literal[InvalidObjects.INCLUDE, "include"],
+    ) -> AsyncGenerator[WatchEvent[ResourceType] | InvalidWatchEvent, None]: ...
+
+    @overload
+    def watch(
+        self,
+        *,
+        namespace: ApiNamespaceTypes = Ellipsis,
+        label_selector: str | None = None,
+        field_selector: str | None = None,
+        allow_bookmarks: bool | None = None,
+        send_initial_events: bool | None = None,
+        resource_version: ResourceVersionTypes = None,
+        timeout_seconds: int | None = None,
+        request_timeout: ApiRequestTimeoutTypes = Ellipsis,
+        invalid: InvalidObjectsTypes,
+    ) -> AsyncGenerator[WatchEvent[ResourceType] | InvalidWatchEvent, None]: ...
+
     async def watch(
         self,
         *,
@@ -613,7 +727,8 @@ class Api(Generic[ResourceType]):
         resource_version: ResourceVersionTypes = None,
         timeout_seconds: int | None = None,
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
-    ) -> AsyncGenerator[WatchEvent[ResourceType], None]:
+        invalid: InvalidObjectsTypes = InvalidObjects.RAISE,
+    ) -> AsyncGenerator[WatchEvent[ResourceType] | InvalidWatchEvent, None]:
         """Watch for changes to the specified resource.
 
         Args:
@@ -631,7 +746,8 @@ class Api(Generic[ResourceType]):
                 ``send_initial_events=True`` raises ``ValueError``.
             send_initial_events: Start the stream with synthetic ``ADDED`` events for
                 the current state, followed by a bookmark annotated with
-                ``k8s.io/initial-events-end``.
+                ``k8s.io/initial-events-end`` (see
+                ``WatchEvent.is_initial_events_end``).
             resource_version: Only deliver changes made after this resource version,
                 e.g. the list ``metadata.resource_version`` from a previous
                 ``list()``. If not provided, the stream starts with synthetic
@@ -645,17 +761,28 @@ class Api(Generic[ResourceType]):
                 timeouts entirely for this call. Omit to use the client's default
                 for streams, which does not cut off an idle watch. An explicit
                 short read/total timeout will terminate a quiet stream.
+            invalid: What to do with an ``ADDED``, ``MODIFIED`` or ``DELETED``
+                object that does not fit the model. ``InvalidObjects.RAISE`` (the
+                default) raises pydantic's ``ValidationError``, which ends the
+                stream. ``InvalidObjects.INCLUDE`` yields an ``InvalidWatchEvent``
+                for it and the stream goes on.
 
         Yields:
             WatchEvent[ResourceType]: one event per change, with its ``type``
                 (``ADDED``, ``MODIFIED``, ``DELETED`` or ``BOOKMARK``) and
                 ``object`` (the resource, or a ``Bookmark`` for ``BOOKMARK``
-                events). ``ERROR`` events are raised as exceptions instead.
+                events). ``ERROR`` events are raised as exceptions instead. With
+                ``invalid=InvalidObjects.INCLUDE``, an ``InvalidWatchEvent`` for
+                each object that does not fit the model.
 
         Raises:
             ValueError: an argument is invalid, e.g. a namespace given for a
                 cluster-scoped resource, or ``allow_bookmarks=False`` together with
                 ``send_initial_events=True``.
+            ValidationError: an object does not fit the model (unless
+                ``invalid=InvalidObjects.INCLUDE``), or a bookmark does not parse;
+                with ``INCLUDE``, also an object without a readable
+                ``metadata.name``.
             Gone: the requested ``resource_version`` is too old (HTTP 410), either
                 on connect or as an ``ERROR`` event mid-stream; re-list and watch
                 again from the new ``resourceVersion``.
@@ -668,6 +795,7 @@ class Api(Generic[ResourceType]):
             ConfigurationError: credentials could not be obtained, e.g. an exec
                 plugin or OIDC token refresh failed.
         """
+        invalid_objects = InvalidObjects(invalid)
         _namespace = ensure_optional_namespace(
             namespace, self._namespace, self._resource.__RESOURCE_CONFIG__.scope
         )
@@ -685,7 +813,12 @@ class Api(Generic[ResourceType]):
             request_timeout=request_timeout,
         )
         async for line in self._client.stream_lines(request):
-            yield WatchEvent(self._resource, json.loads(line))
+            # Parse before yielding: the yield stays outside any ``except``, so an
+            # exception thrown into the generator is never mistaken for ours.
+            event = _parse_watch_event(
+                self._resource, json.loads(line), invalid_objects
+            )
+            yield event
 
 
 async def create_api(
