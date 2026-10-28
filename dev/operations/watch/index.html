@@ -1046,6 +1046,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="send_initial_events pattern">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#where-to-resume-from" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where to resume from
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1053,6 +1070,17 @@
     <span class="md-ellipsis">
       
         Resuming after Gone
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#objects-that-do-not-fit-the-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objects that do not fit the model
       
     </span>
   </a>
@@ -2108,6 +2136,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="send_initial_events pattern">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#where-to-resume-from" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where to resume from
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2115,6 +2160,17 @@
     <span class="md-ellipsis">
       
         Resuming after Gone
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#objects-that-do-not-fit-the-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objects that do not fit the model
       
     </span>
   </a>
@@ -2213,6 +2269,11 @@
 <td><code>ResourceType | Bookmark</code></td>
 <td>Fully parsed resource (or <code>Bookmark</code> for bookmark events)</td>
 </tr>
+<tr>
+<td><code>event.is_initial_events_end</code></td>
+<td><code>bool</code></td>
+<td><code>True</code> only for the bookmark that ends the initial events (see <a href="#send_initial_events-pattern"><code>send_initial_events</code> pattern</a>)</td>
+</tr>
 </tbody>
 </table>
 <p><code>ERROR</code> events are never yielded: the generator raises the matching exception instead — most importantly <code>Gone</code> (HTTP 410) when the requested <code>resourceVersion</code> is too old. See <a href="#resuming-after-gone">Resuming after <code>Gone</code></a>.</p>
@@ -2247,15 +2308,19 @@
 </code></pre></div>
 <h2 id="send_initial_events-pattern"><code>send_initial_events</code> pattern<a class="headerlink" href="#send_initial_events-pattern" title="Permanent link">&para;</a></h2>
 <p><code>send_initial_events=True</code> makes the stream start with synthetic <code>ADDED</code> events for every existing resource, then a <code>BOOKMARK</code> annotated with <code>k8s.io/initial-events-end: "true"</code>, then live updates — current state and future changes in one stream. The server requires bookmarks for this, so <code>allow_bookmarks</code> defaults to <code>True</code> when <code>send_initial_events=True</code> (passing <code>allow_bookmarks=False</code> together with it raises <code>ValueError</code>). It needs the API server's <code>WatchList</code> feature; a server without it rejects the request with <code>422</code>.</p>
+<p><code>event.is_initial_events_end</code> is <code>True</code> only for that bookmark. Periodic checkpoint bookmarks look the same apart from the annotation, so they return <code>False</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">async</span> <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">api</span><span class="o">.</span><span class="n">watch</span><span class="p">(</span><span class="n">send_initial_events</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">EventType</span><span class="o">.</span><span class="n">BOOKMARK</span><span class="p">:</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>        <span class="n">annotations</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">object</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">annotations</span> <span class="ow">or</span> <span class="p">{}</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>        <span class="k">if</span> <span class="n">annotations</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"k8s.io/initial-events-end"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"true"</span><span class="p">:</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>            <span class="nb">print</span><span class="p">(</span><span class="s2">"initial state complete, watching for changes now"</span><span class="p">)</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>        <span class="k">continue</span>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">object</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">is_initial_events_end</span><span class="p">:</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>        <span class="nb">print</span><span class="p">(</span><span class="s2">"initial state complete, watching for changes now"</span><span class="p">)</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="k">elif</span> <span class="n">event</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="n">EventType</span><span class="o">.</span><span class="n">BOOKMARK</span><span class="p">:</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">object</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 </code></pre></div>
-<p>Not every bookmark marks the end of the initial events — periodic checkpoint bookmarks look the same apart from the annotation.</p>
+<h3 id="where-to-resume-from">Where to resume from<a class="headerlink" href="#where-to-resume-from" title="Permanent link">&para;</a></h3>
+<p>The initial <code>ADDED</code> events carry each object's own <code>resourceVersion</code>, in no particular order, so none of them is a point to resume from. The end bookmark's <code>resourceVersion</code> is the first one:</p>
+<ul>
+<li>If the stream ends before the end bookmark, discard what you collected and start again with <code>send_initial_events=True</code>.</li>
+<li>After it, resume with <code>watch(resource_version=...)</code> from the last <code>resourceVersion</code> you saw (an event's or a bookmark's), as in <a href="#resuming-after-gone">Resuming after <code>Gone</code></a>.</li>
+</ul>
 <h2 id="resuming-after-gone">Resuming after <code>Gone</code><a class="headerlink" href="#resuming-after-gone" title="Permanent link">&para;</a></h2>
 <p>A watch does not last forever. The server ends the stream cleanly after <code>timeout_seconds</code> (or its own default, usually 30–60 minutes), and it raises <code>Gone</code> (HTTP 410) — on connect, or as an <code>ERROR</code> event mid-stream — when the <code>resourceVersion</code> you resume from has been compacted away. A long-running watcher therefore tracks the last <code>resourceVersion</code> it saw, resumes from it after a normal end of stream, and re-lists to get a fresh one after <code>Gone</code>. Bookmarks keep that <code>resourceVersion</code> current while nothing changes, which makes <code>Gone</code> far less likely:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.core.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Gone</span>
@@ -2287,10 +2352,56 @@
 <a id="__codelineno-6-27" name="__codelineno-6-27" href="#__codelineno-6-27"></a>        <span class="c1"># resource_version on the next iteration.</span>
 </code></pre></div>
 <p>Events between the list and the watch are not lost: watching from the list's <code>resourceVersion</code> delivers everything that changed after it. Changes that happened while the watcher was disconnected for longer than the server keeps history are covered by the re-list, so <code>handle_existing</code> should reconcile (update or create local state, and drop objects that no longer exist) rather than assume a clean slate.</p>
+<h2 id="objects-that-do-not-fit-the-model">Objects that do not fit the model<a class="headerlink" href="#objects-that-do-not-fit-the-model" title="Permanent link">&para;</a></h2>
+<p>By default, an object the model cannot parse raises pydantic's <code>ValidationError</code>, which ends the stream. This mostly happens with custom resources: the API server does not re-validate objects stored before a CRD schema change, so an old object can break a model written for the current schema. Reconnecting does not help, because the same object comes back.</p>
+<p>Pass <code>invalid=InvalidObjects.INCLUDE</code> (or the string <code>"include"</code>) to keep going. Such an object then arrives as an <code>InvalidWatchEvent</code> instead of a <code>WatchEvent</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>event.type</code></td>
+<td><code>EventType</code></td>
+<td><code>ADDED</code>, <code>MODIFIED</code> or <code>DELETED</code></td>
+</tr>
+<tr>
+<td><code>event.object.raw</code></td>
+<td><code>dict[str, Any]</code></td>
+<td>The object as the server sent it</td>
+</tr>
+<tr>
+<td><code>event.object.error</code></td>
+<td><code>ValidationError</code></td>
+<td>Why it does not fit the model</td>
+</tr>
+<tr>
+<td><code>event.object.metadata</code></td>
+<td><code>ObjectMetadata</code></td>
+<td>Its metadata; always has a <code>name</code></td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.core.params</span><span class="w"> </span><span class="kn">import</span> <span class="n">InvalidObjects</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.core.watch_event</span><span class="w"> </span><span class="kn">import</span> <span class="n">InvalidWatchEvent</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="k">async</span> <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">api</span><span class="o">.</span><span class="n">watch</span><span class="p">(</span><span class="n">invalid</span><span class="o">=</span><span class="n">InvalidObjects</span><span class="o">.</span><span class="n">INCLUDE</span><span class="p">):</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">InvalidWatchEvent</span><span class="p">):</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"skipping </span><span class="si">{</span><span class="n">event</span><span class="o">.</span><span class="n">object</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">event</span><span class="o">.</span><span class="n">object</span><span class="o">.</span><span class="n">error</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>        <span class="k">continue</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>    <span class="n">handle</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+</code></pre></div>
+<p>Both kinds of event have <code>type</code> and <code>object.metadata</code>, so code that only needs an object's name, namespace or <code>resourceVersion</code> (keeping a resume point, or dropping a deleted object from a cache) works on both without the <code>isinstance</code> check.</p>
+<p>Only <code>ADDED</code>, <code>MODIFIED</code> and <code>DELETED</code> objects are tolerated. These still raise, because they mean the stream itself is broken: an <code>ERROR</code> event, a bookmark that does not parse, an object without a readable <code>metadata.name</code>, and a line that is not JSON.</p>
+<p><code>list()</code> takes the same option; see <a href="../crud/#objects-that-do-not-fit-the-model">Objects that do not fit the model</a> for lists. Other calls still parse the object with the model: <code>get()</code> raises <code>ValidationError</code> for it, and so do <code>delete()</code>, <code>patch()</code> and <code>replace()</code>, after the server has carried out the change. Use <a href="../../subresources/metadata/"><code>api.metadata</code></a>, which only parses metadata (for example, to remove a finalizer), or a looser model for those.</p>
 <h2 id="server-side-timeout">Server-side timeout<a class="headerlink" href="#server-side-timeout" title="Permanent link">&para;</a></h2>
 <p>Pass <code>timeout_seconds=</code> to set a server-side timeout on the watch call (sent as the Kubernetes <code>timeoutSeconds</code> query parameter). The server closes the stream cleanly after this many seconds and the <code>async for</code> loop simply ends; reconnect as shown above:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">async</span> <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">api</span><span class="o">.</span><span class="n">watch</span><span class="p">(</span><span class="n">timeout_seconds</span><span class="o">=</span><span class="mi">60</span><span class="p">):</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="o">...</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">async</span> <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">api</span><span class="o">.</span><span class="n">watch</span><span class="p">(</span><span class="n">timeout_seconds</span><span class="o">=</span><span class="mi">60</span><span class="p">):</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="o">...</span>
 </code></pre></div>
 <h2 id="client-side-timeouts">Client-side timeouts<a class="headerlink" href="#client-side-timeouts" title="Permanent link">&para;</a></h2>
 <p>A watch can stay quiet for minutes, so it does not inherit the client's short request timeouts: when <code>request_timeout</code> is left unset, a watch stream only applies the connect timeout and otherwise waits for the server to send events or end the stream (bound it with <code>timeout_seconds</code> instead). Passing an explicit <code>request_timeout</code> applies it as given — a short read or total timeout will cut off a quiet stream with a timeout error, so only do that deliberately (or pass <code>request_timeout=None</code> to disable client-side timeouts entirely).</p>
@@ -2300,43 +2411,43 @@
 <p>This example uses <code>asyncio.create_task</code> and <code>asyncio.CancelledError</code>, which are asyncio-specific.
 Trio users should replace these with <a href="https://anyio.readthedocs.io/en/stable/tasks.html"><code>anyio.create_task_group()</code></a> instead.</p>
 </div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">suppress</span>
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">cast</span>
-<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>
-<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.api</span><span class="w"> </span><span class="kn">import</span> <span class="n">Api</span>
-<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.client</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_client</span>
-<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.k8s.v1_35.core.v1.container</span><span class="w"> </span><span class="kn">import</span> <span class="n">Container</span>
-<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.k8s.v1_35.core.v1.pod</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pod</span>
-<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.k8s.v1_35.core.v1.pod_spec</span><span class="w"> </span><span class="kn">import</span> <span class="n">PodSpec</span>
-<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex_core.models.metadata</span><span class="w"> </span><span class="kn">import</span> <span class="n">ObjectMetadata</span>
-<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>
-<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>
-<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">watcher</span><span class="p">(</span><span class="n">pod_api</span><span class="p">:</span> <span class="n">Api</span><span class="p">[</span><span class="n">Pod</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>    <span class="k">async</span> <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">pod_api</span><span class="o">.</span><span class="n">watch</span><span class="p">(</span><span class="n">allow_bookmarks</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
-<a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a>
-<a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a>
-<a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a>    <span class="n">client</span> <span class="o">=</span> <span class="k">await</span> <span class="n">create_client</span><span class="p">()</span>
-<a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a>    <span class="k">async</span> <span class="k">with</span> <span class="n">client</span><span class="p">:</span>
-<a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a>        <span class="n">api</span><span class="p">:</span> <span class="n">Api</span><span class="p">[</span><span class="n">Pod</span><span class="p">]</span> <span class="o">=</span> <span class="n">Api</span><span class="p">(</span><span class="n">Pod</span><span class="p">,</span> <span class="n">client</span><span class="o">=</span><span class="n">client</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="s2">"default"</span><span class="p">)</span>
-<a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a>        <span class="n">_watcher</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="n">watcher</span><span class="p">(</span><span class="n">api</span><span class="p">))</span>
-<a id="__codelineno-8-23" name="__codelineno-8-23" href="#__codelineno-8-23"></a>        <span class="n">pod_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-8-24" name="__codelineno-8-24" href="#__codelineno-8-24"></a>        <span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-8-25" name="__codelineno-8-25" href="#__codelineno-8-25"></a>            <span class="n">_pod</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
-<a id="__codelineno-8-26" name="__codelineno-8-26" href="#__codelineno-8-26"></a>                <span class="n">Pod</span><span class="p">(</span>
-<a id="__codelineno-8-27" name="__codelineno-8-27" href="#__codelineno-8-27"></a>                    <span class="n">metadata</span><span class="o">=</span><span class="n">ObjectMetadata</span><span class="p">(</span><span class="n">generate_name</span><span class="o">=</span><span class="s2">"example-pod-"</span><span class="p">),</span>
-<a id="__codelineno-8-28" name="__codelineno-8-28" href="#__codelineno-8-28"></a>                    <span class="n">spec</span><span class="o">=</span><span class="n">PodSpec</span><span class="p">(</span><span class="n">containers</span><span class="o">=</span><span class="p">[</span><span class="n">Container</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"example"</span><span class="p">,</span> <span class="n">image</span><span class="o">=</span><span class="s2">"nginx"</span><span class="p">)]),</span>
-<a id="__codelineno-8-29" name="__codelineno-8-29" href="#__codelineno-8-29"></a>                <span class="p">),</span>
-<a id="__codelineno-8-30" name="__codelineno-8-30" href="#__codelineno-8-30"></a>            <span class="p">)</span>
-<a id="__codelineno-8-31" name="__codelineno-8-31" href="#__codelineno-8-31"></a>            <span class="n">pod_name</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">_pod</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-<a id="__codelineno-8-32" name="__codelineno-8-32" href="#__codelineno-8-32"></a>        <span class="k">finally</span><span class="p">:</span>
-<a id="__codelineno-8-33" name="__codelineno-8-33" href="#__codelineno-8-33"></a>            <span class="k">if</span> <span class="n">pod_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-8-34" name="__codelineno-8-34" href="#__codelineno-8-34"></a>                <span class="nb">print</span><span class="p">(</span><span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">pod_name</span><span class="p">))</span>
-<a id="__codelineno-8-35" name="__codelineno-8-35" href="#__codelineno-8-35"></a>            <span class="n">_watcher</span><span class="o">.</span><span class="n">cancel</span><span class="p">()</span>
-<a id="__codelineno-8-36" name="__codelineno-8-36" href="#__codelineno-8-36"></a>            <span class="k">with</span> <span class="n">suppress</span><span class="p">(</span><span class="n">asyncio</span><span class="o">.</span><span class="n">CancelledError</span><span class="p">):</span>
-<a id="__codelineno-8-37" name="__codelineno-8-37" href="#__codelineno-8-37"></a>                <span class="k">await</span> <span class="n">_watcher</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">suppress</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">cast</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.api</span><span class="w"> </span><span class="kn">import</span> <span class="n">Api</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.client</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_client</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.k8s.v1_35.core.v1.container</span><span class="w"> </span><span class="kn">import</span> <span class="n">Container</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.k8s.v1_35.core.v1.pod</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pod</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex.k8s.v1_35.core.v1.pod_spec</span><span class="w"> </span><span class="kn">import</span> <span class="n">PodSpec</span>
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kubex_core.models.metadata</span><span class="w"> </span><span class="kn">import</span> <span class="n">ObjectMetadata</span>
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>
+<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>
+<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">watcher</span><span class="p">(</span><span class="n">pod_api</span><span class="p">:</span> <span class="n">Api</span><span class="p">[</span><span class="n">Pod</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>    <span class="k">async</span> <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">pod_api</span><span class="o">.</span><span class="n">watch</span><span class="p">(</span><span class="n">allow_bookmarks</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+<a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>
+<a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a>
+<a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a>    <span class="n">client</span> <span class="o">=</span> <span class="k">await</span> <span class="n">create_client</span><span class="p">()</span>
+<a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a>    <span class="k">async</span> <span class="k">with</span> <span class="n">client</span><span class="p">:</span>
+<a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a>        <span class="n">api</span><span class="p">:</span> <span class="n">Api</span><span class="p">[</span><span class="n">Pod</span><span class="p">]</span> <span class="o">=</span> <span class="n">Api</span><span class="p">(</span><span class="n">Pod</span><span class="p">,</span> <span class="n">client</span><span class="o">=</span><span class="n">client</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="s2">"default"</span><span class="p">)</span>
+<a id="__codelineno-9-22" name="__codelineno-9-22" href="#__codelineno-9-22"></a>        <span class="n">_watcher</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="n">watcher</span><span class="p">(</span><span class="n">api</span><span class="p">))</span>
+<a id="__codelineno-9-23" name="__codelineno-9-23" href="#__codelineno-9-23"></a>        <span class="n">pod_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-9-24" name="__codelineno-9-24" href="#__codelineno-9-24"></a>        <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-9-25" name="__codelineno-9-25" href="#__codelineno-9-25"></a>            <span class="n">_pod</span> <span class="o">=</span> <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+<a id="__codelineno-9-26" name="__codelineno-9-26" href="#__codelineno-9-26"></a>                <span class="n">Pod</span><span class="p">(</span>
+<a id="__codelineno-9-27" name="__codelineno-9-27" href="#__codelineno-9-27"></a>                    <span class="n">metadata</span><span class="o">=</span><span class="n">ObjectMetadata</span><span class="p">(</span><span class="n">generate_name</span><span class="o">=</span><span class="s2">"example-pod-"</span><span class="p">),</span>
+<a id="__codelineno-9-28" name="__codelineno-9-28" href="#__codelineno-9-28"></a>                    <span class="n">spec</span><span class="o">=</span><span class="n">PodSpec</span><span class="p">(</span><span class="n">containers</span><span class="o">=</span><span class="p">[</span><span class="n">Container</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"example"</span><span class="p">,</span> <span class="n">image</span><span class="o">=</span><span class="s2">"nginx"</span><span class="p">)]),</span>
+<a id="__codelineno-9-29" name="__codelineno-9-29" href="#__codelineno-9-29"></a>                <span class="p">),</span>
+<a id="__codelineno-9-30" name="__codelineno-9-30" href="#__codelineno-9-30"></a>            <span class="p">)</span>
+<a id="__codelineno-9-31" name="__codelineno-9-31" href="#__codelineno-9-31"></a>            <span class="n">pod_name</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">_pod</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+<a id="__codelineno-9-32" name="__codelineno-9-32" href="#__codelineno-9-32"></a>        <span class="k">finally</span><span class="p">:</span>
+<a id="__codelineno-9-33" name="__codelineno-9-33" href="#__codelineno-9-33"></a>            <span class="k">if</span> <span class="n">pod_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-9-34" name="__codelineno-9-34" href="#__codelineno-9-34"></a>                <span class="nb">print</span><span class="p">(</span><span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">pod_name</span><span class="p">))</span>
+<a id="__codelineno-9-35" name="__codelineno-9-35" href="#__codelineno-9-35"></a>            <span class="n">_watcher</span><span class="o">.</span><span class="n">cancel</span><span class="p">()</span>
+<a id="__codelineno-9-36" name="__codelineno-9-36" href="#__codelineno-9-36"></a>            <span class="k">with</span> <span class="n">suppress</span><span class="p">(</span><span class="n">asyncio</span><span class="o">.</span><span class="n">CancelledError</span><span class="p">):</span>
+<a id="__codelineno-9-37" name="__codelineno-9-37" href="#__codelineno-9-37"></a>                <span class="k">await</span> <span class="n">_watcher</span>
 </code></pre></div>
 
 
