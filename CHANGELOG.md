@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-beta.4] - 2026-10-28
+
 ### Added
 
 - `configure_from_kubeconfig(config_file=...)` loads a specific kubeconfig file, resolving its
@@ -207,7 +209,8 @@ Initial public beta release.
 - OpenAPI → Pydantic v2 code generator and pre-generated workspace packages for Kubernetes 1.32–1.37.
 - MkDocs documentation site, examples, and a benchmark suite against `kubernetes-asyncio`.
 
-[unreleased]: https://github.com/codemageddon/kubex/compare/v0.1.0-beta.3...HEAD
+[unreleased]: https://github.com/codemageddon/kubex/compare/v0.1.0-beta.4...HEAD
+[0.1.0-beta.4]: https://github.com/codemageddon/kubex/compare/v0.1.0-beta.3...v0.1.0-beta.4
 [0.1.0-beta.3]: https://github.com/codemageddon/kubex/compare/v0.1.0-beta.2...v0.1.0-beta.3
 [0.1.0-beta.2]: https://github.com/codemageddon/kubex/compare/v0.1.0-beta.1...v0.1.0-beta.2
 [0.1.0-beta.1]: https://github.com/codemageddon/kubex/releases/tag/v0.1.0-beta.1

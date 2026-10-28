@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Kubex is an async-first Kubernetes client library for Python, inspired by [kube.rs](https://kube.rs/). It is built on Pydantic v2 and is async-runtime agnostic (supports asyncio and trio). The project is in **beta** (v0.1.0-beta.3) — backward compatibility may still break between releases.
+Kubex is an async-first Kubernetes client library for Python, inspired by [kube.rs](https://kube.rs/). It is built on Pydantic v2 and is async-runtime agnostic (supports asyncio and trio). The project is in **beta** (v0.1.0-beta.4) — backward compatibility may still break between releases.
 
 **Documentation site:** https://kubex.codemageddon.me/
 
@@ -54,7 +54,7 @@ kubex/                          # Main package — PEP 420 namespace package (no
                                 #   `from kubex.api import Api, create_api`,
                                 #   `from kubex.client import BaseClient, create_client, ClientOptions`,
                                 #   `from kubex.configuration import ClientConfiguration`
-├── __version__.py              # Version string (0.1.0-beta.3)
+├── __version__.py              # Version string (0.1.0-beta.4)
 ├── py.typed                    # PEP 561 type hint marker
 ├── api/                        # High-level API layer
 │   ├── api.py                  # Api[ResourceType] generic class + create_api() factory
