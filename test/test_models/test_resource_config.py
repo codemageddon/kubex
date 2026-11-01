@@ -1,11 +1,18 @@
 from __future__ import annotations
 
 import importlib
+import os
 import pkgutil
-from typing import ClassVar
+import sys
+import threading
+import time
+import warnings
+from concurrent.futures import ThreadPoolExecutor
+from typing import Any, ClassVar
 
 import pytest
 
+import kubex_core.models.resource_config as resource_config_module
 from kubex_core.models.base_entity import BaseEntity
 from kubex_core.models.interfaces import NamespaceScopedEntity
 from kubex_core.models.metadata import ObjectMetadata
@@ -173,6 +180,64 @@ def test_subclass_of_config_less_entity_builds_its_own_list_model() -> None:
         }
     )
     assert type(listed.items[0]) is _Child
+
+
+def test_concurrent_first_access_sets_up_config_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class _Contended(NamespaceScopedEntity):
+        api_version: str = "example.io/v1"
+        kind: str = "Contended"
+        metadata: ObjectMetadata
+
+    built: list[object] = []
+    real_create_list_model = resource_config_module.create_list_model
+
+    def slow_create_list_model(single_model: Any, config: Any) -> Any:
+        time.sleep(0.01)  # widen the race window
+        list_model = real_create_list_model(single_model, config)
+        built.append(list_model)
+        return list_model
+
+    monkeypatch.setattr(
+        resource_config_module, "create_list_model", slow_create_list_model
+    )
+    threads = 8
+    barrier = threading.Barrier(threads)
+
+    def touch(_: int) -> tuple[object, object]:
+        barrier.wait()
+        config = _Contended.__RESOURCE_CONFIG__
+        return config, config.list_model
+
+    with ThreadPoolExecutor(threads) as pool:
+        results = set(pool.map(touch, range(threads)))
+    assert len(built) == 1
+    assert results == {(_Contended.__RESOURCE_CONFIG__, built[0])}
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="no fork() on Windows")
+def test_fork_while_another_thread_holds_setup_lock() -> None:
+    # The child must not inherit the lock held by a thread it does not have.
+    held = threading.Event()
+
+    def hold() -> None:
+        with resource_config_module._setup_lock:
+            held.set()
+            time.sleep(0.2)
+
+    holder = threading.Thread(target=hold)
+    holder.start()
+    held.wait()
+    with warnings.catch_warnings():
+        # Forking with other threads running warns on Python 3.12+.
+        warnings.simplefilter("ignore", DeprecationWarning)
+        pid = os.fork()
+    if pid == 0:
+        os._exit(0 if resource_config_module._setup_lock.acquire(timeout=1) else 1)
+    holder.join()
+    _, status = os.waitpid(pid, 0)
+    assert os.waitstatus_to_exitcode(status) == 0
 
 
 def test_generated_list_model_reads_null_items() -> None:

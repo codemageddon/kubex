@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Free-threaded Python 3.14t and 3.15t support (beta).
+
+### Fixed
+
+- Loading a kubeconfig from several threads at once no longer leaves temp files with decoded
+  `*-data` credentials behind.
+- A resource class first used from several threads at once builds its list model only once.
+
 ## [0.1.0-beta.4] - 2026-10-28
 
 ### Added

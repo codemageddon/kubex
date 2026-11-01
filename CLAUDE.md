@@ -196,6 +196,7 @@ test/                           # Test suite
 ├── test_metadata_accessor.py   # MetadataAccessor (get, list, patch) tests
 ├── test_invalid_objects.py     # list()/watch(invalid=) parsing rules, is_initial_events_end, overload types (assert_type)
 ├── test_api_request_validation.py # Api-level name/namespace validation (nothing reaches the client)
+├── test_free_threading.py      # Free-threaded builds only (skipped elsewhere): importing kubex + httpx_ws/trio keeps the GIL off
 ├── test_models/                # Unit tests for kubex-core models, field types and generated-model behaviour
 │   └── test_eviction.py        # Eviction model tests
 ├── test_patch/                 # Unit tests for patch models
@@ -217,7 +218,8 @@ test/                           # Test suite
 ├── test_stream/                # Unit tests for _BaseChannelSession lifecycle + StreamSession channel multiplexer (shared by exec and attach)
 ├── test_client/                # Unit tests for BaseClient ABC, AioHttpClient, HttpxClient, and trust_env env-proxy + netrc resolver (test_trust_env.py);
 │                               #   conftest.py parametrizes backends (aiohttp/asyncio, httpx/asyncio, httpx/trio), _servers.py has local
-│                               #   aiohttp/raw-TCP/TLS test servers (streaming, transport errors, tls_server_name, headers, WS keepalive)
+│                               #   aiohttp/raw-TCP/TLS test servers (streaming, transport errors, tls_server_name, headers, WS keepalive);
+│                               #   test_threads.py runs clients on several threads (one event loop each) sharing one ClientConfiguration
 ├── test_subresource_descriptors/ # Unit tests for descriptor-based subresource APIs
 └── test_timeout/               # Unit tests for HTTP timeout settings
 
@@ -254,7 +256,7 @@ lychee.toml                     # Link checker configuration
 
 .github/workflows/
 ├── lint.yaml                   # Pre-commit, ruff check, ruff format --check, mypy, codegen verify
-├── test.yaml                   # pytest with all extras on every supported Python (3.11–3.15 matrix)
+├── test.yaml                   # pytest with all extras on every supported Python (3.11–3.15 matrix, plus free-threaded 3.14t and 3.15t)
 ├── publish-test.yaml           # Build + publish to Test PyPI on PRs (OIDC trusted publishing)
 └── publish.yaml                # Build + publish to production PyPI on v* tag push (OIDC trusted publishing)
 ```
@@ -372,7 +374,9 @@ Five GitHub Actions workflows:
 6. Verify generated packages — runs `python -m scripts.codegen verify` for each `packages/kubex-k8s-*`
 
 **Test** (`test.yaml`) — runs on push and pull_request:
-1. `pytest .` with all extras, as a matrix over Python 3.11, 3.12, 3.13, 3.14, 3.15 (`fail-fast: false`)
+1. `pytest .` with all extras, as a matrix over Python 3.11, 3.12, 3.13, 3.14, 3.14t, 3.15, 3.15t (`fail-fast: false`).
+   `t` marks a free-threaded build; a step first fails those jobs if the interpreter is not free-threaded, so
+   `test/test_free_threading.py` (GIL stays off after importing kubex) cannot skip silently
 
 **Publish Test** (`publish-test.yaml`) — runs on pull requests to `main`:
 1. Appends `.devN` version suffix to all 9 packages
