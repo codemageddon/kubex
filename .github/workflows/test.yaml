@@ -10,11 +10,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
+        # A "t" suffix is the free-threaded (no-GIL) build.
+        python-version: ["3.11", "3.12", "3.13", "3.14", "3.14t", "3.15", "3.15t"]
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
       - name: Install dependencies
         run: uv lock --python ${{ matrix.python-version }} && uv sync --python ${{ matrix.python-version }} --all-extras
+      # Otherwise the free-threading tests would silently skip.
+      - name: Check the interpreter is free-threaded
+        if: endsWith(matrix.python-version, 't')
+        run: uv run python -c "import sys, sysconfig; sys.exit(0 if sysconfig.get_config_var('Py_GIL_DISABLED') else 'not a free-threaded build')"
       - name: Run pytest
         run: uv run pytest .

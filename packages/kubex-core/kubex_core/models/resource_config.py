@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import os
+import sys
+import threading
 from enum import Enum
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, Generic, Literal, Self, Type, cast
@@ -15,6 +18,24 @@ if TYPE_CHECKING:
 class Scope(Enum):
     CLUSTER = "cluster"
     NAMESPACE = "namespace"
+
+
+_setup_lock = threading.RLock()
+"""Makes the one-time setup in `ResourceConfig.__get__` happen once per class.
+
+Without it, threads touching a resource class for the first time at once each
+build their own config copy and list model, and the last one stored wins.
+Reentrant in case building a list model touches another resource's config.
+"""
+
+if sys.platform != "win32":
+    # Hold the lock across fork() so a child never inherits it locked by a
+    # thread that does not exist there.
+    os.register_at_fork(
+        before=_setup_lock.acquire,
+        after_in_parent=_setup_lock.release,
+        after_in_child=_setup_lock.release,
+    )
 
 
 class ResourceConfig(Generic[ResourceType]):
@@ -50,18 +71,21 @@ class ResourceConfig(Generic[ResourceType]):
         """
         config = owner.__dict__.get("__RESOURCE_CONFIG__")
         if config is None:
-            # The list model is not copied: an inherited one is typed for the
-            # parent (e.g. `PodList` for `class MyPod(Pod)`), so `list()`
-            # would return parent instances. `_fill_from` builds one for
-            # `owner` instead.
-            config = ResourceConfig(
-                version=self._version,
-                kind=self._kind,
-                plural=self._plural,
-                scope=self._scope,
-                group=self._group,
-            )
-            setattr(owner, "__RESOURCE_CONFIG__", config)
+            with _setup_lock:
+                config = owner.__dict__.get("__RESOURCE_CONFIG__")
+                if config is None:
+                    # The list model is not copied: an inherited one is typed
+                    # for the parent (e.g. `PodList` for `class MyPod(Pod)`),
+                    # so `list()` would return parent instances. `_fill_from`
+                    # builds one for `owner` instead.
+                    config = ResourceConfig(
+                        version=self._version,
+                        kind=self._kind,
+                        plural=self._plural,
+                        scope=self._scope,
+                        group=self._group,
+                    )
+                    setattr(owner, "__RESOURCE_CONFIG__", config)
         return cast(Self, config._fill_from(owner))
 
     def _fill_from(self, owner: Type[ResourceType]) -> Self:
@@ -80,7 +104,9 @@ class ResourceConfig(Generic[ResourceType]):
             else:
                 return self
         if self._list_model is None:
-            self._list_model = create_list_model(owner, self)
+            with _setup_lock:
+                if self._list_model is None:
+                    self._list_model = create_list_model(owner, self)
         if self._scope is None:
             self._scope = Scope.NAMESPACE
         if self._plural is None:

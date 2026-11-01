@@ -14,74 +14,12 @@ from kubex.core.exceptions import KubexClientException
 from kubex.core.params import Timeout
 from kubex.core.request import Request
 
+from ._servers import ThreadedAioServer
+
 
 @pytest.fixture(params=["asyncio", "trio"])
 def anyio_backend(request: pytest.FixtureRequest) -> str:
     return str(request.param)
-
-
-class _ThreadedAioWsServer:
-    """Run an aiohttp echo WebSocket server on its own asyncio loop in a thread.
-
-    This lets the test code run on either ``asyncio`` or ``trio`` while still
-    talking to a real aiohttp-served WebSocket endpoint over the wire.
-    """
-
-    def __init__(self, app: web.Application) -> None:
-        self.app = app
-        self._loop: asyncio.AbstractEventLoop | None = None
-        self._thread: threading.Thread | None = None
-        self._runner: web.AppRunner | None = None
-        self._site: web.TCPSite | None = None
-        self.port: int = 0
-
-    def start(self) -> None:
-        ready = threading.Event()
-        startup_error: list[BaseException] = []
-
-        def _run() -> None:
-            try:
-                loop = asyncio.new_event_loop()
-                self._loop = loop
-                asyncio.set_event_loop(loop)
-                runner = web.AppRunner(self.app)
-                loop.run_until_complete(runner.setup())
-                site = web.TCPSite(runner, "127.0.0.1", 0)
-                loop.run_until_complete(site.start())
-                self._runner = runner
-                self._site = site
-                server: Any = site._server
-                assert server is not None
-                sockets = server.sockets
-                assert sockets is not None
-                self.port = sockets[0].getsockname()[1]
-            except BaseException as exc:
-                startup_error.append(exc)
-                ready.set()
-                return
-            ready.set()
-            loop.run_forever()
-
-        self._thread = threading.Thread(target=_run, daemon=True, name="aio-ws-server")
-        self._thread.start()
-        ready.wait()
-        if startup_error:
-            raise startup_error[0]
-
-    def stop(self) -> None:
-        if self._loop is not None and self._runner is not None:
-            runner = self._runner
-
-            async def _shutdown() -> None:
-                await runner.cleanup()
-
-            try:
-                fut = asyncio.run_coroutine_threadsafe(_shutdown(), self._loop)
-                fut.result(timeout=5)
-            finally:
-                self._loop.call_soon_threadsafe(self._loop.stop)
-        if self._thread is not None:
-            self._thread.join(timeout=5)
 
 
 def _make_echo_app(server_protocols: list[str]) -> web.Application:
@@ -103,32 +41,24 @@ def _make_echo_app(server_protocols: list[str]) -> web.Application:
 
 
 @pytest.fixture
-def ws_server() -> Generator[_ThreadedAioWsServer, None, None]:
-    server = _ThreadedAioWsServer(_make_echo_app(["v5.channel.k8s.io"]))
-    server.start()
-    try:
+def ws_server() -> Generator[ThreadedAioServer, None, None]:
+    with ThreadedAioServer(_make_echo_app(["v5.channel.k8s.io"])) as server:
         yield server
-    finally:
-        server.stop()
 
 
 @pytest.fixture
-def ws_server_no_proto() -> Generator[_ThreadedAioWsServer, None, None]:
-    server = _ThreadedAioWsServer(_make_echo_app([]))
-    server.start()
-    try:
+def ws_server_no_proto() -> Generator[ThreadedAioServer, None, None]:
+    with ThreadedAioServer(_make_echo_app([])) as server:
         yield server
-    finally:
-        server.stop()
 
 
-def _client_config(server: _ThreadedAioWsServer) -> ClientConfiguration:
+def _client_config(server: ThreadedAioServer) -> ClientConfiguration:
     return ClientConfiguration(url=f"http://127.0.0.1:{server.port}")
 
 
 @pytest.mark.anyio
 async def test_connect_websocket_returns_websocket_connection(
-    ws_server: _ThreadedAioWsServer,
+    ws_server: ThreadedAioServer,
 ) -> None:
     config = _client_config(ws_server)
     async with HttpxClient(config) as client:
@@ -142,7 +72,7 @@ async def test_connect_websocket_returns_websocket_connection(
 
 @pytest.mark.anyio
 async def test_connect_websocket_negotiates_subprotocol(
-    ws_server: _ThreadedAioWsServer,
+    ws_server: ThreadedAioServer,
 ) -> None:
     config = _client_config(ws_server)
     async with HttpxClient(config) as client:
@@ -155,7 +85,7 @@ async def test_connect_websocket_negotiates_subprotocol(
 
 @pytest.mark.anyio
 async def test_connect_websocket_send_and_receive_bytes(
-    ws_server: _ThreadedAioWsServer,
+    ws_server: ThreadedAioServer,
 ) -> None:
     config = _client_config(ws_server)
     async with HttpxClient(config) as client:
@@ -174,7 +104,7 @@ async def test_connect_websocket_send_and_receive_bytes(
 
 @pytest.mark.anyio
 async def test_connect_websocket_close_marks_closed(
-    ws_server: _ThreadedAioWsServer,
+    ws_server: ThreadedAioServer,
 ) -> None:
     config = _client_config(ws_server)
     async with HttpxClient(config) as client:
@@ -187,7 +117,7 @@ async def test_connect_websocket_close_marks_closed(
 
 @pytest.mark.anyio
 async def test_connect_websocket_receive_after_remote_close_raises_stop(
-    ws_server: _ThreadedAioWsServer,
+    ws_server: ThreadedAioServer,
 ) -> None:
     config = _client_config(ws_server)
     async with HttpxClient(config) as client:
@@ -204,7 +134,7 @@ async def test_connect_websocket_receive_after_remote_close_raises_stop(
 
 @pytest.mark.anyio
 async def test_connect_websocket_subprotocol_mismatch_raises(
-    ws_server_no_proto: _ThreadedAioWsServer,
+    ws_server_no_proto: ThreadedAioServer,
 ) -> None:
     config = _client_config(ws_server_no_proto)
     async with HttpxClient(config) as client:
@@ -226,9 +156,7 @@ async def test_connect_websocket_uses_request_query_params() -> None:
 
     app = web.Application()
     app.router.add_get("/exec", capture_ws)
-    server = _ThreadedAioWsServer(app)
-    server.start()
-    try:
+    with ThreadedAioServer(app) as server:
         config = ClientConfiguration(url=f"http://127.0.0.1:{server.port}")
         async with HttpxClient(config) as client:
             request = Request(
@@ -238,8 +166,6 @@ async def test_connect_websocket_uses_request_query_params() -> None:
             )
             conn = await client.connect_websocket(request, ["v5.channel.k8s.io"])
             await conn.close()
-    finally:
-        server.stop()
 
     assert ("command", "echo") in captured["query"]
     assert ("container", "main") in captured["query"]
@@ -258,9 +184,7 @@ async def test_connect_websocket_sends_authorization_header_when_configured() ->
 
     app = web.Application()
     app.router.add_get("/ws", capture_ws)
-    server = _ThreadedAioWsServer(app)
-    server.start()
-    try:
+    with ThreadedAioServer(app) as server:
         config = ClientConfiguration(
             url=f"http://127.0.0.1:{server.port}",
             token="secret-token",
@@ -269,8 +193,6 @@ async def test_connect_websocket_sends_authorization_header_when_configured() ->
             request = Request(method="GET", url="/ws")
             conn = await client.connect_websocket(request, ["v5.channel.k8s.io"])
             await conn.close()
-    finally:
-        server.stop()
 
     assert captured["auth"] == "Bearer secret-token"
 
@@ -289,9 +211,7 @@ def _make_abnormal_close_app(code: int) -> web.Application:
 
 @pytest.mark.anyio
 async def test_receive_bytes_raises_on_abnormal_close_code() -> None:
-    server = _ThreadedAioWsServer(_make_abnormal_close_app(1011))
-    server.start()
-    try:
+    with ThreadedAioServer(_make_abnormal_close_app(1011)) as server:
         config = ClientConfiguration(url=f"http://127.0.0.1:{server.port}")
         async with HttpxClient(config) as client:
             request = Request(method="GET", url="/ws")
@@ -301,15 +221,11 @@ async def test_receive_bytes_raises_on_abnormal_close_code() -> None:
                     await conn.receive_bytes()
             finally:
                 await conn.close()
-    finally:
-        server.stop()
 
 
 @pytest.mark.anyio
 async def test_receive_bytes_treats_normal_close_as_eof() -> None:
-    server = _ThreadedAioWsServer(_make_abnormal_close_app(1000))
-    server.start()
-    try:
+    with ThreadedAioServer(_make_abnormal_close_app(1000)) as server:
         config = ClientConfiguration(url=f"http://127.0.0.1:{server.port}")
         async with HttpxClient(config) as client:
             request = Request(method="GET", url="/ws")
@@ -319,8 +235,6 @@ async def test_receive_bytes_treats_normal_close_as_eof() -> None:
                     await conn.receive_bytes()
             finally:
                 await conn.close()
-    finally:
-        server.stop()
 
 
 class _RawCloseNoCodeServer:
@@ -438,16 +352,12 @@ async def test_connect_websocket_forwards_request_timeout_to_handshake() -> None
 
     app = web.Application()
     app.router.add_get("/ws", hang_forever)
-    server = _ThreadedAioWsServer(app)
-    server.start()
-    try:
+    with ThreadedAioServer(app) as server:
         config = ClientConfiguration(url=f"http://127.0.0.1:{server.port}")
         async with HttpxClient(config) as client:
             request = Request(method="GET", url="/ws", timeout=Timeout(total=0.1))
             with pytest.raises(KubexClientException, match="handshake timed out"):
                 await client.connect_websocket(request, ["v5.channel.k8s.io"])
-    finally:
-        server.stop()
 
 
 @pytest.mark.anyio

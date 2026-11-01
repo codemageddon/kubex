@@ -1,16 +1,19 @@
 from __future__ import annotations
 
 from collections.abc import Generator
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 import atexit
 import json
 import os
 import sys
+import threading
 import time
 import warnings
 from base64 import b64encode, urlsafe_b64encode
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from unittest.mock import patch
 
 import pytest
@@ -588,6 +591,53 @@ def test_decode_and_put_to_file_recreates_deleted_file(
     second = _decode_and_put_to_file(encoded)
     assert second.exists()
     assert second.read_bytes() == b"recreate-me"
+
+
+def test_decode_and_put_to_file_concurrent_calls_share_one_file(
+    clean_temp_files: dict[str, _TempFile], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Threads loading the same kubeconfig at once must not each write a file:
+    # only the tracked one is removed at exit, the others would leak secrets.
+    def slow_named_temporary_file(*args: Any, **kwargs: Any) -> Any:
+        time.sleep(0.01)  # widen the race window
+        return NamedTemporaryFile(*args, **kwargs)
+
+    monkeypatch.setattr(file_config, "NamedTemporaryFile", slow_named_temporary_file)
+    encoded = b64encode(b"concurrent-key").decode()
+    threads = 8
+    barrier = threading.Barrier(threads)
+
+    def load(_: int) -> Path:
+        barrier.wait()
+        return _decode_and_put_to_file(encoded)
+
+    with ThreadPoolExecutor(threads) as pool:
+        paths = set(pool.map(load, range(threads)))
+    assert paths == {clean_temp_files[encoded].path}
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="no fork() on Windows")
+def test_fork_while_another_thread_holds_temp_files_lock() -> None:
+    # The child must not inherit the lock held by a thread it does not have.
+    held = threading.Event()
+
+    def hold() -> None:
+        with file_config._temp_files_lock:
+            held.set()
+            time.sleep(0.2)
+
+    holder = threading.Thread(target=hold)
+    holder.start()
+    held.wait()
+    with warnings.catch_warnings():
+        # Forking with other threads running warns on Python 3.12+.
+        warnings.simplefilter("ignore", DeprecationWarning)
+        pid = os.fork()
+    if pid == 0:
+        os._exit(0 if file_config._temp_files_lock.acquire(timeout=1) else 1)
+    holder.join()
+    _, status = os.waitpid(pid, 0)
+    assert os.waitstatus_to_exitcode(status) == 0
 
 
 def test_cleanup_temp_files_skips_files_created_by_another_process(

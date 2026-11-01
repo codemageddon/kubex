@@ -1,5 +1,7 @@
 import atexit
 import os
+import sys
+import threading
 import warnings
 from base64 import b64decode, b64encode
 from pathlib import Path
@@ -40,11 +42,29 @@ class _TempFile(NamedTuple):
 _temp_files: dict[str, _TempFile] = {}
 """Decoded `*-data` payload -> temp file holding it."""
 _cleanup_registered = False
+_temp_files_lock = threading.Lock()
+"""Guards `_temp_files` and `_cleanup_registered`.
+
+Without it, threads loading the same kubeconfig at once each write their own
+temp file and only the last one is tracked, so the others (decoded keys and
+certificates) are never removed.
+"""
+
+if sys.platform != "win32":
+    # Hold the lock across fork() so a child never inherits it locked by a
+    # thread that does not exist there.
+    os.register_at_fork(
+        before=_temp_files_lock.acquire,
+        after_in_parent=_temp_files_lock.release,
+        after_in_child=_temp_files_lock.release,
+    )
 
 
 def _cleanup_temp_files() -> None:
     pid = os.getpid()
-    for temp_file in list(_temp_files.values()):
+    with _temp_files_lock:
+        temp_files = list(_temp_files.values())
+    for temp_file in temp_files:
         if temp_file.owner_pid != pid:
             # Inherited across fork(): the creating process still uses it.
             continue
@@ -473,16 +493,17 @@ def _decode_and_put_to_file(data: str) -> Path:
     only by the process that created it.
     """
     global _cleanup_registered
-    cached = _temp_files.get(data)
-    if cached is not None and cached.path.exists():
-        return cached.path
-    # Line breaks are tolerated (as by Go's decoder); other junk is an error.
-    decoded = b64decode("".join(data.split()), validate=True)
-    if not _cleanup_registered:
-        atexit.register(_cleanup_temp_files)
-        _cleanup_registered = True
-    with NamedTemporaryFile(delete=False) as f:
-        f.write(decoded)
-    path = Path(f.name)
-    _temp_files[data] = _TempFile(path, os.getpid())
-    return path
+    with _temp_files_lock:
+        cached = _temp_files.get(data)
+        if cached is not None and cached.path.exists():
+            return cached.path
+        # Line breaks are tolerated (as by Go's decoder); other junk is an error.
+        decoded = b64decode("".join(data.split()), validate=True)
+        if not _cleanup_registered:
+            atexit.register(_cleanup_temp_files)
+            _cleanup_registered = True
+        with NamedTemporaryFile(delete=False) as f:
+            f.write(decoded)
+        path = Path(f.name)
+        _temp_files[data] = _TempFile(path, os.getpid())
+        return path

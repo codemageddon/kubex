@@ -43,25 +43,32 @@ class ThreadedAioServer:
         errors: list[BaseException] = []
 
         def _run() -> None:
+            loop: asyncio.AbstractEventLoop | None = None
             try:
-                loop = asyncio.new_event_loop()
-                self._loop = loop
-                asyncio.set_event_loop(loop)
-                runner = web.AppRunner(self.app, handle_signals=False)
-                loop.run_until_complete(runner.setup())
-                site = web.TCPSite(
-                    runner, "127.0.0.1", 0, ssl_context=self._ssl_context
-                )
-                loop.run_until_complete(site.start())
-                self._runner = runner
-                server: Any = site._server
-                self.port = server.sockets[0].getsockname()[1]
-            except BaseException as exc:  # pragma: no cover - startup failure
-                errors.append(exc)
+                try:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    runner = web.AppRunner(self.app, handle_signals=False)
+                    loop.run_until_complete(runner.setup())
+                    site = web.TCPSite(
+                        runner, "127.0.0.1", 0, ssl_context=self._ssl_context
+                    )
+                    loop.run_until_complete(site.start())
+                    server: Any = site._server
+                    self.port = server.sockets[0].getsockname()[1]
+                    self._loop = loop
+                    self._runner = runner
+                except BaseException as exc:  # pragma: no cover - startup failure
+                    errors.append(exc)
+                    ready.set()
+                    return
                 ready.set()
-                return
-            ready.set()
-            loop.run_forever()
+                loop.run_forever()
+            finally:
+                # Left open, the loop is closed by its finalizer later, which
+                # raises an unraisable-exception warning on free-threaded builds.
+                if loop is not None:
+                    loop.close()
 
         self._thread = threading.Thread(target=_run, daemon=True)
         self._thread.start()

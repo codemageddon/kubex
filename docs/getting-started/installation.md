@@ -106,6 +106,9 @@ For most users, pick one HTTP client and one K8s version:
 
 Kubex is tested and supported on Python 3.11 through 3.15.
 
+Free-threaded (no-GIL) builds of Python 3.14 and 3.15 (`3.14t`, `3.15t`) are tested too; support
+for them is in beta.
+
 ## Next steps
 
 Once installed, head to the [Quickstart](quickstart.md) to connect to your cluster and make your first request.
