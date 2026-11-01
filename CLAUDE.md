@@ -35,6 +35,9 @@ uv run mypy .
 # Type check kubex-core (the root run excludes packages/ and never reports its errors)
 uv run --directory packages/kubex-core mypy kubex_core
 
+# Type check kubex-runtime (same reason)
+uv run --directory packages/kubex-runtime mypy kubex_runtime
+
 # Run pre-commit hooks
 pre-commit run --all-files
 
@@ -145,6 +148,56 @@ packages/                       # Workspace packages
 │                               #   OpenAPI spec); review and request generic over request.object; allow()/deny() copy the uid; patch is bytes
 │                               #   (base64 on the wire), an empty allow(patch=) sends none
 │       └── partial_object_meta.py # Partial metadata variant
+├── kubex-runtime/              # Controller runtime (kubex_runtime), a port of kube.rs's kube-runtime on anyio.
+│   │                           #   Separate distribution, versioned on its own (alpha), depends on kubex; published with the other packages
+│   └── kubex_runtime/
+│       ├── watcher.py          # watcher(): list-then-watch event stream (Init/InitApply/InitDone/Apply/Delete/Bookmark); re-lists on 410,
+│       │                       #   InitDone carries the list's resourceVersion, Bookmark each bookmark's after the initial events;
+│       │                       #   backs off on errors; a watch not ended by its server timeout + 30 s (fixed when it opens)
+│       │                       #   fails as KubexTimeoutError (on_error, backoff, then reopened). Backoff resets when the stream starts and once a whole list succeeds
+│       │                       #   WatcherConfig.initial_list_strategy: LIST_WATCH (paged lists), STREAMING_LIST (watch with
+│       │                       #   sendInitialEvents; Init sent after the first event, InitDone at the initial-events-end bookmark,
+│       │                       #   then the same stream carries changes), STREAMING_LIST_WITH_FALLBACK (LIST_WATCH for good after a 422
+│       │                       #   or a stream ended before that bookmark). None (default) = WITH_FALLBACK, or LIST_WATCH if bookmarks=False.
+│       │                       #   test/test_runtime's FakeApi rejects streaming lists with 422 unless FakeApi(..., watch_list=True)
+│       ├── reflector/          # Package; __init__.py re-exports the public names (also exported from kubex_runtime)
+│       │   ├── _store.py       # Store (read side), thread-safe: read under a lock from any thread. It tracks the resourceVersion
+│       │   │                   #   it is at (raised in the lock of each change; set to the list's at InitDone — a list below it is
+│       │   │                   #   another history, and drops the recorded writes) and Store.wrote(obj, owner=) records writes per
+│       │   │                   #   owner uid until it has seen them (forget_writes() drops them and the version, e.g. for a cluster
+│       │   │                   #   that is gone for good or a watch moved to another cluster). Also the object keys (_key, _object_key)
+│       │   ├── _subscription.py # BoundedBuffer(size) | MergedBuffer(), ReflectHandle and its two kinds — bounded queue with
+│       │   │                   #   backpressure (default) or one pending entry per object (namespace, name, uid); lock-guarded
+│       │   │                   #   queues read in any loop
+│       │   ├── _writer.py      # Writer (applies events; re-list swapped in at InitDone; subscribe()), store(), reflector().
+│       │   │                   #   A store change and its recipients are taken under the Writer's lock, so a subscriber joining
+│       │   │                   #   from another thread gets the change or a snapshot that has it
+│       │   └── _shared.py      # SharedReflector (run()) / shared_reflector() (async with): one watch + store for several controllers
+│       ├── controller/         # Package; __init__.py re-exports the public names (OBJECT_UPDATED etc. only from here)
+│       │   ├── _types.py       # Action, ReconcileReason (+ OBJECT_UPDATED, BULK_RECONCILE, ...), ReconcileRequest, ReconcileResult,
+│       │   │                   #   ControllerConfig, and the ReconcileFn/ErrorPolicyFn/Mapper/Adapter aliases
+│       │   ├── _controller.py  # Controller: owns()/watches()/reconcile_on(); `async with running(...) as results` owns the
+│       │   │                   #   task group, run() is running() + logging. Own reconciles come from the store subscription.
+│       │   │                   #   Runs once: entering running()/run() again raises RuntimeError (build a new Controller).
+│       │   │                   #   for_shared()/owns_shared()/watches_shared() take a SharedReflector: subscribe lazily
+│       │   │                   #   (MergedBuffer default, adapt= wraps it), close it on stop, wait for its store
+│       │   ├── _triggers.py    # Trigger streams → ReconcileRequest: own objects, mapped/watched related objects (a re-list's
+│       │   │                   #   vanished objects trigger too), refs, bulk; _subscription() for the shared ones
+│       │   └── _applier.py     # _Applier: scheduler → reconcile tasks. Reconciles wait for its store and every store given to
+│       │                       #   waits_for() (warning after 60 s). An object one of those stores has unseen writes for
+│       │                       #   (Store.wrote) is held in a task of its own, outside the concurrency cap, and scheduled again
+│       │                       #   once they are seen (warning after 60 s)
+│       ├── scheduler.py        # Per-key delay queue (earliest wins, debounce restarts)
+│       ├── finalizer.py        # finalizer(): Apply/Cleanup (exported as FinalizerApply/FinalizerCleanup) around a finalizer,
+│       │                       #   JSON patches guarded by `test` ops on the uid and the finalizer list/index
+│       ├── streams.py          # applied_objects/touched_objects/predicate_filter (+ generation, resource_version);
+│       │                       #   predicate_filter forgets an object not seen for `ttl` (1 h, as kube-runtime)
+│       ├── object_ref.py       # ObjectRef — store/controller key; from_owner() takes None for cluster-scoped owners;
+│       │                       #   a core group given as "" is kept as "core"
+│       ├── backoff.py          # Backoff protocol, ExponentialBackoff (kube-runtime defaults), default_backoff()
+│       ├── _closing.py         # closing(): every adapter closes the stream it reads
+│       └── _waiters.py         # Waiters: tasks of any thread's event loop (asyncio or trio) waiting on lock-guarded state, woken
+│                               #   from any thread without blocking (call_soon_threadsafe / run_sync_soon; anyio.from_thread would block)
 └── kubex-k8s-{1-32..1-38}/     # Generated Kubernetes resource models (one package per K8s version)
     └── kubex/k8s/v1_NN/        # ~666 generated model files across ~30 API groups
         ├── core/v1/            # Pod, Namespace, Service, ConfigMap, Secret, etc.
@@ -183,6 +236,9 @@ test/                           # Test suite
 │   ├── test_bearer_token_auth.py # E2E tests for bearer-token auth (no proxy): valid SA token succeeds, invalid token returns 401
 │   ├── test_api_safety.py      # E2E: empty-name rejection, dry-run delete, escaped names, server-side apply
 │   ├── test_invalid_objects.py # E2E: list()/watch(invalid=INCLUDE) with a CRD object the model rejects; initial-events-end bookmark
+│   ├── test_runtime.py         # E2E: kubex_runtime controller with a finalizer + owned child; cluster-scoped (Namespace) owner;
+│                               #   two controllers over a parent → child → grandchild chain sharing reflectors; parents requeueing
+│                               #   right after creating a generateName child (one child each, through Store.wrote); streaming list
 │   └── proxy/                  # E2E tests for trust_env proxy support (Squid on shared Docker network)
 │       ├── _constants.py       # SQUID_PROXY_USER / SQUID_PROXY_PASSWORD shared by conftest and tests
 │       ├── conftest.py         # Fixtures: Docker network, K3S-in-network, Squid, proxy_url, proxy config,
@@ -203,7 +259,11 @@ test/                           # Test suite
 ├── test_metadata_accessor.py   # MetadataAccessor (get, list, patch) tests
 ├── test_invalid_objects.py     # list()/watch(invalid=) parsing rules, is_initial_events_end, overload types (assert_type)
 ├── test_api_request_validation.py # Api-level name/namespace validation (nothing reaches the client)
-├── test_free_threading.py      # Free-threaded builds only (skipped elsewhere): importing kubex + httpx_ws/trio keeps the GIL off
+├── test_free_threading.py      # Free-threaded builds only (skipped elsewhere): importing kubex, kubex_runtime + httpx_ws/trio keeps the GIL off
+├── test_runtime/               # kubex_runtime unit tests on asyncio + trio; _fakes.py has FakeApi (scripted list pages
+│                               #   and watch streams) and cm()/event()/bookmark()/owner() helpers; test_threads.py uses the runtime from
+│                               #   other threads and event loops (start a test thread's loop in an empty contextvars.Context: on
+│                               #   free-threaded 3.14 a thread inherits its starter's context, and anyio then sees the starter's loop)
 ├── test_models/                # Unit tests for kubex-core models, field types and generated-model behaviour
 │   ├── test_admission.py       # AdmissionReview parsing (typed + raw objects), allow()/deny() wire output, base64 patch
 │   └── test_eviction.py        # Eviction model tests
@@ -258,7 +318,10 @@ docs/                           # MkDocs documentation site source
 ├── operations/                 # CRUD, watch, patch, timeouts
 ├── subresources/               # Per-subresource pages (logs, metadata, scale, status, eviction, ephemeral-containers, resize, exec, attach, portforward)
 ├── advanced/                   # Advanced topics (multi-version K8s, custom resources, admission webhooks, clients/runtimes, auth, benchmarks)
-└── reference/                  # Auto-generated API reference via mkdocstrings
+├── runtime/                    # kubex-runtime guides (watcher, reflectors & stores, controller, finalizers,
+│                               #   several controllers / recording writes, threads & free-threading)
+└── reference/                  # Auto-generated API reference via mkdocstrings (runtime.md: kubex_runtime;
+                                #   mkdocs.yml's mkdocstrings `paths` lists packages/kubex-runtime)
 mkdocs.yml                      # MkDocs configuration (theme, nav, plugins)
 lychee.toml                     # Link checker configuration
 
@@ -274,7 +337,8 @@ lychee.toml                     # Link checker configuration
 - **Package manager**: [uv](https://github.com/astral-sh/uv) with workspace support
 - **Build backend**: hatchling
 - **Python**: 3.11, 3.12, 3.13, 3.14, 3.15, and the free-threaded 3.14t and 3.15t builds
-- **Workspace members**: `packages/*` (kubex-core, kubex-k8s-1-32 through kubex-k8s-1-38)
+- **Workspace members**: `packages/*` (kubex-core, kubex-runtime, kubex-k8s-1-32 through kubex-k8s-1-38). Every directory
+  under `packages/` must have a `pyproject.toml`, or every `uv` command in the repo fails
 - **Core deps**: `pydantic>=2.0,<3`, `pyyaml>=6.0.2`, `kubex-core` (workspace), `anyio>=4.6.0`
 - **Optional deps** (install via `--all-extras` or individually):
   - `httpx>=0.27.2` — primary HTTP client
@@ -379,6 +443,7 @@ Five GitHub Actions workflows:
 3. `ruff format --check .`
 4. `mypy .` (strict, with all extras installed)
 5. `mypy kubex_core` from `packages/kubex-core` (its own `[tool.mypy]`; the root run excludes `packages/` and never reports errors in kubex-core)
+   and `mypy kubex_runtime` from `packages/kubex-runtime` (same reason)
 6. Verify generated packages — runs `python -m scripts.codegen verify` for each `packages/kubex-k8s-*`
 
 **Test** (`test.yaml`) — runs on push and pull_request:
@@ -387,14 +452,14 @@ Five GitHub Actions workflows:
    `test/test_free_threading.py` (GIL stays off after importing kubex) cannot skip silently
 
 **Publish Test** (`publish-test.yaml`) — runs on pull requests to `main`:
-1. Appends `.devN` version suffix to all 9 packages
+1. Appends `.devN` version suffix to all 10 packages and pins workspace dependencies (including kubex-runtime's `kubex`/`kubex-core`) to the same build's dev versions
 2. Builds all packages in dependency order
 3. Publishes to Test PyPI using OIDC trusted publishing
 4. Posts a PR comment with Test PyPI links
 - Uses GitHub environment `test-pypi`; skips publish for fork PRs
 
 **Publish** (`publish.yaml`) — runs on `v*` tag push:
-1. Verifies `kubex` and `kubex-core` versions match the tag (kubex-k8s-* packages are versioned independently)
+1. Verifies `kubex` and `kubex-core` versions match the tag (kubex-k8s-* packages and kubex-runtime are versioned independently)
 2. Builds all packages in dependency order
 3. Publishes to production PyPI using OIDC trusted publishing
 - Uses GitHub environment `pypi`
@@ -408,12 +473,12 @@ Five GitHub Actions workflows:
 
 To publish a new version to PyPI:
 
-1. Bump the version in `kubex/__version__.py`, in `packages/kubex-core/pyproject.toml`, and in the exact `kubex-core==<VERSION>` pin in the root `pyproject.toml` — all three must match the git tag (kubex and kubex-core ship in lock-step). The `packages/kubex-k8s-*/pyproject.toml` versions are independent (they track Kubernetes minor releases) and only need to be bumped when the corresponding generated package actually changes; they depend on a `kubex-core` range (`>=…,<0.2`, set in `scripts/codegen/templates/pyproject.toml.j2`) — raise its lower bound when generated code starts relying on a newer kubex-core. `regenerate`/`generate` keep each package's existing version unless `--package-version` is passed.
+1. Bump the version in `kubex/__version__.py`, in `packages/kubex-core/pyproject.toml`, and in the exact `kubex-core==<VERSION>` pin in the root `pyproject.toml` — all three must match the git tag (kubex and kubex-core ship in lock-step). The `packages/kubex-k8s-*/pyproject.toml` versions are independent (they track Kubernetes minor releases) and only need to be bumped when the corresponding generated package actually changes; they depend on a `kubex-core` range (`>=…,<0.2`, set in `scripts/codegen/templates/pyproject.toml.j2`) — raise its lower bound when generated code starts relying on a newer kubex-core. `regenerate`/`generate` keep each package's existing version unless `--package-version` is passed. `packages/kubex-runtime/pyproject.toml` is versioned on its own too: bump it when the runtime changes, and keep its `kubex`/`kubex-core` lower bounds at the oldest releases it works with.
 2. Commit and push to `main`
 3. Create and push a git tag matching the `kubex` / `kubex-core` version: `git tag v<VERSION> && git push origin v<VERSION>`
 4. The `publish.yaml` workflow will verify that the `kubex` and `kubex-core` versions and the `kubex-core` pin match the tag, build all packages, and publish to production PyPI
 
-Both publish workflows use PyPI OIDC trusted publishing — no API tokens are stored in the repository. Each of the 9 packages must have a trusted publisher configured in its PyPI (and Test PyPI) project settings. See the comment block at the top of each workflow file for the exact configuration values.
+Both publish workflows use PyPI OIDC trusted publishing — no API tokens are stored in the repository. Each of the 10 packages must have a trusted publisher configured in its PyPI (and Test PyPI) project settings. See the comment block at the top of each workflow file for the exact configuration values.
 
 ## Coding Conventions
 

@@ -7,7 +7,7 @@ K8S_VERSIONS = "1.32,1.33,1.34,1.35,1.36,1.37,1.38"
 
 [tasks."docs:serve"]
 description = "Serve the docs site locally with live reload (also reloads on docstring changes in source packages)"
-run = "uv run --group docs mkdocs serve --watch kubex --watch packages/kubex-core"
+run = "uv run --group docs mkdocs serve --watch kubex --watch packages/kubex-core --watch packages/kubex-runtime"
 
 [tasks."docs:build"]
 description = "Build the docs site in strict mode"

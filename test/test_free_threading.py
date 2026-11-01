@@ -22,6 +22,7 @@ _MODULES = (
     "kubex.client.httpx",
     "kubex.configuration",
     "kubex.k8s.v1_35.core.v1.pod",
+    "kubex_runtime",
     "httpx_ws",
     "trio",
 )
