@@ -7,15 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-beta.5] - 2026-11-17
+
 ### Added
 
 - Free-threaded Python 3.14t and 3.15t support (beta).
+- `kubex.core.exception_groups.raise_single()`: re-raises a task group's only exception as it was
+  raised.
 
 ### Fixed
 
 - Loading a kubeconfig from several threads at once no longer leaves temp files with decoded
   `*-data` credentials behind.
 - A resource class first used from several threads at once builds its list model only once.
+- Errors from `exec`, `attach` and `portforward` sessions keep their `__cause__` and
+  `__context__`.
+- Closing `Api.watch()`, `api.metadata.watch()` or `api.logs.stream()` closes its HTTP
+  response right away.
 
 ## [0.1.0-beta.4] - 2026-10-28
 
@@ -219,7 +227,8 @@ Initial public beta release.
 - OpenAPI → Pydantic v2 code generator and pre-generated workspace packages for Kubernetes 1.32–1.37.
 - MkDocs documentation site, examples, and a benchmark suite against `kubernetes-asyncio`.
 
-[unreleased]: https://github.com/codemageddon/kubex/compare/v0.1.0-beta.4...HEAD
+[unreleased]: https://github.com/codemageddon/kubex/compare/v0.1.0-beta.5...HEAD
+[0.1.0-beta.5]: https://github.com/codemageddon/kubex/compare/v0.1.0-beta.4...v0.1.0-beta.5
 [0.1.0-beta.4]: https://github.com/codemageddon/kubex/compare/v0.1.0-beta.3...v0.1.0-beta.4
 [0.1.0-beta.3]: https://github.com/codemageddon/kubex/compare/v0.1.0-beta.2...v0.1.0-beta.3
 [0.1.0-beta.2]: https://github.com/codemageddon/kubex/compare/v0.1.0-beta.1...v0.1.0-beta.2

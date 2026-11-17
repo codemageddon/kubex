@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-from typing import Any, AsyncIterator, Generic, Type, TypeVar, overload
+from typing import Any, AsyncGenerator, Generic, Type, TypeVar, overload
 
 from kubex.api._stream_session import StreamSession, _resolve_protocol
 from kubex.client.client import BaseClient
@@ -115,7 +115,7 @@ class AttachAccessor(Generic[ResourceType]):
         stderr: bool = True,
         tty: bool = False,
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
-    ) -> AsyncIterator[StreamSession]:
+    ) -> AsyncGenerator[StreamSession, None]:
         """Open a bidirectional attach session as an async context manager.
 
         .. warning::

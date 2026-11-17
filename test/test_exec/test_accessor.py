@@ -479,6 +479,22 @@ async def test_run_surfaces_read_side_transport_error_unwrapped() -> None:
 
 
 @pytest.mark.anyio
+async def test_run_read_side_transport_error_keeps_its_cause() -> None:
+    cause = OSError("connection reset")
+
+    class _ReceiveFailingWebSocket(_FakeWebSocket):
+        async def receive_bytes(self) -> bytes:
+            raise KubexClientException("transport error") from cause
+
+    accessor = _accessor_for_pod(_FakeClient(_ReceiveFailingWebSocket()))
+
+    with anyio.fail_after(5.0):
+        with pytest.raises(KubexClientException, match="transport error") as raised:
+            await accessor.run("my-pod", command=["cat"], stdin=b"data")
+    assert raised.value.__cause__ is cause
+
+
+@pytest.mark.anyio
 async def test_run_keeps_status_when_stdin_write_fails() -> None:
     """Regression: a stdin send failure (e.g. the command exited without
     reading its input and the server closed) discarded the status that had

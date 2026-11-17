@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import aclosing
 import json
 from typing import AsyncGenerator, Generic, Type
 
@@ -326,5 +327,7 @@ class MetadataAccessor(Generic[ResourceType]):
             options,
             request_timeout=request_timeout,
         )
-        async for line in self._client.stream_lines(request):
-            yield WatchEvent(PartialObjectMetadata, json.loads(line))
+        # Closing this generator closes the line stream, and with it the response.
+        async with aclosing(self._client.stream_lines(request)) as lines:
+            async for line in lines:
+                yield WatchEvent(PartialObjectMetadata, json.loads(line))

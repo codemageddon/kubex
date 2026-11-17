@@ -6,6 +6,10 @@ Auto-generated reference for the `kubex.core` module.
 
 ::: kubex.core.exceptions
 
+## Exception groups
+
+::: kubex.core.exception_groups
+
 ## Request and response
 
 ::: kubex.core.request

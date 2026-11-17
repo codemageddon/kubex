@@ -3,11 +3,12 @@ from __future__ import annotations
 import logging
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import Any, AsyncIterator, Generic, Self, Sequence, Type, TypeVar, overload
+from typing import Any, AsyncGenerator, Generic, Self, Sequence, Type, TypeVar, overload
 
 import anyio
 from anyio.streams.memory import MemoryObjectReceiveStream
 
+from kubex.core.exception_groups import raise_single
 from kubex.api._stream_session import StreamSession, _resolve_protocol
 from kubex.client.client import BaseClient
 from kubex.core.exceptions import KubexClientException, KubexTimeoutError
@@ -222,7 +223,7 @@ class ExecAccessor(Generic[ResourceType]):
         stderr: bool = True,
         tty: bool = False,
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
-    ) -> AsyncIterator[StreamSession]:
+    ) -> AsyncGenerator[StreamSession, None]:
         """Open a bidirectional exec session as an async context manager.
 
         .. warning::
@@ -458,8 +459,7 @@ class ExecAccessor(Generic[ResourceType]):
                 # catch ``KubexClientException`` (the documented exec
                 # exception type) observe failures directly instead of
                 # having to reach into an exception group.
-                if len(eg.exceptions) == 1:
-                    raise eg.exceptions[0] from None
+                raise_single(eg)
                 raise
         return ExecResult(
             stdout=bytes(stdout_buf), stderr=bytes(stderr_buf), status=status

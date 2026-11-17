@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from types import MappingProxyType
 from typing import (
     Any,
-    AsyncIterator,
+    AsyncGenerator,
     Generic,
     Mapping,
     Sequence,
@@ -356,7 +356,7 @@ class PortforwardAccessor(Generic[ResourceType]):
         ports: Sequence[int],
         namespace: ApiNamespaceTypes = Ellipsis,
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
-    ) -> AsyncIterator[PortForwarder]:
+    ) -> AsyncGenerator[PortForwarder, None]:
         """Open portforward streams to the given ports as an async context manager.
 
         .. warning::
@@ -430,7 +430,7 @@ class PortforwardAccessor(Generic[ResourceType]):
         local_host: str = "127.0.0.1",
         namespace: ApiNamespaceTypes = Ellipsis,
         request_timeout: ApiRequestTimeoutTypes = Ellipsis,
-    ) -> AsyncIterator[None]:
+    ) -> AsyncGenerator[None, None]:
         """Open local TCP listeners and forward bytes bidirectionally to remote ports.
 
         .. warning::

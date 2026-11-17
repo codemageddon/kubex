@@ -13,6 +13,7 @@ from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStre
 from kubex_core.models.status import Status
 from pydantic import ValidationError
 
+from kubex.core.exception_groups import raise_single
 from kubex.client.websocket import WebSocketConnection
 from kubex.core.exceptions import KubexClientException
 from kubex.core.exec_channels import (
@@ -192,8 +193,7 @@ class _BaseChannelSession(ABC):
         try:
             return await stack.__aexit__(exc_type, exc_value, traceback)
         except BaseExceptionGroup as eg:
-            if len(eg.exceptions) == 1:
-                raise eg.exceptions[0] from None
+            raise_single(eg)
             raise
 
     def _before_cancel(self) -> None:
