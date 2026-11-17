@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/logo.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
       
@@ -1927,6 +1927,45 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#exception-groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exception groups
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kubex.core.exception_groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        exception_groups
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="exception_groups">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#kubex.core.exception_groups.raise_single" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        raise_single
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#request-and-response" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2712,6 +2751,45 @@
     <span class="md-ellipsis">
       
         KubexTimeoutError
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exception-groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exception groups
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kubex.core.exception_groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        exception_groups
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="exception_groups">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#kubex.core.exception_groups.raise_single" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        raise_single
       
     </span>
   </a>
@@ -3602,6 +3680,113 @@ typically on <code>429 Too Many Requests</code> and <code>503 Service Unavailabl
 
 </div>
 
+
+
+
+  </div>
+
+    </div>
+
+</div><h2 id="exception-groups">Exception groups<a class="headerlink" href="#exception-groups" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<h2 id="kubex.core.exception_groups" class="doc doc-heading">
+            <span class="doc doc-object-name doc-module-name">kubex.core.exception_groups</span>
+
+
+<a href="#kubex.core.exception_groups" class="headerlink" title="Permanent link">&para;</a></h2>
+
+    <div class="doc doc-contents first">
+
+        <p>Exceptions out of a task group.</p>
+<p>anyio's task groups raise what their tasks raise as an exception group, even
+when only one task failed. <code>raise_single()</code> gives that one exception back to
+the caller as it was raised, its <code>__cause__</code> and <code>__context__</code> included.</p>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="kubex.core.exception_groups.raise_single" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">raise_single</span>
+
+
+<a href="#kubex.core.exception_groups.raise_single" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">raise_single</span><span class="p">(</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">errors</span><span class="p">:</span> <span class="n">BaseExceptionGroup</span><span class="p">[</span><span class="ne">BaseException</span><span class="p">],</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Raises the exception of <code>errors</code> when it is the only one, as it was
+raised; returns otherwise.</p>
+<p>Call it in the <code>except</code> clause that caught <code>errors</code>. There, <code>raise error</code>
+would chain the exception to the group and <code>raise error from None</code> would
+erase its own cause, so its <code>__context__</code> is put back on the way out.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>kubex/core/exception_groups.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#kubex.core.exception_groups.raise_single--source--__codelineno-0-11">11</a></span>
+<span class="normal"><a href="#kubex.core.exception_groups.raise_single--source--__codelineno-0-12">12</a></span>
+<span class="normal"><a href="#kubex.core.exception_groups.raise_single--source--__codelineno-0-13">13</a></span>
+<span class="normal"><a href="#kubex.core.exception_groups.raise_single--source--__codelineno-0-14">14</a></span>
+<span class="normal"><a href="#kubex.core.exception_groups.raise_single--source--__codelineno-0-15">15</a></span>
+<span class="normal"><a href="#kubex.core.exception_groups.raise_single--source--__codelineno-0-16">16</a></span>
+<span class="normal"><a href="#kubex.core.exception_groups.raise_single--source--__codelineno-0-17">17</a></span>
+<span class="normal"><a href="#kubex.core.exception_groups.raise_single--source--__codelineno-0-18">18</a></span>
+<span class="normal"><a href="#kubex.core.exception_groups.raise_single--source--__codelineno-0-19">19</a></span>
+<span class="normal"><a href="#kubex.core.exception_groups.raise_single--source--__codelineno-0-20">20</a></span>
+<span class="normal"><a href="#kubex.core.exception_groups.raise_single--source--__codelineno-0-21">21</a></span>
+<span class="normal"><a href="#kubex.core.exception_groups.raise_single--source--__codelineno-0-22">22</a></span>
+<span class="normal"><a href="#kubex.core.exception_groups.raise_single--source--__codelineno-0-23">23</a></span>
+<span class="normal"><a href="#kubex.core.exception_groups.raise_single--source--__codelineno-0-24">24</a></span>
+<span class="normal"><a href="#kubex.core.exception_groups.raise_single--source--__codelineno-0-25">25</a></span>
+<span class="normal"><a href="#kubex.core.exception_groups.raise_single--source--__codelineno-0-26">26</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="kubex.core.exception_groups.raise_single--source--__codelineno-0-11" name="kubex.core.exception_groups.raise_single--source--__codelineno-0-11"></a><span class="k">def</span><span class="w"> </span><span class="nf">raise_single</span><span class="p">(</span><span class="n">errors</span><span class="p">:</span> <span class="n">BaseExceptionGroup</span><span class="p">[</span><span class="ne">BaseException</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="kubex.core.exception_groups.raise_single--source--__codelineno-0-12" name="kubex.core.exception_groups.raise_single--source--__codelineno-0-12"></a><span class="w">    </span><span class="sd">"""Raises the exception of `errors` when it is the only one, as it was</span>
+<a id="kubex.core.exception_groups.raise_single--source--__codelineno-0-13" name="kubex.core.exception_groups.raise_single--source--__codelineno-0-13"></a><span class="sd">    raised; returns otherwise.</span>
+<a id="kubex.core.exception_groups.raise_single--source--__codelineno-0-14" name="kubex.core.exception_groups.raise_single--source--__codelineno-0-14"></a>
+<a id="kubex.core.exception_groups.raise_single--source--__codelineno-0-15" name="kubex.core.exception_groups.raise_single--source--__codelineno-0-15"></a><span class="sd">    Call it in the `except` clause that caught `errors`. There, `raise error`</span>
+<a id="kubex.core.exception_groups.raise_single--source--__codelineno-0-16" name="kubex.core.exception_groups.raise_single--source--__codelineno-0-16"></a><span class="sd">    would chain the exception to the group and `raise error from None` would</span>
+<a id="kubex.core.exception_groups.raise_single--source--__codelineno-0-17" name="kubex.core.exception_groups.raise_single--source--__codelineno-0-17"></a><span class="sd">    erase its own cause, so its `__context__` is put back on the way out.</span>
+<a id="kubex.core.exception_groups.raise_single--source--__codelineno-0-18" name="kubex.core.exception_groups.raise_single--source--__codelineno-0-18"></a><span class="sd">    """</span>
+<a id="kubex.core.exception_groups.raise_single--source--__codelineno-0-19" name="kubex.core.exception_groups.raise_single--source--__codelineno-0-19"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">errors</span><span class="o">.</span><span class="n">exceptions</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+<a id="kubex.core.exception_groups.raise_single--source--__codelineno-0-20" name="kubex.core.exception_groups.raise_single--source--__codelineno-0-20"></a>        <span class="k">return</span>
+<a id="kubex.core.exception_groups.raise_single--source--__codelineno-0-21" name="kubex.core.exception_groups.raise_single--source--__codelineno-0-21"></a>    <span class="n">error</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">exceptions</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<a id="kubex.core.exception_groups.raise_single--source--__codelineno-0-22" name="kubex.core.exception_groups.raise_single--source--__codelineno-0-22"></a>    <span class="n">context</span> <span class="o">=</span> <span class="n">error</span><span class="o">.</span><span class="n">__context__</span>
+<a id="kubex.core.exception_groups.raise_single--source--__codelineno-0-23" name="kubex.core.exception_groups.raise_single--source--__codelineno-0-23"></a>    <span class="k">try</span><span class="p">:</span>
+<a id="kubex.core.exception_groups.raise_single--source--__codelineno-0-24" name="kubex.core.exception_groups.raise_single--source--__codelineno-0-24"></a>        <span class="k">raise</span> <span class="n">error</span>
+<a id="kubex.core.exception_groups.raise_single--source--__codelineno-0-25" name="kubex.core.exception_groups.raise_single--source--__codelineno-0-25"></a>    <span class="k">finally</span><span class="p">:</span>
+<a id="kubex.core.exception_groups.raise_single--source--__codelineno-0-26" name="kubex.core.exception_groups.raise_single--source--__codelineno-0-26"></a>        <span class="n">error</span><span class="o">.</span><span class="n">__context__</span> <span class="o">=</span> <span class="n">context</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
 
 
 
@@ -5870,7 +6055,7 @@ test suite to build fake inbound frames and round-trip against
       <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
+      <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
     
   </body>
