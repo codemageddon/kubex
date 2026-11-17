@@ -13,7 +13,7 @@ import tempfile
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import AsyncIterator
+from typing import AsyncGenerator
 
 from yaml import safe_load
 
@@ -46,7 +46,7 @@ BUSYBOX_IMAGE = "busybox:1.36"
 
 
 @asynccontextmanager
-async def k3s_cluster(image: str = DEFAULT_K3S_IMAGE) -> AsyncIterator[str]:
+async def k3s_cluster(image: str = DEFAULT_K3S_IMAGE) -> AsyncGenerator[str, None]:
     """Start a K3s testcontainer and yield a kubeconfig path.
 
     Uses the existing testcontainers wrapper already in the repo's dev deps.

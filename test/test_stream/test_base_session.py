@@ -5,6 +5,7 @@ import pytest
 
 from kubex.api._stream_session import _BaseChannelSession
 from kubex.client.websocket import WebSocketConnection
+from kubex.core.exceptions import KubexClientException
 from kubex.core.exec_channels import CHANNEL_CLOSE, ChannelProtocol, V5ChannelProtocol
 
 
@@ -125,6 +126,21 @@ async def test_exception_inside_block_still_closes_connection() -> None:
             raise RuntimeError("boom")
 
     assert fake.closed is True
+
+
+@pytest.mark.anyio
+async def test_read_loop_error_keeps_its_cause() -> None:
+    cause = OSError("connection reset")
+
+    class _FailingSession(_SimpleSession):
+        async def _read_loop(self) -> None:
+            raise KubexClientException("abnormal close") from cause
+
+    with anyio.fail_after(2.0), pytest.raises(KubexClientException) as raised:
+        async with _FailingSession(_FakeWebSocket(), V5ChannelProtocol()):
+            await anyio.sleep_forever()
+
+    assert raised.value.__cause__ is cause
 
 
 @pytest.mark.anyio

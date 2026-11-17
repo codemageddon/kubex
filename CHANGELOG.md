@@ -10,12 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Free-threaded Python 3.14t and 3.15t support (beta).
+- `kubex.core.exception_groups.raise_single()`: re-raises a task group's only exception as it was
+  raised.
 
 ### Fixed
 
 - Loading a kubeconfig from several threads at once no longer leaves temp files with decoded
   `*-data` credentials behind.
 - A resource class first used from several threads at once builds its list model only once.
+- Errors from `exec`, `attach` and `portforward` sessions keep their `__cause__` and
+  `__context__`.
+- Closing `Api.watch()`, `api.metadata.watch()` or `api.logs.stream()` closes its HTTP
+  response right away.
 
 ## [0.1.0-beta.4] - 2026-10-28
 

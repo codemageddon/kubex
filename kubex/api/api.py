@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import aclosing
 import json
 from typing import (
     AsyncGenerator,
@@ -812,13 +813,15 @@ class Api(Generic[ResourceType]):
             options,
             request_timeout=request_timeout,
         )
-        async for line in self._client.stream_lines(request):
-            # Parse before yielding: the yield stays outside any ``except``, so an
-            # exception thrown into the generator is never mistaken for ours.
-            event = _parse_watch_event(
-                self._resource, json.loads(line), invalid_objects
-            )
-            yield event
+        # Closing this generator closes the line stream, and with it the response.
+        async with aclosing(self._client.stream_lines(request)) as lines:
+            async for line in lines:
+                # Parse before yielding: the yield stays outside any ``except``, so
+                # an exception thrown into the generator is never mistaken for ours.
+                event = _parse_watch_event(
+                    self._resource, json.loads(line), invalid_objects
+                )
+                yield event
 
 
 async def create_api(

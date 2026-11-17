@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import aclosing
 from datetime import datetime
 from typing import Any, AsyncGenerator, Generic, Type, TypeVar, overload
 
@@ -197,8 +198,10 @@ class LogsAccessor(Generic[ResourceType]):
         request = self._request_builder.stream_logs(
             name, _namespace, options=options, request_timeout=request_timeout
         )
-        async for line in self._client.stream_lines(request):
-            yield line
+        # Closing this generator closes the line stream, and with it the response.
+        async with aclosing(self._client.stream_lines(request)) as lines:
+            async for line in lines:
+                yield line
 
 
 class _LogsDescriptor(CachedSubresourceDescriptor):

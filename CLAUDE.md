@@ -17,6 +17,9 @@ uv lock --python 3.13 && uv sync --python 3.13 --all-extras
 # Run tests (requires Docker for testcontainers/K3S)
 uv run pytest .
 
+# Run tests on free-threaded Python, in a venv of its own (keeps .venv as it is)
+UV_PROJECT_ENVIRONMENT=.cache/venv-3.14t uv sync --python 3.14t --all-extras && .cache/venv-3.14t/bin/python -m pytest .
+
 # Lint
 uv run ruff check .
 
@@ -93,6 +96,7 @@ kubex/                          # Main package — PEP 420 namespace package (no
 │       └── refreshable_token.py # Token refresh logic
 └── core/                       # Request/response primitives
     ├── exceptions.py           # Exception hierarchy (KubexException → KubexApiError → HTTP-specific)
+    ├── exception_groups.py     # raise_single(): re-raises a task group's lone exception with its __cause__/__context__ kept
     ├── request.py              # Request dataclass — `query_params: dict[str, str]` for the standard case;
                                 #   `query_param_pairs: list[tuple[str, str]]` for repeated keys (e.g. exec `command=` entries),
                                 #   forwarded as-is by both http clients in `connect_websocket()` when set
@@ -265,7 +269,7 @@ lychee.toml                     # Link checker configuration
 
 - **Package manager**: [uv](https://github.com/astral-sh/uv) with workspace support
 - **Build backend**: hatchling
-- **Python**: 3.11, 3.12, 3.13, 3.14, 3.15
+- **Python**: 3.11, 3.12, 3.13, 3.14, 3.15, and the free-threaded 3.14t and 3.15t builds
 - **Workspace members**: `packages/*` (kubex-core, kubex-k8s-1-32 through kubex-k8s-1-38)
 - **Core deps**: `pydantic>=2.0,<3`, `pyyaml>=6.0.2`, `kubex-core` (workspace), `anyio>=4.6.0`
 - **Optional deps** (install via `--all-extras` or individually):
