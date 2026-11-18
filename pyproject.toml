@@ -109,6 +109,7 @@ docs = [
 ]
 dev = [
     "kubex-k8s-1-35",
+    "kubex-runtime",
     "mypy==2.4.0",
     "pre-commit>=4.0.1",
     "pytest-cov>=5.0.0",
@@ -152,6 +153,7 @@ kubex-k8s-1-35 = { workspace = true }
 kubex-k8s-1-36 = { workspace = true }
 kubex-k8s-1-37 = { workspace = true }
 kubex-k8s-1-38 = { workspace = true }
+kubex-runtime = { workspace = true }
 
 [tool.ruff.lint.isort]
 known-first-party = [
@@ -163,6 +165,7 @@ known-first-party = [
 	"kubex.k8s.v1_37",
 	"kubex.k8s.v1_38",
 	"kubex_core",
+	"kubex_runtime",
 	"kubex",
 ]
 

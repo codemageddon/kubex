@@ -4,9 +4,10 @@
 # have a trusted publisher configured in its PyPI project settings at:
 #   https://pypi.org/manage/project/<package-name>/settings/publishing/
 #
-# Configure the following trusted publisher for EACH of the 9 packages:
+# Configure the following trusted publisher for EACH of the 10 packages:
 #   - kubex
 #   - kubex-core
+#   - kubex-runtime
 #   - kubex-k8s-1-32
 #   - kubex-k8s-1-33
 #   - kubex-k8s-1-34
@@ -43,7 +44,9 @@ jobs:
           # Only kubex (the umbrella) and kubex-core (the shared base models)
           # are required to match the tag. The generated kubex-k8s-* packages
           # are versioned independently — they track Kubernetes minor releases
-          # and do not need to be re-published on every kubex release.
+          # and do not need to be re-published on every kubex release. So is
+          # kubex-runtime; skip-existing publishes it only when its version
+          # changes.
           KUBEX_VERSION=$(sed -n 's/^VERSION = "\(.*\)"/\1/p' kubex/__version__.py)
           if [ "$KUBEX_VERSION" != "$TAG_VERSION" ]; then
             echo "::error::kubex version mismatch: got '${KUBEX_VERSION}', expected '${TAG_VERSION}'"
@@ -79,12 +82,14 @@ jobs:
 
       - name: Build packages
         run: |
-          # Build in dependency order: kubex-core first, then k8s packages, then kubex
+          # Build in dependency order: kubex-core first, then k8s packages, then
+          # kubex, then kubex-runtime
           uv build packages/kubex-core --out-dir dist/
           for pkg in packages/kubex-k8s-*/; do
             uv build "$pkg" --out-dir dist/
           done
           uv build --out-dir dist/
+          uv build packages/kubex-runtime --out-dir dist/
 
       - name: List built distributions
         run: ls -la dist/

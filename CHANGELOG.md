@@ -12,6 +12,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `kubex_core.models.admission`: `AdmissionReview`, `AdmissionRequest` and `AdmissionResponse`
   (`admission.k8s.io/v1`) for admission webhooks. `AdmissionReview` and `AdmissionRequest` are
   generic over the request's object type; `AdmissionRequest.allow()`/`deny()` build the response.
+- `kubex-runtime` (alpha, a separate package): a controller runtime ported from kube.rs's
+  kube-runtime — `watcher()`, `reflector()`/`Store`, `Controller`, `finalizer()` — on asyncio
+  and trio.
+- `kubex-runtime` on free-threaded Python: stores, subscriptions and shared reflectors can be used
+  from several threads and event loops.
+- `WatcherConfig.initial_list_strategy`: paged lists, a streaming list (`sendInitialEvents`), or
+  a streaming list that falls back to paged lists when the API server does not support it (the
+  default).
+- `Controller.waits_for(*stores)`: holds reconciles until other stores, such as the cache of
+  owned objects, are ready.
+- `SharedReflector` and `shared_reflector()`: one watch and store shared by several controllers
+  through `Controller.for_shared`, `owns_shared` and `watches_shared`, which subscribe when the
+  controller runs, wait for the store, and take `adapt=` to filter triggers.
+- A controller logs a warning when its stores are still not ready after 60 s.
 
 ## [0.1.0-beta.5] - 2026-11-17
 

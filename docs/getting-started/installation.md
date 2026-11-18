@@ -102,6 +102,24 @@ For most users, pick one HTTP client and one K8s version:
     # or: pip install "kubex[httpx-ws,k8s-1.35]"
     ```
 
+## Controller runtime
+
+Watchers, reflectors, controllers and finalizers for building operators ship in a separate package, `kubex-runtime` (alpha):
+
+=== "uv"
+
+    ```shell
+    uv add kubex-runtime "kubex[aiohttp,k8s-1.35]"
+    ```
+
+=== "pip"
+
+    ```shell
+    pip install kubex-runtime "kubex[aiohttp,k8s-1.35]"
+    ```
+
+See [Controller runtime](../runtime/index.md).
+
 ## Python version support
 
 Kubex is tested and supported on Python 3.11 through 3.15.

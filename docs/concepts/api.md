@@ -51,7 +51,9 @@ pod = await api.get("web-server")  # uses "production"
 
 Omitting `namespace=` entirely (rather than passing `None`) falls back to the client's configured
 namespace for namespace-scoped resources — set by `configure_from_pod_env()` from the pod's own
-service-account namespace file when running in-cluster, `None` (all-namespaces) otherwise:
+service-account namespace file when running in-cluster, and by `configure_from_kubeconfig()` from the
+context's namespace (`default` when the context sets none) otherwise. Only a `ClientConfiguration`
+built by hand without `namespace=` leaves it unset, which means all namespaces:
 
 ```python
 from kubex.client import create_client

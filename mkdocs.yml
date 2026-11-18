@@ -40,7 +40,7 @@ plugins:
   - mkdocstrings:
       handlers:
         python:
-          paths: [".", "packages/kubex-core"]
+          paths: [".", "packages/kubex-core", "packages/kubex-runtime"]
           options:
             show_signature_annotations: true
             separate_signature: true
@@ -115,6 +115,14 @@ nav:
       - Clients & Runtimes: advanced/clients-runtimes.md
       - Authentication: advanced/authentication.md
       - Benchmarks: advanced/benchmarks.md
+  - Runtime:
+      - runtime/index.md
+      - Watcher: runtime/watcher.md
+      - Reflectors & Stores: runtime/reflector.md
+      - Controller: runtime/controller.md
+      - Finalizers: runtime/finalizer.md
+      - Several Controllers: runtime/shared-reflectors.md
+      - Threads & Free-threading: runtime/threads.md
   - API Reference:
       - reference/index.md
       - kubex.api: reference/api.md
@@ -122,4 +130,5 @@ nav:
       - kubex.configuration: reference/configuration.md
       - kubex.core: reference/core.md
       - kubex-core: reference/kubex-core.md
+      - kubex-runtime: reference/runtime.md
   - Contributing: contributing.md

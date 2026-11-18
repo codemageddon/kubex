@@ -2,6 +2,9 @@
 
 `api.watch()` opens a long-lived HTTP stream and yields `WatchEvent` objects as the Kubernetes API server emits them. It is an async generator — use it inside an `async for` loop.
 
+!!! tip "Long-running watches"
+    For a watch that should run for the life of a process, [`watcher()`](../runtime/watcher.md) from `kubex-runtime` does the listing, resuming, re-listing and retrying described below for you.
+
 ## Basic usage
 
 ```python

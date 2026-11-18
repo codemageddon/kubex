@@ -79,3 +79,4 @@ async with await create_client() as client:
 - [Installation](getting-started/installation.md) — install Kubex and its optional extras
 - [Quickstart](getting-started/quickstart.md) — connect to your cluster and make your first request
 - [Concepts](concepts/index.md) — understand the API design, client model, and resource configuration
+- [Controller runtime](runtime/index.md) — build controllers and operators with `kubex-runtime`
