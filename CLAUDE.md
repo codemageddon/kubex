@@ -141,6 +141,9 @@ packages/                       # Workspace packages
 │       ├── status.py           # Status response model
 │       ├── scale.py            # Scale subresource model
 │       ├── eviction.py         # Eviction subresource model (policy/v1)
+│       ├── admission.py        # AdmissionReview/AdmissionRequest/AdmissionResponse (admission.k8s.io/v1, hand-written: not in the
+│                               #   OpenAPI spec); review and request generic over request.object; allow()/deny() copy the uid; patch is bytes
+│                               #   (base64 on the wire), an empty allow(patch=) sends none
 │       └── partial_object_meta.py # Partial metadata variant
 └── kubex-k8s-{1-32..1-38}/     # Generated Kubernetes resource models (one package per K8s version)
     └── kubex/k8s/v1_NN/        # ~666 generated model files across ~30 API groups
@@ -202,6 +205,7 @@ test/                           # Test suite
 ├── test_api_request_validation.py # Api-level name/namespace validation (nothing reaches the client)
 ├── test_free_threading.py      # Free-threaded builds only (skipped elsewhere): importing kubex + httpx_ws/trio keeps the GIL off
 ├── test_models/                # Unit tests for kubex-core models, field types and generated-model behaviour
+│   ├── test_admission.py       # AdmissionReview parsing (typed + raw objects), allow()/deny() wire output, base64 patch
 │   └── test_eviction.py        # Eviction model tests
 ├── test_patch/                 # Unit tests for patch models
 │   ├── test_json_patch.py      # JSON Patch operation model tests
@@ -253,7 +257,7 @@ docs/                           # MkDocs documentation site source
 ├── concepts/                   # Core concept explanations (Api, clients, config, exceptions, subresources)
 ├── operations/                 # CRUD, watch, patch, timeouts
 ├── subresources/               # Per-subresource pages (logs, metadata, scale, status, eviction, ephemeral-containers, resize, exec, attach, portforward)
-├── advanced/                   # Advanced topics (multi-version K8s, clients/runtimes, auth, benchmarks)
+├── advanced/                   # Advanced topics (multi-version K8s, custom resources, admission webhooks, clients/runtimes, auth, benchmarks)
 └── reference/                  # Auto-generated API reference via mkdocstrings
 mkdocs.yml                      # MkDocs configuration (theme, nav, plugins)
 lychee.toml                     # Link checker configuration

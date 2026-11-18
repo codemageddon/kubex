@@ -20,6 +20,14 @@ This section covers advanced topics for production use and deeper integration.
 
     [Custom Resources](custom-resources.md)
 
+-   **Admission Webhooks**
+
+    ---
+
+    Parse the `AdmissionReview` the API server sends to a validating or mutating webhook, with a typed `request.object`, and build the reply with `allow()` / `deny()`.
+
+    [Admission Webhooks](admission-webhooks.md)
+
 -   **Clients & Runtimes**
 
     ---

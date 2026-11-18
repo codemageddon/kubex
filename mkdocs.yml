@@ -111,6 +111,7 @@ nav:
       - advanced/index.md
       - Multi-version K8s: advanced/multi-version-k8s.md
       - Custom Resources: advanced/custom-resources.md
+      - Admission Webhooks: advanced/admission-webhooks.md
       - Clients & Runtimes: advanced/clients-runtimes.md
       - Authentication: advanced/authentication.md
       - Benchmarks: advanced/benchmarks.md
