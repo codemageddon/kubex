@@ -10,5 +10,6 @@ Contains:
 - `kubex_core.models.resource_config` — `ResourceConfig` descriptor + `Scope`.
 - `kubex_core.models.metadata` — `ObjectMetadata`, `ListMetadata`, `OwnerReference`.
 - `kubex_core.models.list_entity`, `partial_object_meta`, `status`, `scale`.
+- `kubex_core.models.admission` — `AdmissionReview`, `AdmissionRequest`, `AdmissionResponse` (`admission.k8s.io/v1`) for admission webhooks.
 
 This package is a runtime dependency of the `kubex` client and every generated resource package. End users generally install `kubex` + one `kubex-k8s-*` of choice; this package is pulled in transitively.

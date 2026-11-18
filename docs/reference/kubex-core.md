@@ -32,6 +32,10 @@ Auto-generated reference for the `kubex_core` package — the shared base models
 
 ::: kubex_core.models.eviction
 
+## Admission
+
+::: kubex_core.models.admission
+
 ## Partial metadata
 
 ::: kubex_core.models.partial_object_meta

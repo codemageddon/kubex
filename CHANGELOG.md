@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `kubex_core.models.admission`: `AdmissionReview`, `AdmissionRequest` and `AdmissionResponse`
+  (`admission.k8s.io/v1`) for admission webhooks. `AdmissionReview` and `AdmissionRequest` are
+  generic over the request's object type; `AdmissionRequest.allow()`/`deny()` build the response.
+
 ## [0.1.0-beta.5] - 2026-11-17
 
 ### Added
